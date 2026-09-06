@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Store — Volant Mall</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="index.html">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+            </a>
+            <div class="topbar-right">
+                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+                <button class="icon-btn" id="cartOpenBtn" title="Cart" onclick="location.href='index.html?buy=1'">
+                    <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartCount">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="storeBanner"></div>
+
+    <div class="container">
+        <section class="section" id="storeProducts">
+            <div class="section-head"><h2>Store Products</h2></div>
+            <div class="grid" id="productGrid"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+        </section>
+    </div>
+
+    <footer class="site-footer">
+        <div class="foot-inner">
+            <div class="foot-col">
+                <h4>Volant Mall</h4>
+                <a href="index.html">Shop</a>
+                <a href="submit.html">Become a Seller</a>
+                <a href="orders.html">My Orders</a>
+                <a href="faq.html">How it Works & FAQ</a>
+            </div>
+            <div class="foot-col">
+                <h4>Help</h4>
+                <a href="../../shared/terms.html">Terms</a>
+                <a href="../../shared/privacy.html">Privacy</a>
+                <a href="../../shared/contact.html">Contact</a>
+            </div>
+            <div class="foot-col">
+                <h4>Platform</h4>
+                <a href="../../index.html">Volant Poetry</a>
+                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantreads.vercel.app/">Volant Reads</a>
+                <a href="../../codes/index.html">Volant Codes</a>
+            </div>
+        </div>
+        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+    </footer>
+
+    <div id="toast"></div>
+
+    <script src="app.js"></script>
+    <script>
+    let storeId = null;
+    let products = [];
+
+    async function loadStore() {
+        storeId = new URLSearchParams(location.search).get('store');
+        if (!storeId) { showError('No store selected.'); return; }
+
+        try {
+            const [sellerSnap, prodSnap, revSnap] = await Promise.all([
+                db.collection('mall-sellers').doc(storeId).get(),
+                db.collection('mall-products').where('ownerId', '==', storeId).where('status', 'in', ['active', 'stockout']).get(),
+                db.collection('mall-reviews').where('sellerId', '==', storeId).get()
+            ]);
+
+            if (!sellerSnap.exists) { showError('This store does not exist.'); return; }
+            const s = sellerSnap.data();
+
+            let revCount = 0, revAvg = 0;
+            revSnap.forEach(doc => { const r = doc.data(); revCount++; revAvg += (Number(r.rating) || 0); });
+            if (revCount > 0) revAvg = Math.round(revAvg / revCount * 10) / 10;
+
+            document.title = (s.storeName || 'Store') + ' — Volant Mall';
+            document.getElementById('storeBanner').innerHTML = `
+                <div class="store-banner ${s.bannerUrl ? 'has-banner' : ''}" ${s.bannerUrl ? `style="--banner-bg:url('${escapeHtml(s.bannerUrl)}');"` : ''}>
+                    <div class="store-banner-inner">
+                        <div class="s-avatar">${s.logoUrl ? `<img src="${escapeHtml(s.logoUrl)}" alt="">` : escapeHtml((s.storeName || 'S').charAt(0).toUpperCase())}</div>
+                        <div>
+                            <h1>${escapeHtml(s.storeName || 'Store')}</h1>
+                            ${s.bio ? `<div class="s-bio">${escapeHtml(s.bio)}</div>` : ''}
+                            <div class="s-meta">
+                                ${revCount ? `<span class="stars">${starsHTML(revAvg)} <b>${revAvg.toFixed(1)}</b> (${revCount})</span>` : `<span class="stars off">★★★★★ <span style="color:#e8dfff;">No reviews yet</span></span>`}
+                                ${s.city ? `<span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s.city)}${s.location ? ' — ' + escapeHtml(s.location) : ''}</span>` : ''}
+                                <span><i class="fas fa-tag"></i> ${escapeHtml(s.customCategory || catLabel(s.category))}</span>
+                                <span><i class="fas fa-box-open"></i> ${prodSnap.size} product${prodSnap.size === 1 ? '' : 's'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            products = [];
+            prodSnap.forEach(doc => {
+                const d = doc.data();
+                products.push({
+                    id: doc.id,
+                    title: d.title,
+                    price: Number(d.price) || 0,
+                    images: d.images || [],
+                    status: d.status,
+                    stock: Number(d.stock) || 0
+                });
+            });
+            renderProducts();
+        } catch (err) {
+            console.error(err);
+            showError('Error loading store.');
+        }
+    }
+
+    function catLabel(key) {
+        const c = MALL_CATEGORIES.find(x => x.key === key);
+        return c ? c.label : 'Other';
+    }
+
+    function starsHTML(rating) {
+        const full = Math.round(rating) || 0;
+        let s = '';
+        for (let i = 1; i <= 5; i++) s += `<span class="${i <= full ? '' : 'off'}">★</span>`;
+        return `<span class="stars">${s}</span>`;
+    }
+
+    function showError(msg) {
+        document.getElementById('storeBanner').innerHTML = '';
+        document.getElementById('productGrid').innerHTML = `<div class="empty-state"><i class="fas fa-store-slash"></i><p>${escapeHtml(msg)}</p><a class="btn btn-primary btn-sm" href="index.html">Back to mall</a></div>`;
+    }
+
+    function renderProducts() {
+        const grid = document.getElementById('productGrid');
+        if (products.length === 0) {
+            grid.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>No products listed yet.</p></div>`;
+            return;
+        }
+        grid.innerHTML = products.map(p => {
+            const out = p.status === 'stockout' || p.stock <= 0;
+            return `
+            <div class="pcard">
+                <a class="thumb" href="details.html?id=${encodeURIComponent(p.id)}">
+                    ${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" loading="lazy" alt="${escapeHtml(p.title)}">` : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
+                </a>
+                <div class="body">
+                    <span class="ptitle"><a href="details.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a></span>
+                    <div class="price-row">
+                        <span class="price">${formatGHS(p.price)}</span>
+                        <span class="stock-tag ${out ? 'out' : ''}">${out ? 'Out of stock' : 'In stock'}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function accountClick() {
+        if (currentUser) signOutUser(); else requireAuth('index.html');
+    }
+
+    loadStore();
+    </script>
+</body>
+</html>

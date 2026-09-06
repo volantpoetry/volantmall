@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Sign In · Volant Mall</title>
+
+  <script>
+    // Simple console blocker - production only
+    (function() {
+        if (window.location.hostname.includes('localhost') || 
+            window.location.hostname.includes('127.0.0.1')) {
+            return; // Allow in development
+        }
+        
+        // Block all console methods
+        var methods = ['log', 'info', 'warn', 'error', 'debug', 'trace', 'table', 'group', 'groupEnd', 'dir'];
+        methods.forEach(function(m) {
+            console[m] = function() {};
+            try {
+                Object.defineProperty(console, m, { configurable: false, writable: false });
+            } catch(e) {}
+        });
+        
+        window.onerror = function() { return true; };
+        window.onunhandledrejection = function() { return true; };
+    })();
+</script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+
+ <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(145deg, #f6f4fc 0%, #edebf5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      margin: 0;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 40px;
+      padding: 2.5rem 2.2rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 
+        0 30px 60px -20px rgba(0,0,0,0.25),
+        0 8px 24px rgba(0,0,0,0.04),
+        inset 0 1px 0 rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.2s ease;
+    }
+
+    .back-link,
+    .breadcrumb {
+      display: none !important;
+    }
+
+    .platform-badge {
+      display: inline-block;
+      padding: 0.45rem 1.2rem;
+      border-radius: 60px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      background: #4b2aad;
+      color: white;
+      margin-bottom: 1.2rem;
+      box-shadow: 0 4px 8px rgba(75, 42, 173, 0.15);
+      transition: 0.2s;
+    }
+    .platform-badge.poetry { background: linear-gradient(135deg, #4b2aad, #7a4fdb); }
+    .platform-badge.reads { background: linear-gradient(135deg, #d4a574, #c9944d); }
+    .platform-badge.foundry { background: linear-gradient(135deg, #2c3e50, #4a627a); }
+    .platform-badge.mall { background: linear-gradient(135deg, #4b2aad, #f59e0b); }
+
+    h2 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #1d1a2b;
+      margin: 0.2rem 0 0.2rem;
+    }
+    .subtitle {
+      color: #6b677a;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      font-weight: 400;
+      border-left: 3px solid #4b2aad;
+      padding-left: 0.8rem;
+      background: rgba(75, 42, 173, 0.02);
+      border-radius: 0 4px 4px 0;
+    }
+
+    .google-btn {
+      width: 100%;
+      padding: 0.9rem;
+      border: 2px solid #e4e0ed;
+      border-radius: 40px;
+      background: white;
+      color: #1d1a2b;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-family: 'Inter', sans-serif;
+      margin-bottom: 1.2rem;
+    }
+    .google-btn:hover:not(:disabled) {
+      background: #f8f7fc;
+      border-color: #4b2aad;
+      transform: scale(1.01);
+      box-shadow: 0 4px 12px rgba(75, 42, 173, 0.1);
+    }
+    .google-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .google-btn i {
+      font-size: 1.2rem;
+      color: #4285f4;
+    }
+    .google-btn .google-text {
+      color: #1d1a2b;
+    }
+
+    .divider-text {
+      text-align: center;
+      margin: 1rem 0 1.2rem;
+      color: #bfbad0;
+      font-size: 0.8rem;
+      letter-spacing: 0.3px;
+      position: relative;
+    }
+    .divider-text::before,
+    .divider-text::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 30%;
+      height: 1px;
+      background: #e4e0ed;
+    }
+    .divider-text::before { left: 0; }
+    .divider-text::after { right: 0; }
+
+    .recaptcha-container {
+      display: flex;
+      justify-content: center;
+      margin: 1.2rem 0 0.5rem;
+    }
+    .recaptcha-container > div {
+      transform: scale(0.95);
+      transform-origin: center;
+    }
+
+    form label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #2b263b;
+      margin: 1.4rem 0 0.35rem;
+      letter-spacing: 0.2px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      border: 1.5px solid #e4e0ed;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      background: rgba(255,255,255,0.5);
+      backdrop-filter: blur(4px);
+      transition: 0.2s;
+      font-family: 'Inter', sans-serif;
+      color: #1d1a2b;
+      outline: none;
+    }
+    input:focus {
+      border-color: #4b2aad;
+      box-shadow: 0 0 0 4px rgba(75, 42, 173, 0.08);
+      background: white;
+    }
+    input::placeholder {
+      color: #b2adc4;
+      font-weight: 400;
+    }
+
+    .password-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    .password-eye {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 1.1rem;
+      user-select: none;
+      color: #9a94af;
+      padding: 4px 6px;
+      border-radius: 30px;
+      transition: 0.15s;
+      line-height: 1;
+    }
+    .password-eye:hover { background: rgba(75, 42, 173, 0.06); color: #4b2aad; }
+    .password-eye.showing { color: #4b2aad; background: rgba(75, 42, 173, 0.08); }
+
+    .btn-primary {
+      width: 100%;
+      padding: 0.95rem;
+      margin-top: 1.8rem;
+      border: none;
+      border-radius: 40px;
+      background: #4b2aad;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 8px 18px rgba(75, 42, 173, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #3a1f85;
+      transform: scale(1.01);
+      box-shadow: 0 10px 24px rgba(75, 42, 173, 0.25);
+    }
+    .btn-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .status {
+      margin-top: 1.2rem;
+      padding: 0.8rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      display: none;
+      font-weight: 500;
+      background: #f5f3fa;
+      border: 1px solid transparent;
+    }
+    .status.show { display: block; }
+    .status.success {
+      background: #eaf6ed;
+      color: #1f6b44;
+      border-color: #b7dfc9;
+    }
+    .status.error {
+      background: #fdeded;
+      color: #b33c3c;
+      border-color: #f5d0d0;
+    }
+    .status.info {
+      background: #e8edfd;
+      color: #2a4a9e;
+      border-color: #c8d4f5;
+    }
+
+    .account-check {
+      background: rgba(245, 242, 252, 0.5);
+      backdrop-filter: blur(4px);
+      padding: 1rem 1rem;
+      border-radius: 30px;
+      margin-top: 1.8rem;
+      text-align: center;
+      font-size: 0.9rem;
+      border: 1px solid rgba(75, 42, 173, 0.04);
+    }
+    .account-check a {
+      color: #4b2aad;
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1.5px dotted transparent;
+      transition: 0.1s;
+    }
+    .account-check a:hover { border-bottom-color: #4b2aad; }
+
+    .links {
+      text-align: center;
+      margin-top: 1.2rem;
+    }
+    .links a {
+      color: #6b677a;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.15s;
+      border-bottom: 1px solid transparent;
+    }
+    .links a:hover { color: #4b2aad; border-bottom-color: #4b2aad; }
+
+    .divider {
+      display: none !important;
+    }
+
+    .loading-spinner { display: none; }
+    .spinner {
+      border: 2.5px solid rgba(255,255,255,0.2);
+      border-top: 2.5px solid white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    @media (max-width: 500px) {
+      .container { padding: 1.8rem 1.4rem; border-radius: 28px; }
+      h2 { font-size: 1.6rem; }
+      .platform-badge { font-size: 0.65rem; padding: 0.3rem 1rem; }
+      .recaptcha-container > div { transform: scale(0.8); }
+    }
+
+    /* ===== GOOGLE SIGN-IN BUTTON - DEEP COLORS ALWAYS, LIGHTER ON HOVER ===== */
+.google-btn {
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 40px;
+  background: #ffffff;
+  color: #1d1a2b;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 1.2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  position: relative;
+  border: 2px solid #e4e0ed;
+}
+
+/* ===== GOOGLE COLORED BORDER - DEEP & ALWAYS VISIBLE ===== */
+.google-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 42px;
+  padding: 2px;
+  background: linear-gradient(135deg, #4285f4, #ea4335, #fbbc05, #34a853);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+/* ===== HOVER - LIGHTER COLORS ===== */
+.google-btn:hover:not(:disabled)::before {
+  opacity: 0.4;
+}
+
+.google-btn:hover:not(:disabled) {
+  background: #f8f7fc;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(66, 133, 244, 0.2);
+}
+
+.google-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ===== GOOGLE ICON - ALWAYS COLORED ===== */
+.google-btn i {
+  font-size: 1.3rem;
+  color: #4285f4;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+}
+
+.google-btn .google-text {
+  color: #1d1a2b;
+  font-weight: 600;
+}
+
+.google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.google-btn:disabled::before {
+  opacity: 0.3;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 500px) {
+  .google-btn {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .google-btn i {
+    font-size: 1.1rem;
+  }
+}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <a href="#" id="backLink" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
+
+  <div class="platform-badge" id="platformBadge">Volant Platform</div>
+
+  <div class="breadcrumb" id="breadcrumb">
+    <a href="#" id="breadcrumbHome">Home</a>
+    <span>›</span>
+    <span>Sign In</span>
+  </div>
+
+  <h2>Welcome back</h2>
+  <p class="subtitle">Sign in to your account</p>
+
+  <button id="googleSignInBtn" class="google-btn">
+    <i class="fab fa-google"></i>
+    <span class="google-text">Continue with Google</span>
+  </button>
+
+  <div class="divider-text">or continue with email</div>
+
+  <form id="login-form" class="auth-form">
+    <input type="hidden" name="returnUrl" id="returnUrl" value="">
+    
+    <label for="login-email">Email or username</label>
+    <input type="text" id="login-email" placeholder="you@example.com or username" autocomplete="email">
+
+    <label for="login-password">Password</label>
+    <div class="password-wrapper">
+      <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password">
+      <span id="toggle-password" class="password-eye"><i class="far fa-eye"></i></span>
+    </div>
+
+    <div class="recaptcha-container">
+      <div class="g-recaptcha" data-sitekey="6LfEe3wtAAAAACMvQc1vCwhgMtwvrH562PtKuXTU" data-callback="onRecaptchaSuccess"></div>
+    </div>
+
+    <button type="submit" class="btn-primary" id="login-button" disabled>
+      <span class="loading-spinner" id="spinner"><span class="spinner"></span></span>
+      <span id="buttonText">Sign In</span>
+    </button>
+  </form>
+
+  <div id="login-status" class="status"></div>
+
+  <div class="account-check">
+    <span>Don't have an account? </span>
+    <a href="#" id="goToSignup">Sign up</a>
+  </div>
+
+  <div class="links">
+    <a href="#" id="forgotPasswordLink">Forgot password?</a>
+  </div>
+
+  <div class="divider">secure · encrypted</div>
+</div>
+
+<script>
+  let recaptchaVerified = false;
+  
+  function onRecaptchaSuccess() {
+    recaptchaVerified = true;
+    const loginButton = document.getElementById('login-button');
+    loginButton.disabled = false;
+  }
+  
+  function onRecaptchaExpired() {
+    recaptchaVerified = false;
+    const loginButton = document.getElementById('login-button');
+    loginButton.disabled = true;
+    const statusEl = document.getElementById('login-status');
+    window.showStatus('⚠️ reCAPTCHA expired. Please verify again.', 'info');
+  }
+
+  window.showStatus = function(message, type = 'error') {
+    const statusEl = document.getElementById('login-status');
+    statusEl.textContent = message;
+    statusEl.className = `status show ${type}`;
+  };
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithRedirect
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC4DHI8aBVY4JjTvJ-r-TGIDPsewtEWxzU",
+    authDomain: "silent-depth.firebaseapp.com",
+    projectId: "silent-depth",
+    storageBucket: "silent-depth.firebasestorage.app",
+    messagingSenderId: "78008755450",
+    appId: "1:78008755450:web:3fd0f0f298a08820935543",
+    measurementId: "G-WSWDCB7KD8"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const platform = urlParams.get('platform') || 'mall';
+  const redirectUrl = urlParams.get('redirect');
+
+  const platformConfig = {
+    poetry: { name: 'Volant Poetry', badge: 'poetry', homeUrl: '../index.html', color: '#4b2aad' },
+    reads: { name: 'Volant Reads', badge: 'reads', homeUrl: '../store/index.html', color: '#d4a574' },
+    foundry: { name: 'Volant Foundry', badge: 'foundry', homeUrl: '../volant_foundry/volant_foundry/index.html', color: '#2c3e50' },
+    mall: { name: 'Volant Mall', badge: 'mall', homeUrl: 'index.html', color: '#f59e0b' }
+  };
+  const currentPlatform = platformConfig[platform] || platformConfig.poetry;
+
+  document.getElementById('platformBadge').textContent = currentPlatform.name;
+  document.getElementById('platformBadge').classList.add(currentPlatform.badge);
+
+  const loginForm = document.getElementById('login-form');
+  const loginButton = document.getElementById('login-button');
+  const statusEl = document.getElementById('login-status');
+  const passwordInput = document.getElementById("login-password");
+  const togglePassword = document.getElementById("toggle-password");
+  const goToSignup = document.getElementById('goToSignup');
+  const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+  const spinner = document.getElementById('spinner');
+  const buttonText = document.getElementById('buttonText');
+  const loginEmail = document.getElementById('login-email');
+  const googleSignInBtn = document.getElementById('googleSignInBtn');
+
+  togglePassword.addEventListener("click", () => {
+    const isPassword = passwordInput.type === "password";
+    passwordInput.type = isPassword ? "text" : "password";
+    togglePassword.classList.toggle("showing", isPassword);
+    togglePassword.innerHTML = isPassword ? '<i class="fas fa-eye-slash"></i>' : '<i class="far fa-eye"></i>';
+  });
+
+  goToSignup.addEventListener('click', (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    params.append('platform', platform);
+    if (redirectUrl) params.append('redirect', redirectUrl);
+    window.location.href = `signup.html?${params.toString()}`;
+  });
+  forgotPasswordLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    params.append('platform', platform);
+    if (redirectUrl) params.append('redirect', redirectUrl);
+    window.location.href = `users-reset.html?${params.toString()}`;
+  });
+
+  function showStatus(message, type = 'error') {
+    statusEl.textContent = message;
+    statusEl.className = `status show ${type}`;
+  }
+
+  // ============================================================
+  // ====== GET THE CORRECT RETURN URL ======
+  // ============================================================
+  
+  function getReturnUrl() {
+    // Priority 1: The 'redirect' query parameter
+    let returnUrl = redirectUrl;
+    
+    if (returnUrl) {
+      try {
+        returnUrl = decodeURIComponent(returnUrl);
+        // Validate it's a valid relative path
+        if (returnUrl.startsWith('/') || returnUrl.startsWith('../')) {
+          // Make sure it's not a login/signup page
+          const excludePages = ['login', 'signup', 'verify', 'reset', 'check-verification'];
+          if (!excludePages.some(page => returnUrl.includes(page))) {
+            console.log('✅ Using redirect URL from query param:', returnUrl);
+            return returnUrl;
+          }
+        }
+      } catch (e) {}
+    }
+    
+    // Priority 2: Session storage (set by the previous page)
+    let storedUrl = sessionStorage.getItem('returnUrl') || sessionStorage.getItem('preLoginPage');
+    
+    if (storedUrl && storedUrl !== 'null' && storedUrl !== 'undefined') {
+      try {
+        storedUrl = decodeURIComponent(storedUrl);
+        const excludePages = ['login', 'signup', 'verify', 'reset', 'check-verification'];
+        if (!excludePages.some(page => storedUrl.includes(page))) {
+          console.log('✅ Using stored return URL:', storedUrl);
+          return storedUrl;
+        }
+      } catch (e) {}
+    }
+    
+    // Priority 3: The page we came from (referrer)
+    const referrer = document.referrer;
+    if (referrer && !referrer.includes('login') && !referrer.includes('signup')) {
+      try {
+        const url = new URL(referrer);
+        const path = url.pathname + url.search;
+        if (path && path !== '/') {
+          console.log('✅ Using referrer URL:', path);
+          return path;
+        }
+      } catch (e) {}
+    }
+    
+    // Priority 4: Default home URL
+    console.log('ℹ️ Using default home URL:', currentPlatform.homeUrl);
+    return currentPlatform.homeUrl;
+  }
+
+  // ============================================================
+  // ====== REDIRECT AFTER LOGIN ======
+  // ============================================================
+  
+  function redirectAfterLogin() {
+    const returnUrl = getReturnUrl();
+    
+    // Clear storage
+    sessionStorage.removeItem('returnUrl');
+    sessionStorage.removeItem('preLoginPage');
+    localStorage.removeItem('returnUrl');
+    
+    console.log('🔄 Redirecting to:', returnUrl);
+    
+    // Small delay to ensure everything is saved
+    setTimeout(() => {
+      window.location.href = returnUrl;
+    }, 500);
+  }
+
+  // ============================================================
+  // ====== UNIQUE USERNAME GENERATOR ======
+  // ============================================================
+  
+  async function isUsernameTaken(username) {
+    if (!username || username.length < 3) return false;
+    try {
+      const q = query(collection(db, 'users'), where('username', '==', username));
+      const querySnap = await getDocs(q);
+      return !querySnap.empty;
+    } catch (err) {
+      console.error('Error checking username:', err);
+      return false;
+    }
+  }
+
+  async function generateUniqueUsername(baseName) {
+    if (!baseName || baseName.length < 3) {
+      baseName = 'user';
+    }
+    
+    let clean = baseName
+      .replace(/\s/g, '_')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '')
+      .substring(0, 11);
+    
+    if (!clean || clean.length < 3) {
+      clean = 'user_' + Math.random().toString(36).substring(2, 6);
+    }
+    
+    const taken = await isUsernameTaken(clean);
+    if (!taken) {
+      return clean;
+    }
+    
+    let counter = 1;
+    let newUsername;
+    do {
+      const suffix = counter.toString();
+      const maxLen = 11 - suffix.length;
+      const base = clean.substring(0, maxLen);
+      newUsername = base + suffix;
+      counter++;
+      if (counter > 100) break;
+    } while (await isUsernameTaken(newUsername));
+    
+    return newUsername || clean + '_' + Date.now().toString(36);
+  }
+
+  // ============================================================
+  // ====== GOOGLE SIGN-IN ======
+  // ============================================================
+  
+  let isGoogleSignInProgress = false;
+  
+  async function signInWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
+    googleSignInBtn.disabled = true;
+    googleSignInBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+    isGoogleSignInProgress = true;
+    
+    try {
+      showStatus('Connecting to Google...', 'info');
+      
+      let result;
+      try {
+        result = await signInWithPopup(auth, provider);
+      } catch (popupError) {
+        if (popupError.code === 'auth/popup-blocked' || 
+            popupError.code === 'auth/popup-closed-by-user' ||
+            popupError.code === 'auth/cancelled-popup-request') {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        throw popupError;
+      }
+      
+      const user = result.user;
+      console.log('✅ Google user:', user.email, 'UID:', user.uid);
+      
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        // New user - create document
+        console.log('🆕 New user detected');
+        
+        let baseUsername = user.displayName || user.email || 'user';
+        let finalUsername = await generateUniqueUsername(baseUsername);
+        
+        const userData = {
+          username: finalUsername,
+          email: user.email,
+          displayName: user.displayName || finalUsername,
+          photoURL: user.photoURL || '',
+          createdAt: new Date().toISOString(),
+          platform: platform,
+          emailVerified: user.emailVerified || false,
+          authProvider: 'google',
+          lastLogin: new Date().toISOString(),
+          isVerified: true
+        };
+        
+        await setDoc(userDocRef, userData);
+        console.log('✅ User created with username:', finalUsername);
+        
+        showStatus('✅ Account created! Username: ' + finalUsername, 'success');
+        
+        isGoogleSignInProgress = false;
+        redirectAfterLogin();
+        
+      } else {
+        // Existing user
+        console.log('👤 Existing user found');
+        
+        const userData = userDoc.data();
+        
+        // Update last login
+        await updateDoc(userDocRef, {
+          lastLogin: new Date().toISOString()
+        });
+        
+        // Add username if missing (legacy user)
+        if (!userData.username) {
+          let baseUsername = user.displayName || user.email || 'user';
+          let finalUsername = await generateUniqueUsername(baseUsername);
+          await updateDoc(userDocRef, { username: finalUsername });
+          console.log('✅ Username added for legacy user:', finalUsername);
+        }
+        
+        showStatus('✅ Welcome back!', 'success');
+        
+        isGoogleSignInProgress = false;
+        redirectAfterLogin();
+      }
+      
+    } catch (error) {
+      console.error('❌ Google Sign-In error:', error);
+      
+      let errorMessage = 'Google sign-in failed. Please try again.';
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        errorMessage = 'An account already exists with this email. Please sign in with your password.';
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled. Please contact support.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign-in cancelled. Please try again.';
+      }
+      
+      showStatus('❌ ' + errorMessage, 'error');
+      
+      googleSignInBtn.disabled = false;
+      googleSignInBtn.innerHTML = '<i class="fab fa-google"></i><span class="google-text">Continue with Google</span>';
+      isGoogleSignInProgress = false;
+    }
+  }
+
+  googleSignInBtn.addEventListener('click', signInWithGoogle);
+
+  // ============================================================
+  // ====== EMAIL LOGIN ======
+  // ============================================================
+  
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!recaptchaVerified) {
+      showStatus('⚠️ Please complete the reCAPTCHA verification.', 'error');
+      return;
+    }
+
+    const loginInput = loginEmail.value.trim();
+    const password = passwordInput.value;
+
+    loginButton.disabled = true;
+    spinner.style.display = 'inline';
+    buttonText.textContent = 'Signing in…';
+
+    try {
+      let emailToUse = loginInput;
+      if (!loginInput.includes("@")) {
+        const q = query(collection(db, "users"), where("username", "==", loginInput));
+        const querySnap = await getDocs(q);
+        if (querySnap.empty) {
+          showStatus("❌ Username or email not found");
+          loginButton.disabled = false;
+          spinner.style.display = 'none';
+          buttonText.textContent = 'Sign In';
+          return;
+        }
+        emailToUse = querySnap.docs[0].data().email;
+      }
+
+      const userCred = await signInWithEmailAndPassword(auth, emailToUse, password);
+      const user = userCred.user;
+
+      showStatus("⏳ Verifying email…", 'info');
+
+      for (let i = 0; i < 3; i++) {
+        await user.reload();
+        if (user.emailVerified) break;
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      if (!user.emailVerified) {
+        await signOut(auth);
+        localStorage.setItem('pendingVerificationEmail', user.email);
+        const params = new URLSearchParams();
+        params.append('email', user.email);
+        params.append('platform', platform);
+        if (redirectUrl) params.append('redirect', redirectUrl);
+        setTimeout(() => {
+          window.location.href = `verify-email.html?${params.toString()}`;
+        }, 1200);
+        return;
+      }
+
+      // ✅ SUCCESSFUL LOGIN - Redirect back
+      showStatus("✅ Login successful! Redirecting…", 'success');
+      
+      loginButton.disabled = false;
+      spinner.style.display = 'none';
+      buttonText.textContent = 'Sign In';
+      
+      redirectAfterLogin();
+
+    } catch (err) {
+      console.error("Login error:", err);
+      let errorMsg = "❌ " + err.message;
+      if (err.code === 'auth/user-not-found') errorMsg = "❌ Username or email not found";
+      else if (err.code === 'auth/wrong-password') errorMsg = "❌ Incorrect password";
+      else if (err.code === 'auth/too-many-requests') errorMsg = "❌ Too many failed attempts. Try again later.";
+      showStatus(errorMsg);
+      loginButton.disabled = false;
+      spinner.style.display = 'none';
+      buttonText.textContent = 'Sign In';
+    }
+  });
+
+  // ============================================================
+  // ====== AUTH STATE LISTENER (FIXED) ======
+  // ============================================================
+  
+  // Track if we're already redirecting to prevent loops
+  let isRedirecting = false;
+
+  onAuthStateChanged(auth, async (user) => {
+    // Skip if Google sign-in is in progress or we're already redirecting
+    if (isGoogleSignInProgress || isRedirecting) {
+      console.log('⏳ Sign-in in progress, skipping auth listener');
+      return;
+    }
+    
+    if (user && user.emailVerified) {
+      isRedirecting = true;
+      
+      try {
+        // Check if user document exists
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        // If user document doesn't exist, wait for sign-in handler
+        if (!userDoc.exists()) {
+          console.log('⚠️ User authenticated but no user document found. Waiting for sign-in handler...');
+          isRedirecting = false;
+          return;
+        }
+        
+        console.log('👤 Auth listener: User authenticated, redirecting...');
+        redirectAfterLogin();
+        
+      } catch (error) {
+        console.error('Error in auth listener:', error);
+        isRedirecting = false;
+      }
+    }
+  });
+
+  // ============================================================
+  // ====== STORE CURRENT PAGE BEFORE NAVIGATING ======
+  // ============================================================
+  
+  document.addEventListener('click', function(e) {
+    const link = e.target.closest('a');
+    if (link) {
+      const href = link.getAttribute('href');
+      if (href && (href.includes('login') || href.includes('signup') || href.includes('verify'))) {
+        const currentPage = window.location.pathname + window.location.search + window.location.hash;
+        sessionStorage.setItem('preLoginPage', currentPage);
+        sessionStorage.setItem('returnUrl', currentPage);
+        localStorage.setItem('returnUrl', currentPage);
+        console.log('📌 Stored pre-login page:', currentPage);
+      }
+    }
+  });
+
+  // ============================================================
+  // ====== RESTORE RETURN URL ON PAGE LOAD ======
+  // ============================================================
+  
+  (function restoreReturnUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let returnUrl = urlParams.get('returnUrl');
+    
+    if (returnUrl) {
+      try {
+        returnUrl = decodeURIComponent(returnUrl);
+      } catch (e) {}
+      
+      sessionStorage.setItem('returnUrl', returnUrl);
+      sessionStorage.setItem('preLoginPage', returnUrl);
+      localStorage.setItem('returnUrl', returnUrl);
+      
+      const hiddenInput = document.getElementById('returnUrl');
+      if (hiddenInput) {
+        hiddenInput.value = returnUrl;
+      }
+      
+      console.log('📌 Restored return URL from query param:', returnUrl);
+    }
+  })();
+
+</script>
+
+<script>
+(function() {
+    function getReturnUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let returnUrl = urlParams.get('returnUrl');
+        
+        if (!returnUrl) {
+            returnUrl = sessionStorage.getItem('returnUrl');
+        }
+        
+        if (!returnUrl) {
+            returnUrl = sessionStorage.getItem('preLoginPage');
+        }
+        
+        if (!returnUrl || returnUrl === 'null' || returnUrl === 'undefined') {
+            returnUrl = document.referrer || window.location.pathname;
+        }
+        
+        const excludePages = ['login', 'signup', 'verify', 'reset', 'check-verification'];
+        if (excludePages.some(page => returnUrl.includes(page))) {
+            returnUrl = null;
+        }
+        
+        if (returnUrl && returnUrl !== 'null' && returnUrl !== 'undefined') {
+            returnUrl = returnUrl.split('?')[0];
+            returnUrl = returnUrl.split('#')[0];
+            if (!returnUrl.startsWith('/') && !returnUrl.startsWith('http')) {
+                returnUrl = '/' + returnUrl;
+            }
+        }
+        
+        const platform = urlParams.get('platform') || 'mall';
+        const platformConfig = {
+            poetry: { homeUrl: '/index.html' },
+            reads: { homeUrl: '/store/index.html' },
+            foundry: { homeUrl: '/volant_foundry/index.html' },
+            mall: { homeUrl: 'index.html' }
+        };
+        const defaultHome = platformConfig[platform]?.homeUrl || 'index.html';
+        
+        return returnUrl || defaultHome;
+    }
+    
+    window.redirectAfterLogin = function() {
+        const returnUrl = getReturnUrl();
+        sessionStorage.removeItem('returnUrl');
+        sessionStorage.removeItem('preLoginPage');
+        localStorage.removeItem('returnUrl');
+        window.location.href = returnUrl;
+    };
+    
+    if (window.location.pathname.includes('login') || 
+        window.location.pathname.includes('signup')) {
+        const returnUrl = getReturnUrl();
+        if (returnUrl && !returnUrl.includes('login') && !returnUrl.includes('signup')) {
+            sessionStorage.setItem('returnUrl', returnUrl);
+            sessionStorage.setItem('preLoginPage', returnUrl);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                if (form.action && form.action.includes('login')) {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'returnUrl';
+                    hiddenInput.value = returnUrl || '/index.html';
+                    form.appendChild(hiddenInput);
+                }
+            });
+            
+            const hiddenInput = document.getElementById('returnUrl');
+            if (hiddenInput && returnUrl) {
+                hiddenInput.value = returnUrl;
+            }
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a');
+        if (link) {
+            const href = link.getAttribute('href');
+            if (href && (href.includes('login') || href.includes('signup') || href.includes('verify'))) {
+                const currentPath = window.location.pathname + window.location.search + window.location.hash;
+                if (!currentPath.includes('login') && !currentPath.includes('signup') && !currentPath.includes('verify')) {
+                    sessionStorage.setItem('returnUrl', currentPath);
+                    sessionStorage.setItem('preLoginPage', currentPath);
+                    localStorage.setItem('returnUrl', currentPath);
+                    console.log('📌 Stored return URL from click:', currentPath);
+                }
+            }
+        }
+    });
+    
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form && form.action && (form.action.includes('login') || form.action.includes('signup'))) {
+            const currentPath = window.location.pathname + window.location.search + window.location.hash;
+            if (!currentPath.includes('login') && !currentPath.includes('signup')) {
+                sessionStorage.setItem('returnUrl', currentPath);
+                sessionStorage.setItem('preLoginPage', currentPath);
+                localStorage.setItem('returnUrl', currentPath);
+            }
+            
+            let returnInput = form.querySelector('input[name="returnUrl"]');
+            if (!returnInput) {
+                returnInput = document.createElement('input');
+                returnInput.type = 'hidden';
+                returnInput.name = 'returnUrl';
+                form.appendChild(returnInput);
+            }
+            const storedUrl = sessionStorage.getItem('returnUrl') || sessionStorage.getItem('preLoginPage');
+            returnInput.value = storedUrl || '/index.html';
+        }
+    });
+    
+    console.log('✅ Smart Return URL Handler initialized');
+})();
+</script>
+</body>
+</html>

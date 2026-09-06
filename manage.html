@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Seller Dashboard — Volant Mall</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="index.html">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+            </a>
+            <div class="topbar-right">
+                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-plus-circle"></i> List Product</a>
+                <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-store"></i> Storefront</a>
+                <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="section" id="gate" style="display:none;">
+            <div class="empty-state">
+                <i class="fas fa-store"></i>
+                <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Seller dashboard</h2>
+                <p style="color:var(--ink-soft);margin-bottom:1.2rem;">Sign in as a seller to manage your store and orders.</p>
+                <button class="btn btn-primary" onclick="requireAuth('manage.html')"><i class="fas fa-sign-in-alt"></i> Sign in</button>
+            </div>
+        </section>
+
+        <div id="dash" style="display:none;">
+            <div class="section-head" style="margin-top:1.5rem;">
+                <h2>Hi, <span id="dashName">Seller</span> 👋</h2>
+                <a class="btn btn-outline btn-sm" id="storeLink" href="#" target="_self"><i class="fas fa-external-link-alt"></i> View my store</a>
+            </div>
+
+            <div class="stat-row" id="statsRow"></div>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" id="tProducts" onclick="switchTab('products')"><i class="fas fa-box-open"></i> Products</button>
+                <button class="tab-btn" id="tOrders" onclick="switchTab('orders')"><i class="fas fa-shipping-fast"></i> Orders</button>
+                <button class="tab-btn" id="tStore" onclick="switchTab('settings')"><i class="fas fa-store"></i> Store & Payouts</button>
+            </div>
+
+            <!-- PRODUCTS -->
+            <div id="tabProducts" class="section" style="padding-top:0.5rem;">
+                <div id="productList"></div>
+            </div>
+
+            <!-- ORDERS -->
+            <div id="tabOrders" class="section" style="display:none;padding-top:0.5rem;">
+                <div id="orderList"></div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div id="tabSettings" class="section" style="display:none;padding-top:0.5rem;max-width:720px;margin:0 auto;">
+                <div class="form-card">
+                    <h2>Store Settings</h2>
+                    <p class="sub">Update your store name, location and contact details.</p>
+                    <div class="form-field">
+                        <label>Store Logo & Banner</label>
+                        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                            <div class="logo-slot" id="mLogoSlot" onclick="pickManageImg('logo')"><i class="fas fa-image"></i></div>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="pickManageImg('banner')"><i class="fas fa-image"></i> Change banner</button>
+                        </div>
+                        <div class="form-hint">Square logo + wide banner for your storefront.</div>
+                    </div>
+                    <input type="file" id="mFileInput" accept="image/*" style="display:none;">
+                    <div class="brand-slot" id="mBannerSlot" onclick="pickManageImg('banner')"><i class="fas fa-image" style="margin-right:0.4rem;"></i> Tap or click "Change banner" to upload</div>
+                    <div class="form-field"><label>Store Name</label><input id="sName" /></div>
+                    <div class="form-field"><label>Main Category</label><select id="sCategory" onchange="toggleMOtherCat()"></select></div>
+                    <div class="form-field" id="sOtherCatWrap" style="display:none;">
+                        <label>Specify Category</label>
+                        <input id="sOtherCat" placeholder="e.g. Antiques, Handmade crafts, Art..." maxlength="60" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field"><label>City / Town</label><input id="sCity" /></div>
+                        <div class="form-field"><label>Contact Phone</label><input id="sPhone" /></div>
+                    </div>
+                    <div class="form-field"><label>Pickup / Shop Location</label><input id="sLocation" /><p class="form-hint" style="margin-top:0.2rem;">Not needed if your Main Category is Digital Products.</p></div>
+                    <div class="form-field"><label>About your store</label><textarea id="sBio" rows="3"></textarea></div>
+                    <button class="btn btn-primary btn-block" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
+                </div>
+
+                <div class="form-card" style="margin-top:1.3rem;">
+                    <h2>Payout Status</h2>
+                    <p class="sub">Where your sales money settles.</p>
+                    <div id="payoutCard" class="order-card" style="box-shadow:none;border:1px solid var(--line);">
+                        <div class="spinner-wrap"><div class="spinner"></div></div>
+                    </div>
+                    <p class="form-hint">Payouts are processed automatically by Paystack after each sale (bearer: account — Paystack 10% commission is deducted for the platform).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRODUCT EDIT MODAL -->
+    <div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeEditor()">
+        <div class="modal">
+            <h3 id="editTitle">Edit Product</h3>
+            <div class="form-field"><label>Product Title</label><input id="eTitle" /></div>
+<div class="form-row-3">
+                    <div class="form-field"><label>Category</label><select id="eCategory" onchange="toggleEOtherCat()"></select></div>
+                    <div class="form-field"><label>Price (GHS)</label><input id="ePrice" type="number" step="0.01" /></div>
+                    <div class="form-field"><label>Stock</label><input id="eStock" type="number" step="1" /></div>
+                </div>
+                <div class="form-field" id="eOtherCatWrap" style="display:none;">
+                    <label>Specify Category</label>
+                    <input id="eOtherCat" placeholder="e.g. Custom design, Artwork, Software..." maxlength="60" />
+                </div>
+            <div class="form-field"><label>Description</label><textarea id="eDesc" rows="3"></textarea></div>
+            <label class="check-row"><input type="checkbox" id="ePickup" /><div><div class="c-title">Offer pickup</div><div class="c-sub">Buyers collect the item.</div></div></label>
+            <div class="form-field"><label>Pickup Location</label><input id="ePickupLoc" /></div>
+            <label class="check-row"><input type="checkbox" id="eDelivery" /><div><div class="c-title">Offer delivery</div><div class="c-sub">Deliver for a fee.</div></div></label>
+            <div class="form-field"><label>Delivery Fee (GHS)</label><input id="eDelFee" type="number" step="0.01" /></div>
+            <button class="btn btn-primary btn-block" onclick="saveEdit()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="foot-inner">
+            <div class="foot-col">
+                <h4>Volant Mall</h4>
+                <a href="index.html">Shop</a>
+                <a href="submit.html">Become a Seller</a>
+                <a href="orders.html">My Orders</a>
+                <a href="faq.html">How it Works & FAQ</a>
+            </div>
+            <div class="foot-col">
+                <h4>Help</h4>
+                <a href="../../shared/terms.html">Terms</a>
+                <a href="../../shared/privacy.html">Privacy</a>
+                <a href="../../shared/contact.html">Contact</a>
+            </div>
+            <div class="foot-col">
+                <h4>Platform</h4>
+                <a href="../../index.html">Volant Poetry</a>
+                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantreads.vercel.app/">Volant Reads</a>
+                <a href="../../codes/index.html">Volant Codes</a>
+            </div>
+        </div>
+        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+    </footer>
+
+    <div id="toast"></div>
+
+    <script src="app.js"></script>
+    <script>
+    let myStore = null;
+    let myProducts = [];
+    let myOrders = [];
+    let editingId = null;
+
+    function onAppAuthChange(user) {
+        if (user) { document.getElementById('gate').style.display = 'none'; document.getElementById('dash').style.display = ''; loadDashboard(); }
+        else { document.getElementById('gate').style.display = ''; document.getElementById('dash').style.display = 'none'; }
+    }
+
+    async function loadDashboard() {
+        const uid = currentUser.uid;
+        try {
+            const storeSnap = await db.collection('mall-sellers').doc(uid).get();
+            if (!storeSnap.exists) {
+                document.getElementById('dash').innerHTML = `<div class="empty-state"><i class="fas fa-store-alt"></i><p>You haven't opened a store yet.</p><a class="btn btn-primary" href="submit.html">Open your store</a></div>`;
+                return;
+            }
+            myStore = storeSnap.data();
+            document.getElementById('dashName').textContent = myStore.storeName || 'Seller';
+            document.getElementById('storeLink').href = 'store.html?store=' + encodeURIComponent(uid);
+
+            const [prodSnap, ordSnap] = await Promise.all([
+                db.collection('mall-products').where('ownerId', '==', uid).orderBy('createdAt', 'desc').get(),
+                db.collection('mall-orders').where('sellerId', '==', uid).orderBy('purchasedAt', 'desc').limit(50).get()
+            ]);
+
+            myProducts = [];
+            prodSnap.forEach(doc => { const d = doc.data(); myProducts.push({ id: doc.id, ...d }); });
+            myOrders = [];
+            ordSnap.forEach(doc => { const d = doc.data(); myOrders.push({ id: doc.id, ...d }); });
+
+            renderStats();
+            renderProducts();
+            renderOrders();
+            fillSettings();
+            renderPayout();
+            buildCategorySelects();
+        } catch (err) {
+            console.error('Dashboard load error:', err);
+            if (String(err.message || '').includes('requires an index')) {
+                document.getElementById('dash').innerHTML = `<div class="empty-state"><p>Your Firestore needs an index for mall orders. Open Firebase Console → Firestore → Indexes and add it.</p></div>`;
+            } else {
+                document.getElementById('dash').innerHTML = `<div class="empty-state"><p>Could not load dashboard.</p></div>`;
+            }
+        }
+    }
+
+    function renderStats() {
+        const activeCount = myProducts.filter(p => p.status !== 'deleted').length;
+        const released = myOrders.filter(o => o.orderStatus === 'completed');
+        const earnings = released.reduce((s, o) => s + (Number(o.amount) || 0), 0);
+        const pending = myOrders.filter(o => o.orderStatus === 'processing').length;
+        document.getElementById('statsRow').innerHTML = `
+            <div class="stat"><div class="n">${activeCount}</div><div class="l">Products</div></div>
+            <div class="stat"><div class="n">${myOrders.length}</div><div class="l">Total Orders</div></div>
+            <div class="stat"><div class="n">${pending}</div><div class="l">Pending</div></div>
+            <div class="stat"><div class="n" style="color:var(--success);">${formatGHS(earnings)}</div><div class="l">Earned</div></div>
+        `;
+    }
+
+    function catLabel(key) {
+        const c = MALL_CATEGORIES.find(x => x.key === key);
+        return c ? c.label : 'Other';
+    }
+
+    function renderProducts() {
+        const list = document.getElementById('productList');
+        const live = myProducts.filter(p => p.status !== 'deleted');
+        if (!live.length) {
+            list.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>No products yet.</p><a class="btn btn-primary btn-sm" href="submit.html">List your first product</a></div>`;
+            return;
+        }
+        list.innerHTML = live.map(p => {
+            const stockOut = p.status === 'stockout' || p.stock <= 0;
+            return `
+            <div class="mproduct">
+                <div class="md-img">${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;font-size:1.2rem;"></i>`}</div>
+                <div class="md-body">
+                    <div class="md-title">${escapeHtml(p.title)}</div>
+                    <div class="md-sub">${escapeHtml(p.customCategory || catLabel(p.category))} · ${formatGHS(p.price)} · ${p.stock} left · ${p.saleCount || 0} sold</div>
+                    <div class="md-sub">${p.delivery ? '<i class="fas fa-truck"></i> Delivery ' + formatGHS(p.deliveryFee) : ''}${p.delivery && p.pickup ? ' · ' : ''}${p.pickup ? '<i class="fas fa-walking"></i> Pickup' : ''}</div>
+                </div>
+                <div class="md-actions">
+                    <button class="mini-btn" title="${stockOut ? 'Relist' : 'Mark out of stock'}" onclick="toggleStock('${p.id}')"><i class="fas ${stockOut ? 'fa-eye' : 'fa-eye-slash'}"></i></button>
+                    <button class="mini-btn" title="Edit" onclick="openEditor('${p.id}')"><i class="fas fa-pen"></i></button>
+                    <button class="mini-btn danger" title="Delete" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    async function toggleStock(id) {
+        try {
+            const p = myProducts.find(x => x.id === id);
+            const next = p.status === 'stockout' ? 'active' : 'stockout';
+            await db.collection('mall-products').doc(id).update({ status: next });
+            p.status = next;
+            renderProducts();
+            showToast(next === 'active' ? 'Product relisted.' : 'Marked out of stock.', 'success');
+        } catch (e) { console.error(e); showToast('Update failed.', 'error'); }
+    }
+
+    async function deleteProduct(id) {
+        if (!confirm('Delete this product? Buyers who already ordered keep their orders, but it will leave your store.')) return;
+        try {
+            await db.collection('mall-products').doc(id).update({ status: 'deleted', deletedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            myProducts = myProducts.filter(p => p.id !== id);
+            renderProducts();
+            showToast('Product removed.', 'success');
+        } catch (e) { console.error(e); showToast('Delete failed.', 'error'); }
+    }
+
+    function openEditor(id) {
+        const p = myProducts.find(x => x.id === id);
+        if (!p) return;
+        editingId = id;
+        document.getElementById('editTitle').textContent = 'Edit — ' + p.title;
+        document.getElementById('eTitle').value = p.title || '';
+        document.getElementById('ePrice').value = p.price || '';
+        document.getElementById('eStock').value = p.stock || '';
+        document.getElementById('eDesc').value = p.description || '';
+        document.getElementById('ePickup').checked = !!p.pickup;
+        document.getElementById('ePickupLoc').value = p.pickupLocation || '';
+        document.getElementById('eDelivery').checked = !!p.delivery;
+        document.getElementById('eDelFee').value = p.deliveryFee || '';
+        document.getElementById('eCategory').value = p.category || 'other';
+        document.getElementById('eOtherCat').value = p.customCategory || '';
+        toggleEOtherCat();
+        document.getElementById('modalBackdrop').classList.add('active');
+    }
+    function closeEditor() { document.getElementById('modalBackdrop').classList.remove('active'); editingId = null; }
+
+    async function saveEdit() {
+        if (!editingId) return;
+        const data = {
+            title: document.getElementById('eTitle').value.trim(),
+            price: parseFloat(document.getElementById('ePrice').value) || 0,
+            stock: parseInt(document.getElementById('eStock').value, 10) || 0,
+            description: document.getElementById('eDesc').value.trim(),
+            category: document.getElementById('eCategory').value,
+            pickup: document.getElementById('ePickup').checked,
+            pickupLocation: document.getElementById('ePickupLoc').value.trim(),
+            delivery: document.getElementById('eDelivery').checked,
+            deliveryFee: parseFloat(document.getElementById('eDelFee').value) || 0,
+            status: (parseInt(document.getElementById('eStock').value, 10) || 0) > 0 ? 'active' : 'stockout'
+        };
+        if (!data.title || data.price <= 0) { showToast('Enter a title and valid price.', 'error'); return; }
+        if (!data.delivery && !data.pickup) { showToast('Enable pickup, delivery, or both.', 'error'); return; }
+        if (data.category === 'other') {
+            data.customCategory = document.getElementById('eOtherCat').value.trim();
+            if (!data.customCategory) { showToast('Specify the product category.', 'error'); return; }
+        } else {
+            data.customCategory = '';
+        }
+        try {
+            await db.collection('mall-products').doc(editingId).update(data);
+            const p = myProducts.find(x => x.id === editingId);
+            Object.assign(p, data);
+            closeEditor();
+            renderProducts();
+            showToast('Product updated ✓', 'success');
+        } catch (e) { console.error(e); showToast('Update failed.', 'error'); }
+    }
+
+    function renderOrders() {
+        const list = document.getElementById('orderList');
+        if (!myOrders.length) {
+            list.innerHTML = `<div class="empty-state"><i class="fas fa-shipping-fast"></i><p>No orders yet. When someone buys, you'll see it here to fulfil.</p></div>`;
+            return;
+        }
+        list.innerHTML = myOrders.map(o => `
+            <div class="order-card">
+                <div class="order-head">
+                    <div>
+                        <div class="order-ref">#${escapeHtml(String(o.ref || o.id).slice(0, 18))}</div>
+                        <div class="order-date">${new Date(o.purchasedAt && o.purchasedAt.toDate ? o.purchasedAt.toDate() : Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    </div>
+                    <select class="status-badge" onchange="setOrderStatus('${o.id}', this.value)" style="border:1px solid var(--line);padding:0.3rem 0.7rem;border-radius:30px;font-size:0.78rem;font-weight:600;">
+                        <option value="processing" ${o.orderStatus === 'processing' ? 'selected' : ''}>Processing</option>
+                        <option value="completed" ${o.orderStatus === 'completed' ? 'selected' : ''}>Delivered / Completed</option>
+                        <option value="cancelled" ${o.orderStatus === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                    </select>
+                </div>
+                ${o.items.map(it => `
+                    <div class="order-item">
+                        <div class="oi-img">${it.image ? `<img src="${escapeHtml(it.image)}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;"></i>`}</div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600;font-size:0.9rem;">${escapeHtml(it.title)}</div>
+                            <div style="font-size:0.78rem;color:var(--ink-soft);">${it.qty} × ${formatGHS(it.price)}${it.fulfillment === 'delivery' ? ' · + ' + formatGHS(it.deliveryFee) + ' delivery' : ' · pickup'}</div>
+                        </div>
+                        <strong>${formatGHS((it.price * it.qty) + (it.fulfillment === 'delivery' ? (it.deliveryFee || 0) : 0))}</strong>
+                    </div>`).join('')}
+                <div class="order-meta">
+                    <span class="lab">Buyer contact</span><span>${escapeHtml(o.userPhone || '—')}</span>
+                    ${o.shipping ? `
+                        <span class="lab">Deliver to</span><span>${escapeHtml(o.shipping.name)} · ${escapeHtml(o.shipping.phone)}<br>${escapeHtml(o.shipping.address)}, ${escapeHtml(o.shipping.city)}, ${escapeHtml(o.shipping.region)}</span>` : ''}
+                    ${o.items && o.items.some(x => x.fulfillment === 'pickup') ? `<span class="lab">Pickup</span><span>${escapeHtml((o.items.find(x => x.fulfillment === 'pickup') || {}).pickupLocation || 'Arrange with buyer')}</span>` : ''}
+                    <span class="lab">Total</span><span><strong>${formatGHS(o.amount)}</strong></span>
+                </div>
+            </div>`).join('');
+    }
+
+    async function setOrderStatus(id, status) {
+        try {
+            await db.collection('mall-orders').doc(id).update({ orderStatus: status, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            const o = myOrders.find(x => x.id === id);
+            if (o) o.orderStatus = status;
+            renderStats();
+            showToast('Order marked ' + status + '.', 'success');
+        } catch (e) { console.error(e); showToast('Update failed.', 'error'); }
+    }
+
+    function switchTab(tab) {
+        ['tProducts', 'tOrders', 'tStore'].forEach(id => document.getElementById(id).classList.toggle('active', id === ('t' + tab.charAt(0).toUpperCase() + tab.slice(1))));
+        document.getElementById('tabProducts').style.display = tab === 'products' ? '' : 'none';
+        document.getElementById('tabOrders').style.display = tab === 'orders' ? '' : 'none';
+        document.getElementById('tabSettings').style.display = tab === 'settings' ? '' : 'none';
+    }
+
+    function fillSettings() {
+        if (!myStore) return;
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+        set('sName', myStore.storeName);
+        set('sCategory', myStore.category || 'other');
+        set('sOtherCat', myStore.customCategory);
+        set('sCity', myStore.city);
+        set('sPhone', myStore.phone);
+        set('sLocation', myStore.location);
+        set('sBio', myStore.bio);
+        toggleMOtherCat();
+        renderManageBranding();
+    }
+
+    let pendingMImg = { logo: null, banner: null };
+
+    function renderManageBranding() {
+        const logo = document.getElementById('mLogoSlot');
+        const banner = document.getElementById('mBannerSlot');
+        if (pendingMImg.logo) logo.innerHTML = `<img src="${pendingMImg.logo.url}" alt="">`;
+        else if (myStore && myStore.logoUrl) logo.innerHTML = `<img src="${escapeHtml(myStore.logoUrl)}" alt="">`;
+        else logo.innerHTML = `<i class="fas fa-image"></i>`;
+        if (pendingMImg.banner) banner.innerHTML = `<img src="${pendingMImg.banner.url}" alt="">`;
+        else if (myStore && myStore.bannerUrl) banner.innerHTML = `<img src="${escapeHtml(myStore.bannerUrl)}" alt="">`;
+        else banner.innerHTML = `<i class="fas fa-image" style="margin-right:0.4rem;"></i> Tap or click "Change banner" to upload`;
+    }
+
+    function pickManageImg(kind) {
+        const input = document.getElementById('mFileInput');
+        input.value = '';
+        input.onchange = () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) { showToast('Please choose an image file.', 'error'); return; }
+            if (file.size > 5 * 1024 * 1024) { showToast('Image is too large (max 5MB).', 'error'); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                pendingMImg[kind] = { file: file, url: e.target.result };
+                renderManageBranding();
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    }
+
+    function renderPayout() {
+        const card = document.getElementById('payoutCard');
+        if (!myStore) return;
+        if (myStore.subaccountCode) {
+            card.innerHTML = `
+                <div style="display:flex;gap:0.7rem;align-items:center;">
+                    <div style="width:44px;height:44px;border-radius:50%;background:var(--success-bg);color:var(--success);display:grid;place-items:center;"><i class="fas fa-check"></i></div>
+                    <div>
+                        <div style="font-weight:600;">Payouts active</div>
+                        <div style="font-size:0.82rem;color:var(--ink-soft);">Subaccount ${escapeHtml(myStore.subaccountCode)} · sales settle to your MoMo/bank</div>
+                    </div>
+                </div>`;
+        } else {
+            const found = (userData && (userData.payoutDetails)) ? true : false;
+            const foundFrom = [];
+            if (userData && userData.hasPayoutAccount && userData.subaccountCode) foundFrom.push('Volant Reads');
+            if (userData && userData.hasLyricsPayout && userData.lyricsSubaccountCode) foundFrom.push('Volant Lyrics');
+            const inner = found
+                ? `<div style="font-weight:600;">Review payout to activate</div>
+                   <div style="font-size:0.82rem;color:var(--ink-soft);">Your payout details from ${foundFrom.length ? escapeHtml(foundFrom.join(' & ')) : 'your account'} are ready — just review and save.</div>`
+                : `<div style="font-weight:600;">Payouts not set up</div>
+                   <div style="font-size:0.82rem;color:var(--ink-soft);">Orders can still be placed but your money won't settle automatically.</div>`;
+            card.innerHTML = `
+                <div style="display:flex;gap:0.7rem;align-items:center;">
+                    <div style="width:44px;height:44px;border-radius:50%;background:${found ? 'var(--accent-soft)' : 'var(--danger-bg)'};color:${found ? 'var(--accent)' : 'var(--danger)'};display:grid;place-items:center;"><i class="fas fa-${found ? 'info' : 'exclamation'}"></i></div>
+                    <div>
+                        ${inner}
+                        <a class="btn btn-primary btn-sm" style="margin-top:0.4rem;" href="submit.html"><i class="fas fa-edit"></i> ${found ? 'Review & activate' : 'Set up payouts'}</a>
+                    </div>
+                </div>`;
+        }
+    }
+
+    function buildCategorySelects() {
+        const opts = MALL_CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
+        document.getElementById('sCategory').innerHTML = opts;
+        document.getElementById('eCategory').innerHTML = opts;
+    }
+
+    function toggleMOtherCat() {
+        const wrap = document.getElementById('sOtherCatWrap');
+        if (wrap) wrap.style.display = document.getElementById('sCategory').value === 'other' ? '' : 'none';
+    }
+
+    function toggleEOtherCat() {
+        const wrap = document.getElementById('eOtherCatWrap');
+        if (wrap) wrap.style.display = document.getElementById('eCategory').value === 'other' ? '' : 'none';
+    }
+
+    async function saveSettings() {
+        const cat = document.getElementById('sCategory').value;
+        let customCategory = '';
+        if (cat === 'other') {
+            customCategory = document.getElementById('sOtherCat').value.trim();
+            if (!customCategory) { showToast('Specify your store category.', 'error'); return; }
+        }
+        const data = {
+            storeName: document.getElementById('sName').value.trim(),
+            category: cat,
+            customCategory: customCategory,
+            city: document.getElementById('sCity').value.trim(),
+            location: document.getElementById('sLocation').value.trim(),
+            bio: document.getElementById('sBio').value.trim(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (!data.storeName) { showToast('Store name is required.', 'error'); return; }
+        if (!data.location && cat !== 'digital') { showToast('Pickup / shop location is required.', 'error'); return; }
+        data.phone = document.getElementById('sPhone').value.trim();
+        try {
+            if (pendingMImg.logo || pendingMImg.banner) {
+                const up = async (kind) => {
+                    const p = pendingMImg[kind];
+                    if (!p) return myStore && myStore[kind + 'Url'] ? myStore[kind + 'Url'] : null;
+                    const ref = storage.ref('mall/' + currentUser.uid + '/store/' + kind + '.jpg');
+                    await ref.put(p.file);
+                    return ref.getDownloadURL();
+                };
+                data.logoUrl = await up('logo');
+                data.bannerUrl = await up('banner');
+            }
+            await db.collection('mall-sellers').doc(currentUser.uid).update(data);
+            myStore = { ...myStore, ...data };
+            document.getElementById('dashName').textContent = data.storeName;
+            pendingMImg = { logo: null, banner: null };
+            renderManageBranding();
+            showToast('Store updated ✓', 'success');
+        } catch (e) { console.error(e); showToast('Save failed.', 'error'); }
+    }
+
+    function accountClick() {
+        if (currentUser) signOutUser(); else requireAuth('manage.html');
+    }
+    </script>
+</body>
+</html>

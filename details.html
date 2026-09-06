@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Product — Volant Mall</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="index.html">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+            </a>
+            <div class="topbar-right">
+                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+                <button class="icon-btn" id="cartOpenBtn" title="Cart" onclick="goCart()">
+                    <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartCount">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container" id="detailWrap">
+        <div class="spinner-wrap" style="min-height:50vh;"><div class="spinner"></div></div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="foot-inner">
+            <div class="foot-col">
+                <h4>Volant Mall</h4>
+                <a href="index.html">Shop</a>
+                <a href="submit.html">Become a Seller</a>
+                <a href="orders.html">My Orders</a>
+                <a href="faq.html">How it Works & FAQ</a>
+            </div>
+            <div class="foot-col">
+                <h4>Help</h4>
+                <a href="../../shared/terms.html">Terms</a>
+                <a href="../../shared/privacy.html">Privacy</a>
+                <a href="../../shared/contact.html">Contact</a>
+            </div>
+            <div class="foot-col">
+                <h4>Platform</h4>
+                <a href="../../index.html">Volant Poetry</a>
+                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantreads.vercel.app/">Volant Reads</a>
+                <a href="../../codes/index.html">Volant Codes</a>
+            </div>
+        </div>
+        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+    </footer>
+
+    <div id="toast"></div>
+
+    <script src="app.js"></script>
+    <script>
+    let product = null;
+    let currentStock = 0;
+    let qty = 1;
+
+    async function loadProduct() {
+        const id = new URLSearchParams(location.search).get('id');
+        if (!id) { document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>No product selected.</p><a class="btn btn-primary" href="index.html">Go shopping</a></div>`; return; }
+
+        try {
+            const snap = await db.collection('mall-products').doc(id).get();
+            if (!snap.exists) {
+                document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>This product is no longer available.</p><a class="btn btn-primary" href="index.html">Go shopping</a></div>`;
+                return;
+            }
+            const d = snap.data();
+            product = { id, ...d };
+            currentStock = Number(d.stock) || 0;
+
+            let seller = { storeName: 'Store', city: '', bio: '' };
+            if (d.ownerId) {
+                try {
+                    const s = await db.collection('mall-sellers').doc(d.ownerId).get();
+                    if (s.exists) seller = s.data();
+                } catch (e) { console.warn(e); }
+            }
+
+            document.title = product.title + ' — Volant Mall';
+            renderDetail(seller);
+            loadReviews();
+        } catch (err) {
+            console.error(err);
+            document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>Error loading product.</p></div>`;
+        }
+    }
+
+    function catLabel(key) {
+        const c = MALL_CATEGORIES.find(x => x.key === key);
+        return c ? c.label : 'Other';
+    }
+
+    function renderDetail(seller) {
+        const imgs = (product.images && product.images.length) ? product.images : [null];
+        const out = product.status === 'stockout' || currentStock <= 0;
+        const deliveryEligible = !!product.delivery;
+        const pickupEligible = !!product.pickup;
+
+        document.getElementById('detailWrap').innerHTML = `
+            <div class="detail-wrap">
+                <div class="gallery">
+                    <div class="main-img">
+                        ${imgs[0] ? `<img id="mainImg" src="${escapeHtml(imgs[0])}" alt="${escapeHtml(product.title)}">` : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
+                    </div>
+                    ${imgs.length > 1 ? `<div class="thumbs">${imgs.slice(0, 4).map((u, i) => `
+                        <div class="t ${i === 0 ? 'active' : ''}" onclick="setMain(${i}, '${escapeHtml(u || '')}')">
+                            ${u ? `<img src="${escapeHtml(u)}" alt="">` : `<i class="fas fa-image ph"></i>`}
+                        </div>`).join('')}</div>` : ''}
+                </div>
+
+                <div class="info-box">
+                    <span class="cat-badge">${escapeHtml(product.customCategory || catLabel(product.category))}</span>
+                    <h1>${escapeHtml(product.title)}</h1>
+                    <p class="d-seller">Sold by <a href="store.html?store=${encodeURIComponent(product.ownerId)}"><i class="fas fa-store"></i> ${escapeHtml(seller.storeName || 'Store')}</a>${seller.city ? ' · ' + escapeHtml(seller.city) : ''}</p>
+                    <div class="d-price">${formatGHS(product.price)}</div>
+                    <div class="d-rating" id="dRating"></div>
+                    ${product.description ? `<p class="d-desc">${escapeHtml(product.description)}</p>` : ''}
+                    <p style="font-size:0.86rem;color:var(--ink-soft);margin-bottom:1.2rem;">
+                        <i class="fas fa-boxes"></i> ${out ? '<span style="color:var(--danger);font-weight:600;">Out of stock</span>' : (currentStock < 10 ? 'Only <b>' + currentStock + '</b> left' : 'In stock')}
+                        ${product.stock > 0 ? '' : ''}
+                    </p>
+
+                    <div class="delivery-box">
+                        <h3><i class="fas fa-truck"></i> How will you receive it?</h3>
+
+                        ${pickupEligible ? `
+                        <label class="delivery-option ${pickupEligible ? 'selected' : ''}" style="display:flex;">
+                            <input type="radio" name="ful" value="pickup" ${pickupEligible ? 'checked' : ''} onchange="selectFulfillment('pickup')">
+                            <div>
+                                <div class="d-title">Pick up in person</div>
+                                <div class="d-sub"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(product.pickupLocation || 'At the seller')}</div>
+                            </div>
+                        </label>` : ''}
+
+                        ${deliveryEligible ? `
+                        <label class="delivery-option ${!pickupEligible ? 'selected' : ''}" style="display:flex;">
+                            <input type="radio" name="ful" value="delivery" ${!pickupEligible ? 'checked' : ''} onchange="selectFulfillment('delivery')">
+                            <div>
+                                <div class="d-title">Delivered to you ${formatGHS(product.deliveryFee ? product.deliveryFee : 0)}</div>
+                                <div class="d-sub"><i class="fas fa-truck"></i> ${(product.deliveryRegions && product.deliveryRegions.length) ? escapeHtml(product.deliveryRegions.slice(0, 4).join(', ')) + (product.deliveryRegions.length > 4 ? '…' : '') : 'Ghana'}</div>
+                            </div>
+                        </label>` : ''}
+
+                        ${!pickupEligible && !deliveryEligible ? `<p class="d-sub">Contact the seller to arrange delivery.</p>` : ''}
+                        <input type="hidden" id="fulfillment" value="${pickupEligible ? 'pickup' : 'delivery'}">
+                    </div>
+
+                    <div class="quantity-row">
+                        <span style="font-weight:600;font-size:0.9rem;">Quantity</span>
+                        <button class="qty-btn" onclick="changeQty(-1)"><i class="fas fa-minus"></i></button>
+                        <span class="qty" id="qtyVal">1</span>
+                        <button class="qty-btn" onclick="changeQty(1)"><i class="fas fa-plus"></i></button>
+                    </div>
+
+                    <div class="buy-row btn-stack-sm">
+                        <button class="btn btn-outline" onclick="addOne('cart')" ${out ? 'disabled' : ''}><i class="fas fa-cart-plus"></i> Add to Cart</button>
+                        <button class="btn btn-primary" onclick="addOne('buy')" ${out ? 'disabled' : ''}><i class="fas fa-bolt"></i> Buy Now</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reviewsSection"></div>`;
+    }
+
+    function selectFulfillment(f) {
+        document.getElementById('fulfillment').value = f;
+        document.querySelectorAll('.delivery-option').forEach(el => el.classList.remove('selected'));
+        const input = document.querySelector('input[name="ful"][value="' + f + '"]');
+        if (input) input.closest('.delivery-option').classList.add('selected');
+    }
+
+    function changeQty(delta) {
+        qty = Math.max(1, Math.min(qty + delta, Math.max(currentStock, 1)));
+        document.getElementById('qtyVal').textContent = qty;
+    }
+
+    function currentFulfillment() {
+        const el = document.getElementById('fulfillment');
+        return el ? el.value : 'delivery';
+    }
+
+    function addOne(mode) {
+        if (!product) return;
+        const f = currentFulfillment();
+        addToCart(product, qty, f);
+        if (mode === 'buy') {
+            window.location.href = 'index.html?buy=1';
+        } else {
+            showToast('Added to cart ✓', 'success');
+        }
+    }
+
+    function goCart() {
+        window.location.href = 'index.html?buy=1';
+    }
+function accountClick() {
+        if (currentUser) signOutUser(); else requireAuth('index.html');
+    }
+
+    // ===== REVIEWS =====
+    let reviews = [];
+    let myRating = 0;
+    let canLeaveReview = false;
+
+    function onAppAuthChange(user) {
+        if (product && user) checkCanReview();
+        if (product) renderReviews();
+    }
+
+    function starsHTML(rating, size) {
+        const full = Math.round(rating) || 0;
+        let s = '';
+        for (let i = 1; i <= 5; i++) s += `<span class="${i <= full ? '' : 'off'}">★</span>`;
+        return `<span class="stars" style="font-size:${size || '0.9rem'};">${s}</span>`;
+    }
+
+    async function loadReviews() {
+        try {
+            const snap = await db.collection('mall-reviews')
+                .where('productId', '==', product.id)
+                .get();
+            reviews = [];
+            snap.forEach(doc => { const d = doc.data(); reviews.push({ id: doc.id, ...d }); });
+            reviews.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
+            renderReviews();
+            if (currentUser) checkCanReview();
+        } catch (err) {
+            console.warn('Load reviews error:', err);
+        }
+    }
+
+    function ts(t) {
+        return t ? (t.toMillis ? t.toMillis() : (t.seconds ? t.seconds * 1000 : 0)) : 0;
+    }
+
+    function renderReviews() {
+        const ratingEl = document.getElementById('dRating');
+        if (ratingEl) {
+            if (reviews.length) {
+                const avg = reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length;
+                ratingEl.innerHTML = `${starsHTML(avg)} <span>${avg.toFixed(1)} · ${reviews.length} review${reviews.length === 1 ? '' : 's'}</span>`;
+            } else {
+                ratingEl.innerHTML = `<span class="stars off">★★★★★</span> <span>No reviews yet</span>`;
+            }
+        }
+
+        const sec = document.getElementById('reviewsSection');
+        sec.innerHTML = `
+            <div class="section-head"><h2>Reviews</h2></div>
+            ${canLeaveReview ? `
+            <div class="review-form">
+                <h3>Rate this product</h3>
+                <div class="rating-input" id="ratingInput">
+                    ${[1,2,3,4,5].map(n => `<button type="button" class="star-btn ${n <= myRating ? 'on' : ''}" onclick="setReviewRating(${n})">★</button>`).join('')}
+                </div>
+                <textarea id="reviewText" rows="2" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--line);border-radius:12px;resize:vertical;" placeholder="Share your experience..."></textarea>
+                <button class="btn btn-primary btn-sm" style="margin-top:0.7rem;" onclick="submitReview()"><i class="fas fa-paper-plane"></i> Submit Review</button>
+            </div>` : (currentUser ? '' : '<p style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:1rem;">Bought this? <a href="#" onclick="requireAuth(\'details.html?id=' + encodeURIComponent(product.id) + '\');return false;">Sign in</a> to review.</p>')}
+
+            ${reviews.length ? reviews.map(r => `
+                <div class="review-card">
+                    <div class="rc-head">
+                        <div class="rc-name">${escapeHtml(r.userName || r.userEmail || 'Buyer')}</div>
+                        <div class="rc-date">${new Date(ts(r.createdAt)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    </div>
+                    ${starsHTML(r.rating)}
+                    ${r.comment ? `<div class="rc-comment" style="margin-top:0.4rem;">${escapeHtml(r.comment)}</div>` : ''}
+                </div>`).join('') : `<div class="empty-state" style="padding:2rem;"><i class="fas fa-comment-dots"></i><p>No reviews yet. Be the first to review after buying.</p></div>`}
+        `;
+    }
+
+    async function checkCanReview() {
+        canLeaveReview = false;
+        try {
+            const snap = await db.collection('mall-orders').where('userId', '==', currentUser.uid).get();
+            let bought = false;
+            snap.forEach(doc => {
+                const d = doc.data();
+                if (d.orderStatus === 'cancelled') return;
+                if (Array.isArray(d.items) && d.items.some(it => it.productId === product.id)) bought = true;
+            });
+            const already = reviews.some(r => r.userId === currentUser.uid);
+            canLeaveReview = bought && !already;
+        } catch (err) {
+            console.warn('Can-review check error:', err);
+        }
+        renderReviews();
+    }
+
+    function setReviewRating(n) {
+        myRating = n;
+        document.querySelectorAll('#ratingInput .star-btn').forEach((b, i) => b.classList.toggle('on', i < n));
+    }
+
+    async function submitReview() {
+        if (!currentUser) { requireAuth('details.html?id=' + encodeURIComponent(product.id)); return; }
+        if (!myRating) { showToast('Choose a star rating.', 'error'); return; }
+        const comment = (document.getElementById('reviewText') || {}).value || '';
+        try {
+            await db.collection('mall-reviews').add({
+                productId: product.id,
+                sellerId: product.ownerId || '',
+                userId: currentUser.uid,
+                userEmail: currentUser.email || '',
+                userName: userData && (userData.displayName || userData.name) || (currentUser.displayName || ''),
+                rating: myRating,
+                comment: comment.trim(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showToast('Review published! ⭐', 'success');
+            myRating = 0;
+            loadReviews();
+        } catch (err) {
+            console.error('Review submit error:', err);
+            showToast('Could not submit review.', 'error');
+        }
+    }
+
+    function setMain(i, url) {
+        const img = document.getElementById('mainImg') || document.querySelector('.main-img');
+        if (url) img.src = url;
+        document.querySelectorAll('.thumbs .t').forEach((t, j) => t.classList.toggle('active', j === i));
+    }
+
+    loadProduct();
+    </script>
+</body>
+</html>

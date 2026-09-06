@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>How it Works & FAQ — Volant Mall</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <style>
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.3rem; margin: 2rem 0; }
+        .step { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.6rem; text-align: center; }
+        .step .num { width: 52px; height: 52px; margin: 0 auto 0.9rem; border-radius: 50%; background: var(--primary); color: #fff; font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; display: grid; place-items: center; }
+        .step.gold .num { background: var(--accent); }
+        .step h3 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+        .step p { font-size: 0.88rem; color: var(--ink-soft); }
+        .role-tabs { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; margin: 1.5rem 0; }
+        .faq-item { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 0.8rem; overflow: hidden; }
+        .faq-q { padding: 1rem 1.3rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .faq-q i { transition: transform 0.2s ease; color: var(--primary); }
+        .faq-item.open .faq-q i { transform: rotate(180deg); }
+        .faq-a { display: none; padding: 0 1.3rem 1.1rem; font-size: 0.9rem; color: var(--ink-soft); line-height: 1.65; }
+        .faq-item.open .faq-a { display: block; }
+        .notice { background: var(--accent-soft); color: #8a5b06; border-radius: 12px; padding: 0.9rem 1.1rem; font-size: 0.88rem; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="index.html">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+            </a>
+            <div class="topbar-right">
+                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="section" style="text-align:center;padding-top:3rem;">
+            <h1 style="font-size:clamp(2rem,4vw,2.8rem);margin-bottom:0.5rem;">How Volant Mall Works</h1>
+            <p style="color:var(--ink-soft);max-width:620px;margin:0 auto;">A marketplace where Ghanaian sellers open their own stores, and buyers shop from all of them in one place.</p>
+
+            <div class="role-tabs">
+                <button class="tab-btn active" onclick="showRole('buyer', this)"><i class="fas fa-shopping-bag"></i> For Buyers</button>
+                <button class="tab-btn" onclick="showRole('seller', this)"><i class="fas fa-store"></i> For Sellers</button>
+            </div>
+
+            <!-- BUYER STEPS -->
+            <div id="role-buyer">
+                <div class="steps">
+                    <div class="step"><div class="num">1</div><h3>Browse the mall</h3><p>Shop across all sellers, or visit a seller's own store. Filter by category — beauty, fashion, electronics and more.</p></div>
+                    <div class="step"><div class="num">2</div><h3>Choose pickup or delivery</h3><p>Pick up at the seller's location (free) or have it delivered to your address for the seller's delivery fee.</p></div>
+                    <div class="step"><div class="num">3</div><h3>Pay with MoMo or card</h3><p>Checkout securely with Paystack — MTN MoMo, Telecel Cash or debit card, in Ghana cedis.</p></div>
+                    <div class="step gold"><div class="num">4</div><h3>Track your order</h3><p>See your order status in My Orders. The seller marks it delivered once it reaches you.</p></div>
+                </div>
+            </div>
+
+            <!-- SELLER STEPS -->
+            <div id="role-seller" style="display:none;">
+                <div class="steps">
+                    <div class="step"><div class="num">1</div><h3>Open your store</h3><p>Sign in, name your store, add your city and bio. Attach your own logo and banner to make it yours.</p></div>
+                    <div class="step"><div class="num">2</div><h3>Set up payouts</h3><p>Add your MTN MoMo number or bank account. Paystack settles your sales straight to you.</p></div>
+                    <div class="step"><div class="num">3</div><h3>List your products</h3><p>Add up to 4 photos, price in GHS, stock, and choose pickup and/or delivery per item.</p></div>
+                    <div class="step gold"><div class="num">4</div><h3>Fulfil and earn</h3><p>Get notified of orders in your dashboard, pack & ship (or meet buyers), and watch earnings grow.</p></div>
+                </div>
+            </div>
+
+            <div class="notice">
+                <i class="fas fa-percentage"></i> <strong>Seller commission:</strong> 10% of each sale goes to Volant to keep the platform running — Paystack payout fees are covered from that share. Buyers pay no extra fees.
+            </div>
+        </section>
+
+        <section class="section" style="max-width:820px;margin:0 auto;">
+            <div class="section-head"><h2>Frequently Asked Questions</h2></div>
+
+            <div class="faq-item"><div class="faq-q">How do I pay?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Checkout happens inside the cart with Paystack. You can pay with MTN Mobile Money, Telecel Cash, or any bank card (Visa/Mastercard). All prices are in Ghana cedis (GHS).</div></div>
+
+            <div class="faq-item"><div class="faq-q">Can I get delivery anywhere in Ghana?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Every product shows its delivery options. Sellers choose whether they offer delivery, which regions they cover, and the delivery fee. If a seller offers pickup, you can also collect the item in person at their location — pickup is free.</div></div>
+
+            <div class="faq-item"><div class="faq-q">When will my order arrive?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Delivery times depend on the seller and distance. Once you order, the seller prepares your item and updates the order to "Delivered / Completed". You can track it anytime under My Orders.</div></div>
+
+            <div class="faq-item"><div class="faq-q">How do sellers get paid?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">After a sale, Paystack automatically puts 90% of the money into the seller's registered MTN MoMo or bank account (settlement usually within a few business days). Volant keeps a 10% commission.</div></div>
+
+            <div class="faq-item"><div class="faq-q">What if I have a problem with an order?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Contact the seller first — their phone number is on your order. If you can't resolve it, reach Volant support through the Contact page and include your order reference.</div></div>
+
+            <div class="faq-item"><div class="faq-q">Can I review a product?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Yes! After you've bought a product, you can leave a 1–5 star rating and a short review on its product page. Reviews appear on the product and the seller's storefront.</div></div>
+
+            <div class="faq-item"><div class="faq-q">How do I become a seller?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Click "Sell" at the top, sign in, set up your store and payout details, then list your first product. It takes about 5 minutes and is free to start.</div></div>
+
+            <div class="faq-item"><div class="faq-q">What can I sell on Volant Mall?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Physical goods you can fulfil in Ghana — pomade and beauty products, clothes, shoes, electronics, home items, food products and more. Counterfeit or prohibited items are not allowed.</div></div>
+        </section>
+    </div>
+
+    <footer class="site-footer">
+        <div class="foot-inner">
+            <div class="foot-col">
+                <h4>Volant Mall</h4>
+                <a href="index.html">Shop</a>
+                <a href="submit.html">Become a Seller</a>
+                <a href="orders.html">My Orders</a>
+                <a href="faq.html">How it Works & FAQ</a>
+            </div>
+            <div class="foot-col">
+                <h4>Help</h4>
+                <a href="../../shared/terms.html">Terms</a>
+                <a href="../../shared/privacy.html">Privacy</a>
+                <a href="../../shared/contact.html">Contact</a>
+            </div>
+            <div class="foot-col">
+                <h4>Platform</h4>
+                <a href="../../index.html">Volant Poetry</a>
+                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantreads.vercel.app/">Volant Reads</a>
+                <a href="../../codes/index.html">Volant Codes</a>
+            </div>
+        </div>
+        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+    </footer>
+
+    <div id="toast"></div>
+
+    <script src="app.js"></script>
+    <script>
+    function showRole(role, btn) {
+        document.querySelectorAll('.role-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('role-buyer').style.display = role === 'buyer' ? '' : 'none';
+        document.getElementById('role-seller').style.display = role === 'seller' ? '' : 'none';
+    }
+    document.querySelectorAll('.faq-q').forEach(q => {
+        q.addEventListener('click', () => q.parentElement.classList.toggle('open'));
+    });
+    function accountClick() {
+        if (currentUser) signOutUser(); else requireAuth('index.html');
+    }
+    </script>
+</body>
+</html>

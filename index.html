@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Volant Mall — Shop Ghana</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+
+    <!-- ===== TOP BAR ===== -->
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="index.html">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+            </a>
+            <div class="topbar-right">
+                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" href="orders.html"><i class="fas fa-box-open"></i> My Orders</a>
+                <button class="icon-btn" id="userBtn" title="Sign in" onclick="accountClick()"></button>
+                <button class="icon-btn" id="cartOpenBtn" title="Cart" onclick="openCart()">
+                    <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartCount">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero">
+        <h1>Shop from <span>Ghana's sellers</span></h1>
+        <p>Beauty, fashion, electronics and more — buy directly from real sellers across Ghana, delivered to your door or collected in person.</p>
+        <div class="hero-cta">
+            <a class="btn btn-accent btn-lg" href="submit.html"><i class="fas fa-store"></i> Become a Seller</a>
+            <a class="btn btn-outline btn-lg" style="background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.35);" href="#shop"><i class="fas fa-caret-down"></i> Start Shopping</a>
+        </div>
+    </section>
+
+    <div class="container">
+        <form class="search-bar" onsubmit="doSearch(event)">
+            <i class="fas fa-search" style="color:#b7aad9;align-self:center;"></i>
+            <input type="search" id="searchInput" placeholder="Search pomade, dresses, shoes, gadgets..." oninput="applyFilters()">
+            <button class="btn btn-primary btn-sm" type="submit"><i class="fas fa-search"></i></button>
+        </form>
+
+        <div class="how-strip">
+            <div class="hw"><i class="fas fa-store"></i><div><div class="t">Shop from real sellers</div><div class="s">Every store on Volant Mall is run by a seller in Ghana.</div></div></div>
+            <div class="hw"><i class="fas fa-truck"></i><div><div class="t">Pickup or delivery</div><div class="s">Collect in person for free, or pay the seller's delivery fee.</div></div></div>
+            <div class="hw"><i class="fas fa-mobile-alt"></i><div><div class="t">Pay with MoMo or card</div><div class="s">Secure Paystack checkout in Ghana cedis.</div></div></div>
+            <div class="hw"><i class="fas fa-box-open"></i><div><div class="t">Track your order</div><div class="s">Follow it in My Orders until it's delivered.</div></div></div>
+        </div>
+
+        <!-- ===== FEATURED STORES ===== -->
+        <section class="section" id="stores">
+            <div class="section-head">
+                <h2>Featured Stores</h2>
+            </div>
+            <div class="store-grid" id="storeGrid"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+        </section>
+
+        <!-- ===== SHOP ===== -->
+        <section class="section" id="shop">
+            <div class="section-head">
+                <h2>Shop All</h2>
+            </div>
+            <div class="category-chips" id="catChips"></div>
+            <div class="grid" id="productGrid"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+        </section>
+    </div>
+
+    <!-- ===== BOOKS (Volant Reads) ===== -->
+    <section class="books-band" id="booksBand">
+        <div class="books-inner">
+            <div class="books-head">
+                <div class="books-head-left">
+                    <div class="books-overline"><i class="fas fa-book-open"></i> Volant Reads</div>
+                    <h2>Books with Soaring Words</h2>
+                    <p>Fiction, poetry and more from our readers' library — buy a book, read it in minutes.</p>
+                </div>
+                <div class="books-actions">
+                    <div class="books-arrows">
+                        <button class="b-nav" onclick="scrollBooks(-1)" aria-label="Scroll books left"><i class="fas fa-chevron-left"></i></button>
+                        <button class="b-nav" onclick="scrollBooks(1)" aria-label="Scroll books right"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <a class="btn books-cta" href="https://volantreads.vercel.app/" target="_blank" rel="noopener">Browse the bookstore <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="books-track" id="booksTrack">
+                <div class="bc-skeleton"></div><div class="bc-skeleton"></div><div class="bc-skeleton"></div><div class="bc-skeleton"></div><div class="bc-skeleton"></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="site-footer">
+        <div class="foot-inner">
+            <div class="foot-col">
+                <h4>Volant Mall</h4>
+                <a href="index.html">Shop</a>
+                <a href="submit.html">Become a Seller</a>
+                <a href="orders.html">My Orders</a>
+                <a href="faq.html">How it Works & FAQ</a>
+            </div>
+            <div class="foot-col">
+                <h4>Help</h4>
+                <a href="../../shared/terms.html">Terms</a>
+                <a href="../../shared/privacy.html">Privacy</a>
+                <a href="../../shared/contact.html">Contact</a>
+            </div>
+            <div class="foot-col">
+                <h4>Platform</h4>
+                <a href="../../index.html">Volant Poetry</a>
+                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantreads.vercel.app/">Volant Reads</a>
+                <a href="../../codes/index.html">Volant Codes</a>
+            </div>
+        </div>
+        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+    </footer>
+
+    <!-- ===== CART DRAWER ===== -->
+    <div class="drawer-backdrop" id="cartBackdrop" onclick="closeCart()"></div>
+    <aside class="drawer" id="cartDrawer">
+        <div class="drawer-head">
+            <h3><i class="fas fa-shopping-bag"></i> Your Cart</h3>
+            <button class="icon-btn" onclick="closeCart()" style="background:none;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="drawer-body" id="cartBody"></div>
+        <div class="drawer-foot">
+            <div class="delivery-summary">
+                Subtotal <span class="total" id="cartSubtotal">GHS 0.00</span>
+                <div class="clear-both"></div>
+                Delivery <span class="total" id="cartDeliveryTotal">GHS 0.00</span>
+                <div class="clear-both"></div>
+                <strong style="font-size:1.05rem;">Total</strong> <strong style="float:right;font-size:1.05rem;" id="cartGrandTotal">GHS 0.00</strong>
+                <div class="clear-both"></div>
+            </div>
+            <button class="btn btn-primary btn-block" id="checkoutBtn" onclick="beginCheckout()">
+                <i class="fas fa-lock"></i> Checkout with Paystack
+            </button>
+            <div style="text-align:center;font-size:0.74rem;color:var(--ink-soft);margin-top:0.5rem;">
+                Pay with Mobile Money (MTN MoMo, Telecel) or Card · Sellers get paid via Paystack
+            </div>
+        </div>
+    </aside>
+
+    <div id="toast"></div>
+
+    <script src="app.js"></script>
+    <script>
+    // ===== STATE =====
+    let allProducts = [];
+    let allSellers = [];
+    let activeCategory = 'all';
+    let isProcessingPayment = false;
+
+    const regionOptions = ['Greater Accra', 'Ashanti', 'Western', 'Western North', 'Central', 'Eastern', 'Volta', 'Oti', 'Bono', 'Bono East', 'Ahafo', 'Northern', 'Savannah', 'North East', 'Upper East', 'Upper West'];
+
+    // ===== LOAD ALL =====
+    async function loadMall() {
+        try {
+            const [prodSnap, sellerSnap] = await Promise.all([
+                db.collection('mall-products').where('status', 'in', ['active', 'stockout']).get(),
+                db.collection('mall-sellers').where('active', '==', true).limit(12).get()
+            ]);
+
+            allProducts = [];
+            prodSnap.forEach(doc => {
+                const d = doc.data();
+                const catKey = MALL_CATEGORIES.find(c => c.key === d.category) ? d.category : 'other';
+                allProducts.push({
+                    id: doc.id,
+                    title: d.title,
+                    price: Number(d.price) || 0,
+                    category: catKey,
+                    images: d.images || [],
+                    ownerId: d.ownerId,
+                    storeName: d.storeName || 'Store',
+                    storeHandle: d.storeHandle || '',
+                    stock: Number(d.stock) || 0,
+                    status: d.status,
+                    createdAt: d.createdAt,
+                    saleCount: Number(d.saleCount) || 0
+                });
+            });
+            allProducts.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
+
+            allSellers = [];
+            sellerSnap.forEach(doc => {
+                const d = doc.data();
+                if (!d.active) return;
+                allSellers.push({
+                    id: doc.id,
+                    storeName: d.storeName || 'Store',
+                    bio: d.bio || '',
+                    location: d.location || '',
+                    category: d.category || 'other',
+                    productCount: 0,
+                    city: d.city || '',
+                    logoUrl: d.logoUrl || ''
+                });
+            });
+
+            // count per seller
+            allProducts.forEach(p => {
+                const s = allSellers.find(x => x.id === p.ownerId);
+                if (s) s.productCount++;
+            });
+
+            renderSellers();
+            renderChips();
+            renderProducts();
+        } catch (err) {
+            console.error('Load mall error:', err);
+            document.getElementById('productGrid').innerHTML = `<div class="empty-state"><i class="fas fa-store-slash"></i><p>Could not load the mall. Please refresh.</p></div>`;
+            document.getElementById('storeGrid').innerHTML = '';
+        }
+    }
+
+    function catLabel(key) {
+        const c = MALL_CATEGORIES.find(x => x.key === key);
+        return c ? c.label : 'Other';
+    }
+
+    function renderSellers() {
+        const grid = document.getElementById('storeGrid');
+        const withItems = allSellers.filter(s => s.productCount > 0);
+        if (withItems.length === 0) {
+            grid.innerHTML = `<div class="empty-state" style="padding:1.6rem;"><i class="fas fa-store"></i><p>Stores opening soon. Be the first to sell!</p><a class="btn btn-primary btn-sm" href="submit.html">Open your store</a></div>`;
+            return;
+        }
+        const featured = withItems.slice(0, 8);
+        grid.innerHTML = featured.map(s => `
+            <a class="scard" href="store.html?store=${encodeURIComponent(s.id)}">
+                <div class="s-avatar">${s.logoUrl ? `<img src="${escapeHtml(s.logoUrl)}" alt="">` : escapeHtml(s.storeName.charAt(0).toUpperCase())}</div>
+                <div class="s-info">
+                    <div class="s-name">${escapeHtml(s.storeName)}</div>
+                    <div class="s-cat"><i class="fas fa-tag"></i> ${escapeHtml(s.customCategory || catLabel(s.category))} · ${s.productCount} item${s.productCount === 1 ? '' : 's'}</div>
+                    ${s.city ? `<div class="s-cat"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s.city)}</div>` : ''}
+                </div>
+            </a>
+        `).join('');
+    }
+
+    function renderChips() {
+        const chips = document.getElementById('catChips');
+        const items = [{ key: 'all', label: 'All' }, ...MALL_CATEGORIES];
+        chips.innerHTML = items.map(c => `
+            <button class="chip ${activeCategory === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">${c.label}</button>
+        `).join('');
+    }
+
+    function setCategory(key) {
+        activeCategory = key;
+        renderChips();
+        renderProducts();
+    }
+
+    function filteredProducts() {
+        const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+        return allProducts.filter(p => {
+            if (activeCategory !== 'all' && p.category !== activeCategory) return false;
+            if (q && !(p.title.toLowerCase().includes(q) || p.storeName.toLowerCase().includes(q) || (p.customCategory ? p.customCategory : catLabel(p.category)).toLowerCase().includes(q))) return false;
+            return true;
+        });
+    }
+
+    function renderProducts() {
+        const list = filteredProducts();
+        const grid = document.getElementById('productGrid');
+        if (list.length === 0) {
+            grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>No products match your search yet.</p></div>`;
+            return;
+        }
+        grid.innerHTML = list.map(p => {
+            const out = p.status === 'stockout' || p.stock <= 0;
+            return `
+            <div class="pcard">
+                <a class="thumb" href="details.html?id=${encodeURIComponent(p.id)}">
+                    ${p.images && p.images[0]
+                        ? `<img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.title)}" loading="lazy">`
+                        : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
+                </a>
+                <div class="body">
+                    <span class="cat">${escapeHtml(p.customCategory || catLabel(p.category))}</span>
+                    <a class="ptitle" href="details.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a>
+                    <div class="seller">by <a href="store.html?store=${encodeURIComponent(p.ownerId)}">${escapeHtml(p.storeName)}</a></div>
+                    <div class="price-row">
+                        <span class="price">${formatGHS(p.price)}</span>
+                        <span class="stock-tag ${out ? 'out' : ''}">${out ? 'Out of stock' : 'In stock'}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function applyFilters() { renderProducts(); }
+
+    function doSearch(event) {
+        if (event) event.preventDefault();
+        applyFilters();
+        const target = document.getElementById('shop');
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+        return false;
+    }
+
+    function ts(t) {
+        return t ? (t.toMillis ? t.toMillis() : (t.seconds ? t.seconds * 1000 : 0)) : 0;
+    }
+
+    // ===== BOOKS (Volant Reads) =====
+    const BOOKS_STORE = 'https://volantreads.vercel.app/';
+
+    async function loadBooks() {
+        try {
+            const snap = await db.collection('books').where('status', '==', 'approved').get();
+            const books = [];
+            snap.forEach(dc => {
+                const d = dc.data();
+                books.push({
+                    id: dc.id,
+                    title: d.title || 'Untitled',
+                    author: d.authorName || '',
+                    genre: d.genre || '',
+                    imageUrl: d.imageUrl || '',
+                    price: Number((d.pricing && d.pricing.amount) || d.price || 0),
+                    currency: (d.pricing && d.pricing.currency) || d.currency || 'GHS',
+                    approvedAt: ts(d.approvedAt || d.updatedAt || d.submittedAt || d.createdAt)
+                });
+            });
+            books.sort((a, b) => b.approvedAt - a.approvedAt);
+            renderBooks(books.slice(0, 12));
+        } catch (err) {
+            console.error('Books load error:', err);
+            const el = document.getElementById('booksTrack');
+            if (el) el.innerHTML = `<div class="empty-state books-empty"><i class="fas fa-book-open"></i><p>Could not load books right now. <a href="${BOOKS_STORE}index.html" style="color:var(--accent);text-decoration:underline;">Visit Volant Reads</a></p></div>`;
+        }
+    }
+
+    function renderBooks(books) {
+        const track = document.getElementById('booksTrack');
+        if (!track) return;
+        if (books.length === 0) {
+            track.innerHTML = `<div class="empty-state books-empty"><i class="fas fa-book-open"></i><p>No books yet. <a href="${BOOKS_STORE}index.html" style="color:var(--accent);text-decoration:underline;">Visit Volant Reads</a></p></div>`;
+            return;
+        }
+        track.innerHTML = books.map(b => {
+            const price = b.price > 0 ? `${escapeHtml(b.currency)} ${b.price.toFixed(2)}` : 'Free';
+            const cover = b.imageUrl
+                ? `<img src="${escapeHtml(b.imageUrl)}" alt="${escapeHtml(b.title)}" loading="lazy" onerror="bookCoverFallback(this)">`
+                : `<div class="bc-ph"><i class="fas fa-book-open"></i></div>`;
+            return `
+            <a class="bcard" href="${BOOKS_STORE}details.html?id=${encodeURIComponent(b.id)}" target="_blank" rel="noopener">
+                <div class="bc-cover">
+                    ${cover}
+                    ${b.genre ? `<span class="bc-genre">${escapeHtml(b.genre)}</span>` : ''}
+                </div>
+                <div class="bc-body">
+                    <div class="bc-title">${escapeHtml(b.title)}</div>
+                    <div class="bc-author">${escapeHtml(b.author || 'Anonymous')}</div>
+                    <div class="bc-foot">
+                        <span class="bc-price">${price}</span>
+                        <span class="bc-open"><i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </div>
+            </a>`;
+        }).join('');
+    }
+
+    function bookCoverFallback(img) {
+        const wrap = img.closest('.bc-cover') || img.parentElement;
+        if (wrap) wrap.innerHTML = '<div class="bc-ph"><i class="fas fa-book-open"></i></div>';
+    }
+
+    function scrollBooks(dir) {
+        const track = document.getElementById('booksTrack');
+        if (track) track.scrollBy({ left: dir * Math.round(track.clientWidth * 0.8), behavior: 'smooth' });
+    }
+
+    // ===== ACCOUNT =====
+    function accountClick() {
+        if (currentUser) {
+            signOutUser();
+        } else {
+            requireAuth('index.html');
+        }
+    }
+
+    // ===== CART DRAWER =====
+    function openCart() {
+        document.getElementById('cartDrawer').classList.add('active');
+        document.getElementById('cartBackdrop').classList.add('active');
+        renderCart();
+    }
+    function closeCart() {
+        document.getElementById('cartDrawer').classList.remove('active');
+        document.getElementById('cartBackdrop').classList.remove('active');
+    }
+
+    function renderCart() {
+        const body = document.getElementById('cartBody');
+        const items = getCartItems();
+        if (items.length === 0) {
+            body.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-bag"></i><p>Your cart is empty.</p><a class="btn btn-primary btn-sm" href="index.html">Start shopping</a></div>`;
+            totals();
+            return;
+        }
+        body.innerHTML = items.map(it => `
+            <div class="cart-item">
+                <div class="ci-img">
+                    ${it.image ? `<img src="${escapeHtml(it.image)}" alt="">` : `<i class="fas fa-box-open ph"></i>`}
+                </div>
+                <div class="ci-body">
+                    <div class="ci-title">${escapeHtml(it.title)}</div>
+                    <div class="ci-seller">${escapeHtml(it.sellerName)}</div>
+                    <div class="ci-bottom">
+                        <span class="ci-price">${formatGHS(it.price * it.qty)}</span>
+                        <span class="qty-mini">
+                            <button onclick="changeCartQty('${it.id}',-1)"><i class="fas fa-minus"></i></button>
+                            ${it.qty}
+                            <button onclick="changeCartQty('${it.id}',1)"><i class="fas fa-plus"></i></button>
+                        </span>
+                    </div>
+                    <div style="margin-top:0.4rem;">
+                        <select style="width:100%;padding:0.4rem 0.5rem;border:1.5px solid var(--line);border-radius:8px;font-size:0.8rem;" onchange="setFulfillment('${it.id}', this.value)">
+                            ${it.allowsPickup ? `<option value="pickup" ${it.fulfillment !== 'delivery' ? 'selected' : ''}>Pick up · ${escapeHtml(it.pickupLocation || 'seller location')}</option>` : ''}
+                            ${it.allowsDelivery ? `<option value="delivery" ${it.fulfillment === 'delivery' ? 'selected' : ''}>Deliver · ${formatGHS(it.deliveryFee)}</option>` : ''}
+                        </select>
+                    </div>
+                </div>
+                <button class="ci-remove" onclick="removeCartItem('${it.id}')"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        `).join('');
+        totals();
+        renderShipping();
+    }
+
+    function setFulfillment(id, f) {
+        const items = getCartItems();
+        const it = items.find(x => x.id === id);
+        if (!it) return;
+        it.fulfillment = f;
+        saveCartItems(items);
+        renderCart();
+    }
+
+    function cartTotals() {
+        const items = getCartItems();
+        const subtotal = items.reduce((s, it) => s + (it.price * it.qty), 0);
+        const delivery = items
+            .filter(it => it.fulfillment === 'delivery')
+            .reduce((s, it) => s + ((Number(it.deliveryFee) || 0)), 0);
+        return { subtotal, delivery, total: subtotal + delivery };
+    }
+
+    function totals() {
+        const t = cartTotals();
+        document.getElementById('cartSubtotal').textContent = formatGHS(t.subtotal);
+        document.getElementById('cartDeliveryTotal').textContent = formatGHS(t.delivery);
+        document.getElementById('cartGrandTotal').textContent = formatGHS(t.total);
+    }
+
+    // ===== SHIPPING SECTION =====
+    function renderShipping() {
+        const items = getCartItems();
+        const hasDelivery = items.some(it => it.fulfillment === 'delivery');
+        const body = document.getElementById('cartBody');
+        const existing = document.getElementById('shipSection');
+        if (existing) existing.remove();
+        if (!hasDelivery) { hideShipping(); return; }
+
+        const sec = document.createElement('div');
+        sec.id = 'shipSection';
+        sec.className = 'ship-section';
+        sec.innerHTML = `
+            <h4><i class="fas fa-truck"></i> Delivery Details</h4>
+            <div class="form-field"><label>Full Name</label><input id="shipName" placeholder="Recipient name" /></div>
+            <div class="form-field"><label>Phone (MTN/Telecel)</label><input id="shipPhone" placeholder="0244 000 000" /></div>
+            <div class="form-row">
+                <div class="form-field"><label>Region</label><select id="shipRegion">${regionOptions.map(r => `<option>${r}</option>`).join('')}</select></div>
+                <div class="form-field"><label>City / Town</label><input id="shipCity" placeholder="e.g. Kumasi" /></div>
+            </div>
+            <div class="form-field"><label>Delivery Address</label><textarea id="shipAddress" rows="2" placeholder="House number, street, landmark"></textarea></div>
+        `;
+        body.appendChild(sec);
+    }
+    function hideShipping() { }
+
+    // ===== CHECKOUT =====
+    async function beginCheckout() {
+        if (isProcessingPayment) return;
+        if (!currentUser) {
+            showToast('Please sign in to checkout.', 'error');
+            requireAuth('index.html');
+            return;
+        }
+        const items = getCartItems();
+        if (items.length === 0) { showToast('Your cart is empty.', 'info'); return; }
+
+        const hasDelivery = items.some(it => it.fulfillment === 'delivery');
+        if (hasDelivery) {
+            const name = (document.getElementById('shipName') || {}).value || '';
+            const phone = (document.getElementById('shipPhone') || {}).value || '';
+            const region = (document.getElementById('shipRegion') || {}).value || '';
+            const city = (document.getElementById('shipCity') || {}).value || '';
+            const address = (document.getElementById('shipAddress') || {}).value || '';
+            if (!name || !phone || !address) {
+                showToast('Please complete the delivery details.', 'error');
+                return;
+            }
+            window.__shipping = { name, phone, region, city, address };
+        } else {
+            window.__shipping = null;
+        }
+
+        // lock button
+        isProcessingPayment = true;
+        const btn = document.getElementById('checkoutBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking items...';
+
+        const t = cartTotals();
+        const email = currentUser.email;
+        const ok = await payWithPaystack(t.total, email, items);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-lock"></i> Checkout with Paystack';
+        isProcessingPayment = false;
+    }
+
+    async function payWithPaystack(totalGHS, email, items) {
+        if (typeof PaystackPop === 'undefined') {
+            showToast('Payment system is loading. Please wait.', 'info');
+            return false;
+        }
+        if (!PAYSTACK_PUBLIC_KEY || PAYSTACK_PUBLIC_KEY.includes('xxxxxxxx')) {
+            showToast('Paystack is not configured. Please contact support.', 'error');
+            return false;
+        }
+        if (totalGHS <= 0) { showToast('Invalid cart total.', 'error'); return false; }
+
+        // ===== RESOLVE SELLERS + SUBACCOUNTS =====
+        const sellerGroups = {};
+        let hasAllSubs = true;
+        const missing = [];
+
+        for (const it of items) {
+            try {
+                const pSnap = await db.collection('mall-products').doc(it.id).get();
+                if (!pSnap.exists) { missing.push(it.title); hasAllSubs = false; continue; }
+                const p = pSnap.data();
+                if (!p || p.status === 'deleted') { missing.push(it.title); hasAllSubs = false; continue; }
+
+                const sellerId = p.ownerId;
+                const sSnap = await db.collection('mall-sellers').doc(sellerId).get();
+                if (!sSnap.exists) { missing.push(it.title); hasAllSubs = false; continue; }
+
+                if (!sellerGroups[sellerId]) {
+                    sellerGroups[sellerId] = {
+                        subaccount: sSnap.data().subaccountCode || '',
+                        sellerName: sSnap.data().storeName || 'Store',
+                        sellersDocId: sellerId,
+                        total: 0,
+                        items: []
+                    };
+                }
+                let line = it.price * it.qty;
+                if (it.fulfillment === 'delivery') line += (Number(it.deliveryFee) || 0);
+                sellerGroups[sellerId].total += line;
+                sellerGroups[sellerId].items.push(it);
+                if (!sellerGroups[sellerId].subaccount) hasAllSubs = false;
+            } catch (err) {
+                console.error('Checkout resolve error:', err);
+                showToast('Could not verify items. Try again.', 'error');
+                return false;
+            }
+        }
+
+        if (!hasAllSubs || missing.length) {
+            if (isDevMode()) {
+                console.warn('[DEV] missing subaccounts/payouts for: ' + missing.join(', '));
+            } else {
+                showToast('Some sellers have not set up payouts. Please contact support.', 'error');
+                return false;
+            }
+        }
+
+        // ===== PAYSTACK SPLIT (max 5 subaccounts) =====
+        const sellerIds = Object.keys(sellerGroups);
+        let splitConfig = null;
+        if (sellerIds.length > 1) {
+            const shares = [];
+            for (const id of sellerIds) {
+                const g = sellerGroups[id];
+                if (!g.subaccount) continue;
+                const pct = Math.round((g.total / totalGHS) * 100 * 100) / 100;
+                shares.push({ subaccount: g.subaccount, share: pct });
+            }
+            if (shares.length) splitConfig = { type: 'percentage', bearer: 'account', subaccounts: shares };
+        } else if (sellerIds.length === 1) {
+            const g = sellerGroups[sellerIds[0]];
+            if (g.subaccount) splitConfig = { subaccount: g.subaccount, bearer: 'account' };
+        }
+
+        const itemTitles = items.map(i => i.title).slice(0, 4).join(', ');
+
+        return await new Promise((resolve) => {
+            const paymentConfig = {
+                key: PAYSTACK_PUBLIC_KEY,
+                email: email,
+                amount: Math.round(totalGHS * 100),
+                currency: 'GHS',
+                bearer: 'account',
+                metadata: {
+                    custom_fields: [
+                        { display_name: "Items", variable_name: "items", value: itemTitles },
+                        { display_name: "Platform", variable_name: "platform", value: "volant-mall" },
+                        { display_name: "Customer ID", variable_name: "customer_id", value: currentUser.uid }
+                    ]
+                },
+                callback: async function (response) {
+                    const ok = await handlePaymentCallback(response, totalGHS, sellerGroups);
+                    resolve(ok);
+                },
+                onClose: function () {
+                    showToast('Payment cancelled. You can try again.', 'info');
+                    resolve(false);
+                }
+            };
+
+            if (splitConfig && splitConfig.type === 'percentage') {
+                paymentConfig.split = splitConfig;
+            } else if (splitConfig && splitConfig.subaccount) {
+                paymentConfig.subaccount = splitConfig.subaccount;
+            }
+
+            try {
+                const handler = PaystackPop.setup(paymentConfig);
+                handler.openIframe();
+            } catch (err) {
+                console.error('Paystack error:', err);
+                showToast('Payment could not start. Try again.', 'error');
+                resolve(false);
+            }
+        });
+    }
+
+    async function handlePaymentCallback(response, totalGHS, sellerGroups) {
+        // ===== VERIFY =====
+        if (isDevMode()) {
+            console.warn('[DEV] skipping server verification for:', response.reference);
+        } else {
+            try {
+                const res = await fetch(PAYSTACK_API_BASE + '/mall-verify-transaction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reference: response.reference,
+                        amount: totalGHS,
+                        email: currentUser.email,
+                        itemId: 'volant-mall'
+                    })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    showToast('Payment could not be verified. Contact support.', 'error');
+                    return false;
+                }
+            } catch (err) {
+                console.error('Verification error:', err);
+                showToast('Payment verification failed.', 'error');
+                return false;
+            }
+        }
+
+        // ===== CREATE ORDERS (one per seller) =====
+        const items = getCartItems();
+        const shipping = window.__shipping || null;
+        const ref = response.reference || ('mall_' + Date.now());
+
+        try {
+            for (const [sellerId, g] of Object.entries(sellerGroups)) {
+                const orderItems = items.filter(it => it.sellerId === sellerId).map(it => ({
+                    productId: it.id,
+                    title: it.title,
+                    price: Number(it.price) || 0,
+                    qty: it.qty || 1,
+                    image: it.image || '',
+                    fulfillment: it.fulfillment,
+                    deliveryFee: it.fulfillment === 'delivery' ? (Number(it.deliveryFee) || 0) : 0
+                }));
+                const amount = g.total;
+
+                await db.collection('mall-orders').add({
+                    userId: currentUser.uid,
+                    sellerId: sellerId,
+                    sellerName: g.sellerName || 'Store',
+                    items: orderItems,
+                    shipping: shipping,
+                    platform: 'mall',
+                    ref: ref + '_' + sellerId.slice(0, 6),
+                    amount: g.total,
+                    userPhone: (shipping && shipping.phone) || (userData && userData.phone) || currentUser.email || '',
+                    paymentStatus: 'paid',
+                    orderStatus: 'processing',
+                    purchasedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // bump seller product sale counts
+                await Promise.all(orderItems.map(oi =>
+                    db.collection('mall-products').doc(oi.productId).update({
+                        saleCount: firebase.firestore.FieldValue.increment(oi.qty),
+                        stock: firebase.firestore.FieldValue.increment(-oi.qty)
+                    }).catch(e => console.warn('Sale count update failed:', e))
+                ));
+            }
+        } catch (err) {
+            console.error('Order creation error:', err);
+            showToast('Payment succeeded but order could not be saved. Save your reference: ' + ref, 'error');
+            return false;
+        }
+
+        // clear bought items from cart
+        const boughtIds = items.map(i => i.id);
+        saveCartItems(getCartItems().filter(i => !boughtIds.includes(i.id)));
+        window.__shipping = null;
+        renderCart();
+        showToast('Payment successful! Order placed 🎉', 'success');
+        setTimeout(() => { location.href = 'orders.html'; }, 1400);
+        return true;
+    }
+
+    // ===== INIT =====
+    loadMall();
+    loadBooks();
+    </script>
+</body>
+</html>

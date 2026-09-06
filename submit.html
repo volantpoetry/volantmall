@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sell on Volant Mall</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="index.html">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+            </a>
+            <div class="topbar-right">
+                <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <a class="btn btn-ghost btn-sm" href="manage.html"><i class="fas fa-chart-line"></i> Dashboard</a>
+                <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="section" id="gate">
+            <div class="empty-state">
+                <i class="fas fa-store"></i>
+                <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Start selling on Volant Mall</h2>
+                <p style="color:var(--ink-soft);max-width:520px;margin:0 auto 1.2rem;">Sign in to open your store, and start listing pomade, clothes, shoes, gadgets and more.</p>
+                <button class="btn btn-primary" onclick="requireAuth('submit.html')"><i class="fas fa-sign-in-alt"></i> Sign in to continue</button>
+            </div>
+        </section>
+    </div>
+
+    <div class="container" id="workbench" style="display:none;">
+        <div class="tab-bar" style="justify-content:center;margin-top:1.5rem;">
+            <button class="tab-btn active" id="tabStoreBtn" onclick="switchTab('store')"><i class="fas fa-store"></i> Store Setup</button>
+            <button class="tab-btn" id="tabProdBtn" onclick="switchTab('product')"><i class="fas fa-plus-circle"></i> List a Product</button>
+            <a class="tab-btn" href="manage.html"><i class="fas fa-chart-line"></i> Dashboard</a>
+        </div>
+
+        <!-- ===== STORE SETUP ===== -->
+        <div id="tabStore" class="section" style="max-width:760px;margin:0 auto;">
+            <div class="form-card">
+                <h2>Your Store</h2>
+                <p class="sub">This is what buyers see and how you get paid.</p>
+
+                <div id="storeExisting" style="display:none;background:var(--success-bg);color:var(--success);border-radius:12px;padding:0.9rem;margin-bottom:1.2rem;font-size:0.9rem;">
+                    <i class="fas fa-check-circle"></i> Your store is <b id="existingName"></b> and is <b>live on the mall</b>.
+                </div>
+
+                <div class="form-field">
+                    <label>Store Logo</label>
+                    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                        <div class="logo-slot" id="logoSlot" onclick="pickStoreFile('logo')"><i class="fas fa-image"></i></div>
+                        <div class="form-hint" style="flex:1;min-width:180px;">Square image. Shows on your store card and storefront.</div>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label>Store Banner</label>
+                    <div class="brand-slot" id="bannerSlot" onclick="pickStoreFile('banner')"><i class="fas fa-image" style="margin-right:0.4rem;"></i> Tap to add a wide banner</div>
+                </div>
+                <input type="file" id="storeFileInput" accept="image/*" style="display:none;">
+
+                <div class="form-field">
+                    <label>Store Name</label>
+                    <input id="sName" placeholder="e.g. Ama's Beauty Hub" maxlength="50" />
+                </div>
+                <div class="form-row">
+<div class="form-field">
+                    <label>Main Category</label>
+                    <select id="sCategory" onchange="toggleOtherCat()"></select>
+                </div>
+                <div class="form-field" id="sOtherCatWrap" style="display:none;">
+                    <label>Specify Category</label>
+                    <input id="sOtherCat" placeholder="e.g. Antiques, Handmade crafts, Art..." maxlength="60" />
+                </div>
+                    <div class="form-field">
+                        <label>City / Town</label>
+                        <input id="sCity" placeholder="e.g. Accra" maxlength="40" />
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label>Pickup / Shop Location</label>
+                    <input id="sLocation" placeholder="e.g. Kaneshie Market, Accra" maxlength="120" required />
+                    <p class="form-hint">Not needed if your Main Category is Digital Products.</p>
+                </div>
+                <div class="form-field">
+                    <label>About your store</label>
+                    <textarea id="sBio" rows="3" placeholder="What do you sell?" maxlength="500"></textarea>
+                </div>
+                <div class="form-field">
+                    <label>Contact Phone</label>
+                    <input id="sPhone" placeholder="0244 000 000" maxlength="15" />
+                </div>
+
+                <h3 style="font-size:1.05rem;margin:1.2rem 0 0.2rem;">Payouts <span class="form-hint">(required — where your sales money goes)</span></h3>
+                <div id="payoutNote" style="display:none;margin-top:0.8rem;padding:0.75rem 0.95rem;border-radius:10px;background:var(--success-bg);color:var(--success);font-size:0.85rem;line-height:1.5;"><i class="fas fa-check-circle"></i> <span id="payoutNoteText"></span></div>
+                <div class="form-field" style="margin-top:0.8rem;">
+                    <label>Payout Type</label>
+                    <select id="payoutType" onchange="togglePayout()">
+                        <option value="momo">Mobile Money</option>
+                        <option value="bank">Bank Account</option>
+                    </select>
+                </div>
+                <div id="payout-momo">
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Network</label>
+                            <select id="momoNetwork">
+                                <option value="mtn">MTN</option>
+                                <option value="vodafone">Telecel</option>
+                                <option value="tigo">AT (AirtelTigo)</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>MoMo Number</label>
+                            <input id="momoPhone" placeholder="0244 000 000" />
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>Account Holder Name</label>
+                        <input id="momoHolder" placeholder="Name on the MoMo account" maxlength="60" />
+                    </div>
+                </div>
+                <div id="payout-bank" style="display:none;">
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Bank</label>
+                            <select id="bankName"></select>
+                        </div>
+                        <div class="form-field">
+                            <label>Account Number</label>
+                            <input id="bankAccount" placeholder="Account number" />
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>Account Holder Name</label>
+                        <input id="accountHolder" placeholder="Name on the bank account" maxlength="60" />
+                    </div>
+                    <p class="form-hint">Your bank payouts settle automatically after each sale. Not sure which bank? Mobile Money is faster and works with any Ghanaian number.</p>
+                </div>
+
+                <button class="btn btn-primary btn-block" id="saveStoreBtn" onclick="saveStore()">
+                    <i class="fas fa-save"></i> Save Store & Activate Payouts
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== LIST PRODUCT ===== -->
+        <div id="tabProduct" class="section" style="max-width:760px;margin:0 auto;display:none;">
+            <div class="form-card">
+                <h2>List a Product</h2>
+                <p class="sub">Photos sell. Use good light and clean backgrounds.</p>
+
+                <div class="form-field">
+                    <label>Product Photos (up to 2)</label>
+                    <div class="img-picker" id="imgPicker"></div>
+                    <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+                </div>
+
+                <div class="form-field">
+                    <label>Product Title</label>
+                    <input id="pTitle" placeholder="e.g. Shea Butter Pomade 250ml" maxlength="120" />
+                </div>
+                <div class="form-row-3">
+                    <div class="form-field">
+                        <label>Category</label>
+                        <select id="pCategory" onchange="togglePOtherCat()"></select>
+                    </div>
+                    <div class="form-field">
+                        <label>Price (GHS)</label>
+                        <input id="pPrice" type="number" min="0.01" step="0.01" placeholder="45.00" />
+                    </div>
+                    <div class="form-field">
+                        <label>Stock</label>
+                        <input id="pStock" type="number" min="1" step="1" value="10" />
+                    </div>
+                </div>
+                <div class="form-field" id="pOtherCatWrap" style="display:none;">
+                    <label>Specify Category</label>
+                    <input id="pOtherCat" placeholder="e.g. Custom design, Artwork, Software..." maxlength="60" />
+                </div>
+                <div class="form-field">
+                    <label>Description</label>
+                    <textarea id="pDesc" rows="3" placeholder="Size, ingredients, material, colour..." maxlength="800"></textarea>
+                </div>
+
+                <h3 style="font-size:1.05rem;margin:1rem 0 0.4rem;">Fulfilment</h3>
+                <label class="check-row">
+                    <input type="checkbox" id="pPickup" />
+                    <div>
+                        <div class="c-title">Offer pickup</div>
+                        <div class="c-sub">Buyers collect the item from you.</div>
+                    </div>
+                </label>
+                <div class="form-field" id="pickupLocWrap" style="display:none;">
+                    <label>Pickup Location</label>
+                    <input id="pPickupLoc" placeholder="Defaults to your store location" maxlength="120" />
+                </div>
+
+                <label class="check-row">
+                    <input type="checkbox" id="pDelivery" />
+                    <div>
+                        <div class="c-title">Offer delivery</div>
+                        <div class="c-sub">Buyers get it delivered — you set the fee.</div>
+                    </div>
+                </label>
+                <div id="deliveryWrap" style="display:none;">
+                    <div class="form-field">
+                        <label>Delivery Fee (GHS)</label>
+                        <input id="pDelFee" type="number" min="0" step="0.01" placeholder="15.00" />
+                    </div>
+                    <div class="form-field">
+                        <label>Regions you deliver to</label>
+                        <div class="category-chips" id="regionChips" style="margin-bottom:0.3rem;"></div>
+                    </div>
+                </div>
+
+                <button class="btn btn-accent btn-block" id="submitBtn" onclick="saveProduct()">
+                    <i class="fas fa-cloud-upload-alt"></i> Publish Product
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="foot-inner">
+            <div class="foot-col">
+                <h4>Volant Mall</h4>
+                <a href="index.html">Shop</a>
+                <a href="submit.html">Become a Seller</a>
+                <a href="orders.html">My Orders</a>
+                <a href="faq.html">How it Works & FAQ</a>
+            </div>
+            <div class="foot-col">
+                <h4>Help</h4>
+                <a href="../../shared/terms.html">Terms</a>
+                <a href="../../shared/privacy.html">Privacy</a>
+                <a href="../../shared/contact.html">Contact</a>
+            </div>
+            <div class="foot-col">
+                <h4>Platform</h4>
+                <a href="../../index.html">Volant Poetry</a>
+                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantreads.vercel.app/">Volant Reads</a>
+                <a href="../../codes/index.html">Volant Codes</a>
+            </div>
+        </div>
+        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+    </footer>
+
+    <div id="toast"></div>
+
+    <script src="app.js"></script>
+    <script>
+    let myStore = null;
+    let pendingImages = [null, null];
+    let pendingLogo = null;
+    let pendingBanner = null;
+    const GH_REGIONS = ['Greater Accra', 'Ashanti', 'Western', 'Western North', 'Central', 'Eastern', 'Volta', 'Oti', 'Bono', 'Bono East', 'Ahafo', 'Northern', 'Savannah', 'North East', 'Upper East', 'Upper West'];
+    const selectedRegions = new Set();
+
+    function onAppAuthChange(user) {
+        if (user) { showGate(false); loadState(); }
+        else { showGate(true); }
+    }
+
+    function showGate(show) {
+        document.getElementById('gate').style.display = show ? '' : 'none';
+        document.getElementById('workbench').style.display = show ? 'none' : '';
+    }
+
+    async function loadState() {
+        try {
+            const snap = await db.collection('mall-sellers').doc(currentUser.uid).get();
+            if (snap.exists) {
+                myStore = snap.data();
+                document.getElementById('storeExisting').style.display = '';
+                document.getElementById('existingName').textContent = myStore.storeName || 'Store';
+                fillStoreForm();
+                try { document.getElementById('saveStoreBtn').innerHTML = '<i class="fas fa-check"></i> Store live — update if needed'; } catch (e) {}
+            }
+            prefillStorePayout();
+        } catch (err) {
+            console.warn('Load store error:', err);
+        }
+    }
+
+    function switchTab(name) {
+        document.getElementById('tabStoreBtn').classList.toggle('active', name === 'store');
+        document.getElementById('tabProdBtn').classList.toggle('active', name === 'product');
+        document.getElementById('tabStore').style.display = name === 'store' ? '' : 'none';
+        document.getElementById('tabProduct').style.display = name === 'product' ? '' : 'none';
+    }
+
+    function toggleOtherCat() {
+        const wrap = document.getElementById('sOtherCatWrap');
+        if (wrap) wrap.style.display = document.getElementById('sCategory').value === 'other' ? '' : 'none';
+    }
+
+    function togglePOtherCat() {
+        const wrap = document.getElementById('pOtherCatWrap');
+        if (wrap) wrap.style.display = document.getElementById('pCategory').value === 'other' ? '' : 'none';
+    }
+
+    function togglePayout() {
+        const type = document.getElementById('payoutType').value;
+        document.getElementById('payout-momo').style.display = type === 'momo' ? '' : 'none';
+        document.getElementById('payout-bank').style.display = type === 'bank' ? '' : 'none';
+    }
+
+    function bankOptions(selected) {
+        const list = [
+            ['gcb', 'GCB Bank'], ['ecobank', 'Ecobank Ghana'], ['standard chartered', 'Standard Chartered'],
+            ['absa', 'ABSA Bank'], ['republic', 'Republic Bank'], ['fidelity', 'Fidelity Bank'],
+            ['first atlantic', 'First Atlantic Bank'], ['access', 'Access Bank'], ['zenith', 'Zenith Bank'],
+            ['uba', 'UBA Ghana'], ['gtbank', 'GTBank'], ['stanbic', 'Stanbic Bank'],
+            ['prudential', 'Prudential Bank'], ['fbn', 'FBN Bank'], ['bank of africa', 'Bank of Africa']
+        ];
+        const sel = (selected || '').toLowerCase().trim();
+        return '<option value="">Select your bank</option>' + list.map(([v, label]) =>
+            `<option value="${v}" ${sel === v ? 'selected' : ''}>${label}</option>`
+        ).join('');
+    }
+
+    function getBankCode(bankName) {
+        const codes = {
+            'gcb': '058', 'ecobank': '050', 'standard chartered': '052', 'absa': '070',
+            'republic': '061', 'fidelity': '059', 'first atlantic': '054', 'access': '064',
+            'zenith': '057', 'uba': '075', 'gtbank': '056', 'stanbic': '076',
+            'prudential': '060', 'fbn': '071', 'bank of africa': '066'
+        };
+        return codes[(bankName || '').toLowerCase().trim()] || null;
+    }
+
+    function prefillStorePayout() {
+        document.getElementById('bankName').innerHTML = bankOptions();
+        const pd = (userData && userData.payoutDetails) || null;
+        const note = document.getElementById('payoutNote');
+        if (note) note.style.display = 'none';
+        if (!pd) { togglePayout(); return; }
+
+        const sources = [];
+        if (userData.hasPayoutAccount && userData.subaccountCode) sources.push('Volant Reads');
+        if (userData.hasLyricsPayout && userData.lyricsSubaccountCode) sources.push('Volant Lyrics');
+
+        const typeEl = document.getElementById('payoutType');
+        if (pd.type === 'bank' || pd.type === 'momo') typeEl.value = pd.type;
+        togglePayout();
+
+        if (pd.type === 'bank') {
+            document.getElementById('bankName').value = pd.bankName || '';
+            document.getElementById('bankAccount').value = pd.accountNumber || '';
+            document.getElementById('accountHolder').value = pd.accountHolderName || '';
+        } else if (pd.type === 'momo') {
+            document.getElementById('momoNetwork').value = pd.network || 'mtn';
+            document.getElementById('momoPhone').value = pd.phoneNumber || '';
+            document.getElementById('momoHolder').value = pd.accountHolderName || '';
+        }
+
+        const hasMallSub = !!(myStore && myStore.subaccountCode);
+        if (!hasMallSub && sources.length && note) {
+            const text = document.getElementById('payoutNoteText');
+            if (text) text.textContent = `We found your payout details from ${sources.join(' & ')} — review them below. On save, your Mall store gets its account.`;
+            note.style.display = '';
+        }
+    }
+
+    function fillStoreForm() {
+        if (!myStore) return;
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+        set('sName', myStore.storeName);
+        set('sCategory', myStore.category || 'other');
+        set('sCity', myStore.city);
+        set('sLocation', myStore.location);
+        set('sBio', myStore.bio);
+        set('sPhone', myStore.phone);
+        set('sOtherCat', myStore.customCategory);
+        toggleOtherCat();
+        togglePayout();
+        renderStoreBranding();
+    }
+
+    async function saveStore() {
+        if (!currentUser) return;
+        const storeName = document.getElementById('sName').value.trim();
+        const phone = document.getElementById('sPhone').value.trim();
+        const city = document.getElementById('sCity').value.trim();
+        const location = document.getElementById('sLocation').value.trim();
+        const bio = document.getElementById('sBio').value.trim();
+        const category = document.getElementById('sCategory').value;
+        let customCategory = '';
+        if (category === 'other') {
+            customCategory = document.getElementById('sOtherCat').value.trim();
+            if (!customCategory) { showToast('Specify your store category.', 'error'); return; }
+        }
+        if (!storeName) { showToast('Enter a store name.', 'error'); return; }
+        if (!phone) { showToast('Enter a contact phone.', 'error'); return; }
+        if (!city) { showToast('Enter your city / town.', 'error'); return; }
+        if (!location && category !== 'digital') { showToast('Enter your pickup / shop location.', 'error'); return; }
+        if (!bio) { showToast('Tell buyers about your store.', 'error'); return; }
+
+        // payout data (required — store only opens with a working subaccount)
+        const type = document.getElementById('payoutType').value;
+        let payoutData = null;
+        if (type === 'momo') {
+            const network = document.getElementById('momoNetwork').value;
+            const phoneNumber = document.getElementById('momoPhone').value.trim().replace(/\s/g, '');
+            const accountHolderName = document.getElementById('momoHolder').value.trim();
+            if (!phoneNumber || !accountHolderName) { showToast('Please fill in all mobile money details.', 'error'); return; }
+            payoutData = { type: 'momo', network: network, phoneNumber: phoneNumber, accountHolderName: accountHolderName };
+        } else {
+            const bankName = document.getElementById('bankName').value;
+            const bankCode = getBankCode(bankName);
+            const accountNumber = document.getElementById('bankAccount').value.trim();
+            const accountHolderName = document.getElementById('accountHolder').value.trim();
+            if (!bankName || !accountNumber || !accountHolderName) { showToast('Please fill in all bank details.', 'error'); return; }
+            if (!bankCode) { showToast('Please select a valid bank.', 'error'); return; }
+            payoutData = { type: 'bank', bankName: bankName, bankCode: bankCode, accountNumber: accountNumber, accountHolderName: accountHolderName };
+        }
+
+        const btn = document.getElementById('saveStoreBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Setting up...';
+
+        let subaccountCode = myStore && myStore.subaccountCode ? myStore.subaccountCode : '';
+        if (!subaccountCode) {
+            if (!payoutData) {
+                showToast('Add your payout details to open your store.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Store & Activate Payouts';
+                return;
+            }
+            try {
+                const res = await fetch(PAYSTACK_API_BASE + '/mall-create-subaccount', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUser.uid,
+                        email: currentUser.email || '',
+                        payoutData: payoutData,
+                        username: storeName
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    subaccountCode = result.subaccountCode;
+                } else {
+                    showToast('Payout setup: ' + (result.message || 'failed'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> Save Store & Activate Payouts';
+                    return;
+                }
+            } catch (err) {
+                console.error('Subaccount error:', err);
+                showToast('Could not set up payout. Try again.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Store & Activate Payouts';
+                return;
+            }
+        }
+
+        if (subaccountCode) {
+            db.collection('users').doc(currentUser.uid).update({
+                mallSubaccountCode: subaccountCode,
+                hasMallPayout: true,
+                payoutDetails: payoutData,
+                commissionRate: 10,
+                feeBearer: 'account'
+            }).catch(e => console.warn('Could not mark mall payout on user doc:', e));
+        }
+
+        let logoUrl = myStore && myStore.logoUrl ? myStore.logoUrl : '';
+        let bannerUrl = myStore && myStore.bannerUrl ? myStore.bannerUrl : '';
+        if (pendingLogo || pendingBanner) {
+            try {
+                if (pendingLogo) logoUrl = await uploadStoreImage('logo');
+                if (pendingBanner) bannerUrl = await uploadStoreImage('banner');
+            } catch (err) {
+                console.error('Store image upload error:', err);
+                showToast('Could not upload logo/banner.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Store';
+                return;
+            }
+        }
+
+        const data = {
+            ownerId: currentUser.uid,
+            storeName: storeName,
+            storeHandle: storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'store',
+            category: category,
+            customCategory: customCategory,
+            city: document.getElementById('sCity').value.trim(),
+            location: location,
+            bio: document.getElementById('sBio').value.trim(),
+            phone: phone,
+            contactEmail: currentUser.email || '',
+            subaccountCode: subaccountCode,
+            active: true,
+            logoUrl: logoUrl,
+            bannerUrl: bannerUrl,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            await db.collection('mall-sellers').doc(currentUser.uid).set(data, { merge: true });
+            myStore = data;
+            showToast('Store is live! 🎉', 'success');
+            setTimeout(() => switchTab('product'), 1200);
+        } catch (err) {
+            console.error('Save store error:', err);
+            showToast('Could not save store: ' + err.message, 'error');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Save Store';
+    }
+
+    // ===== IMAGE PICKER =====
+    function renderPicker() {
+        const wrap = document.getElementById('imgPicker');
+        wrap.innerHTML = '';
+        for (let i = 0; i < 2; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'img-slot';
+            if (pendingImages[i]) {
+                slot.innerHTML = `<img src="${pendingImages[i].url}" alt=""><button type="button" class="remove" onclick="clearSlot(${i})"><i class="fas fa-times"></i></button>`;
+                slot.onclick = () => clearSlot(i);
+            } else {
+                slot.innerHTML = `<i class="fas fa-camera"></i>`;
+                slot.onclick = () => openFilePicker(i);
+            }
+            wrap.appendChild(slot);
+        }
+    }
+
+    function openFilePicker(index) {
+        const input = document.getElementById('fileInput');
+        input.value = '';
+        input.onchange = () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) { showToast('Please choose an image file.', 'error'); return; }
+            if (file.size > 5 * 1024 * 1024) { showToast('Image is too large (max 5MB).', 'error'); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                pendingImages[index] = { file: file, url: e.target.result };
+                renderPicker();
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    }
+
+    function clearSlot(index) {
+        pendingImages[index] = null;
+        renderPicker();
+    }
+
+    // ===== STORE LOGO / BANNER =====
+    function renderStoreBranding() {
+        const logo = document.getElementById('logoSlot');
+        if (pendingLogo) logo.innerHTML = `<img src="${pendingLogo.url}" alt=""><button type="button" class="remove" style="position:absolute;inset:auto auto auto 66px;" onclick="clearStoreImg('logo');event.stopPropagation();"><i class="fas fa-times"></i></button>`;
+        else if (myStore && myStore.logoUrl) logo.innerHTML = `<img src="${escapeHtml(myStore.logoUrl)}" alt=""><span style="position:absolute;inset:auto auto auto 66px;font-size:0.7rem;color:#b7aad9;"><i class="fas fa-pen"></i></span>`;
+        else logo.innerHTML = `<i class="fas fa-image"></i>`;
+
+        const banner = document.getElementById('bannerSlot');
+        if (pendingBanner) banner.innerHTML = `<img src="${pendingBanner.url}" alt=""><button type="button" class="remove" style="position:absolute;top:8px;right:8px;" onclick="clearStoreImg('banner');event.stopPropagation();"><i class="fas fa-times"></i></button>`;
+        else if (myStore && myStore.bannerUrl) banner.innerHTML = `<img src="${escapeHtml(myStore.bannerUrl)}" alt=""><span style="position:absolute;bottom:8px;right:8px;font-size:0.7rem;color:#fff;background:rgba(0,0,0,0.55);padding:3px 8px;border-radius:99px;"><i class="fas fa-pen"></i> Change</span>`;
+        else banner.innerHTML = `<i class="fas fa-image" style="margin-right:0.4rem;"></i> Tap to add a wide banner`;
+    }
+
+    function pickStoreFile(kind) {
+        const input = document.getElementById('storeFileInput');
+        input.value = '';
+        input.onchange = () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) { showToast('Please choose an image file.', 'error'); return; }
+            if (file.size > 5 * 1024 * 1024) { showToast('Image is too large (max 5MB).', 'error'); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (kind === 'logo') pendingLogo = { file: file, url: e.target.result };
+                else pendingBanner = { file: file, url: e.target.result };
+                renderStoreBranding();
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    }
+
+    function clearStoreImg(kind) {
+        if (kind === 'logo') pendingLogo = null; else pendingBanner = null;
+        renderStoreBranding();
+    }
+
+    async function uploadStoreImage(kind) {
+        const p = kind === 'logo' ? pendingLogo : pendingBanner;
+        if (!p) return myStore && myStore[kind + 'Url'] ? myStore[kind + 'Url'] : null;
+        const ref = storage.ref('mall/' + currentUser.uid + '/store/' + kind + '.jpg');
+        await ref.put(p.file);
+        return ref.getDownloadURL();
+    }
+
+    function renderRegionChips() {
+        const chips = document.getElementById('regionChips');
+        chips.innerHTML = GH_REGIONS.map(r => `
+            <button type="button" class="chip ${selectedRegions.has(r) ? 'active' : ''}" onclick="toggleRegion('${escapeHtml(r)}')">${escapeHtml(r)}</button>
+        `).join('');
+    }
+    function toggleRegion(r) {
+        if (selectedRegions.has(r)) selectedRegions.delete(r); else selectedRegions.add(r);
+        renderRegionChips();
+    }
+
+    document.getElementById('pPickup').addEventListener('change', () => {
+        document.getElementById('pickupLocWrap').style.display = document.getElementById('pPickup').checked ? '' : 'none';
+    });
+    document.getElementById('pDelivery').addEventListener('change', () => {
+        document.getElementById('deliveryWrap').style.display = document.getElementById('pDelivery').checked ? '' : 'none';
+    });
+
+    async function saveProduct() {
+        if (!currentUser) return;
+        if (!myStore) { showToast('Finish your store setup first.', 'error'); switchTab('store'); return; }
+
+        const title = document.getElementById('pTitle').value.trim();
+        const price = parseFloat(document.getElementById('pPrice').value);
+        const stock = parseInt(document.getElementById('pStock').value, 10) || 0;
+        const cat = document.getElementById('pCategory').value;
+        const desc = document.getElementById('pDesc').value.trim();
+        let customCategory = '';
+        if (cat === 'other') {
+            customCategory = document.getElementById('pOtherCat').value.trim();
+            if (!customCategory) { showToast('Specify the product category.', 'error'); return; }
+        }
+
+        if (!title || !price || price <= 0) { showToast('Enter a title and valid price.', 'error'); return; }
+        if (stock < 1) { showToast('Enter stock (minimum 1).', 'error'); return; }
+        const hasImages = pendingImages.filter(Boolean).length > 0;
+
+        const delivery = document.getElementById('pDelivery').checked;
+        const pickup = document.getElementById('pPickup').checked;
+        if (!delivery && !pickup) { showToast('Enable pickup, delivery, or both.', 'error'); return; }
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+        try {
+            const productId = db.collection('mall-products').doc().id;
+
+            // upload images
+            const images = [];
+            for (let i = 0; i < pendingImages.length; i++) {
+                const p = pendingImages[i];
+                if (!p) continue;
+                const ref = storage.ref('mall/' + currentUser.uid + '/products/' + productId + '/' + i + '.jpg');
+                await ref.put(p.file);
+                const url = await ref.getDownloadURL();
+                images.push(url);
+            }
+
+            await db.collection('mall-products').doc(productId).set({
+                ownerId: currentUser.uid,
+                storeName: myStore.storeName || 'Store',
+                storeHandle: myStore.storeHandle || '',
+                title: title,
+                category: cat,
+                customCategory: customCategory,
+                price: price,
+                currency: 'GHS',
+                description: desc,
+                stock: stock,
+                images: images,
+                hasImages: hasImages,
+                pickup: pickup,
+                pickupLocation: pickup ? (document.getElementById('pPickupLoc').value.trim() || myStore.location || 'At the seller') : '',
+                delivery: delivery,
+                deliveryFee: delivery ? (parseFloat(document.getElementById('pDelFee').value) || 0) : 0,
+                deliveryRegions: delivery ? Array.from(selectedRegions) : [],
+                status: 'active',
+                saleCount: 0,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            showToast('Product published! 🎉', 'success');
+            setTimeout(() => location.href = 'manage.html', 1300);
+        } catch (err) {
+            console.error('Save product error:', err);
+            showToast('Could not publish: ' + err.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Publish Product';
+        }
+    }
+
+    function accountClick() {
+        if (currentUser) signOutUser(); else requireAuth('submit.html');
+    }
+
+    function buildCategorySelects() {
+        const opts = MALL_CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
+        document.getElementById('sCategory').innerHTML = opts;
+        document.getElementById('pCategory').innerHTML = opts;
+    }
+
+    renderPicker();
+    renderRegionChips();
+    buildCategorySelects();
+    </script>
+</body>
+</html>

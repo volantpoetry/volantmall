@@ -23,17 +23,31 @@
                 <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
             </a>
             <div class="topbar-right">
-                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" id="sellNavBtn" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
-                <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
-                <button class="icon-btn" id="cartOpenBtn" title="Cart" onclick="location.href='index.html?buy=1'">
+                <div class="user-wrap" id="userBtnWrap">
+                    <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+                    <div class="account-menu" id="accountMenu"></div>
+                </div>
+                <button class="btn-cart" id="cartOpenBtn" title="Cart" onclick="location.href='index.html?buy=1'">
                     <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartCount">0</span>
                 </button>
+                <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+                <nav class="nav-links" id="navLinks">
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
+                    <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
+                    <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+                </nav>
             </div>
         </div>
     </header>
 
     <div id="storeBanner"></div>
+    <div id="welcomeStrip" style="display:none;"></div>
+    <div id="crossStrip" style="display:none;"></div>
 
     <div class="container">
         <section class="section" id="storeProducts">
@@ -47,22 +61,22 @@
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
-                <a href="submit.html">Become a Seller</a>
+                <a href="submit.html" id="footSellLink" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
                 <h4>Help</h4>
-                <a href="../../shared/terms.html">Terms</a>
-                <a href="../../shared/privacy.html">Privacy</a>
-                <a href="../../shared/contact.html">Contact</a>
+                <a href="https://volantpoetry.vercel.app/shared/terms.html">Terms</a>
+                <a href="https://volantpoetry.vercel.app/shared/privacy.html">Privacy</a>
+                <a href="https://volantpoetry.vercel.app/shared/contact.html">Contact Us</a>
             </div>
             <div class="foot-col">
                 <h4>Platform</h4>
-                <a href="../../index.html">Volant Poetry</a>
-                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantpoetry.vercel.app/">Volant Poetry</a>
+                <a href="https://volantlyrics.vercel.app/">Volant Lyrics</a>
                 <a href="https://volantreads.vercel.app/">Volant Reads</a>
-                <a href="../../codes/index.html">Volant Codes</a>
+                <a href="https://volantcodes.vercel.app/">Volant Codes</a>
             </div>
         </div>
         <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
@@ -73,7 +87,84 @@
     <script src="app.js"></script>
     <script>
     let storeId = null;
+    let storeData = null;
     let products = [];
+    const VOLANT_LYRICS = 'https://volantlyrics.vercel.app/';
+    const VOLANT_READS = 'https://volantreads.vercel.app/';
+
+
+    async function loadCrossVolant() {
+        const el = document.getElementById('crossStrip');
+        if (!el || !(currentUser && currentUser.uid === storeId)) return;
+        let lyrics = [];
+        let books = [];
+        try {
+            const [ls, bs] = await Promise.all([
+                db.collection('volant-lyrics').where('submittedBy', '==', currentUser.uid).get(),
+                db.collection('books').where('submittedBy', '==', currentUser.uid).get()
+            ]);
+            lyrics = ls.docs.map(d => ({ id: d.id, title: (d.data().title || d.data().name || 'Untitled'), status: d.data().status }))
+                .filter(x => x.status === 'active').slice(-8).reverse();
+            books = bs.docs.map(d => ({ id: d.id, title: (d.data().title || 'Untitled'), status: d.data().status }))
+                .filter(x => x.status === 'approved').slice(-8).reverse();
+        } catch (e) {
+            console.warn('Cross-Volant load:', e);
+            return;
+        }
+        if (!lyrics.length && !books.length) return;
+
+        const group = (chip, countLabel, base, items, manageUrl) => `
+            <div class="cross-card">
+                <div class="cross-head">
+                    <div class="cross-id">
+                        <span class="cross-chip">${chip}</span>
+                        <span class="cross-count">${countLabel}</span>
+                    </div>
+                    <a class="cross-manage" href="${manageUrl}" target="_blank" rel="noopener">Manage <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <ul class="cross-list">${items.map(it => `<li><a href="${base}details.html?id=${encodeURIComponent(it.id)}" target="_blank" rel="noopener"><span class="t">${escapeHtml(it.title)}</span><i class="fas fa-arrow-right"></i></a></li>`).join('')}</ul>
+            </div>`;
+        el.innerHTML = `
+            <div class="cross-strip">
+                <div class="cross-title">
+                    <span class="icon"><i class="fas fa-globe"></i></span>
+                    <span>
+                        <span class="tt">Your work across Volant</span><br>
+                        <span class="ss">What you have published on the other Volant platforms</span>
+                    </span>
+                </div>
+                <div class="cross-body">
+                    ${lyrics.length ? group('<i class="fas fa-gem"></i> Volant Lyrics', lyrics.length + (lyrics.length === 1 ? ' piece published' : ' pieces published'), VOLANT_LYRICS, lyrics, VOLANT_LYRICS + 'manage.html') : ''}
+                    ${books.length ? group('<i class="fas fa-book"></i> Volant Reads', books.length + (books.length === 1 ? ' book published' : ' books published'), VOLANT_READS, books, VOLANT_READS + 'dashboard.html') : ''}
+                </div>
+            </div>`;
+        el.style.display = '';
+    }
+
+    function renderOwnerStrip() {
+        const el = document.getElementById('welcomeStrip');
+        if (!el || !storeData) return;
+        const isOwner = currentUser && currentUser.uid === storeId;
+        if (!isOwner) { el.style.display = 'none'; return; }
+        const isNew = new URLSearchParams(location.search).get('welcome') === '1';
+        el.innerHTML = `
+            <div class="welcome-strip">
+                <div>
+                    <div class="t">${isNew ? '<i class="fas fa-party-horn"></i> Your store is live, <b>' + escapeHtml(storeData.storeName) + '</b>!' : '<i class="fas fa-store-alt"></i> <b>' + escapeHtml(storeData.storeName) + '</b> — you\'re viewing your own store'}</div>
+                    <div class="s">${isNew ? 'Shoppers can already see you on the mall. Make it shine.' : 'Manage or add products any time to keep it fresh.'}</div>
+                </div>
+                <div class="w-actions">
+                    <a class="btn btn-primary btn-sm" href="submit.html?add=1"><i class="fas fa-plus"></i> Add a product</a>
+                    <a class="btn btn-outline btn-sm" href="manage.html"><i class="fas fa-tachometer-alt"></i> Manage store</a>
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('welcomeStrip').style.display='none'"><i class="fas fa-times"></i></button>
+                </div>
+            </div>`;
+        el.style.display = '';
+        const sellNav = document.getElementById('sellNavBtn');
+        if (sellNav) { sellNav.href = 'manage.html'; sellNav.innerHTML = '<i class="fas fa-chart-line"></i> Dashboard'; }
+        const footSell = document.getElementById('footSellLink');
+        if (footSell) footSell.style.display = 'none';
+    }
 
     async function loadStore() {
         storeId = new URLSearchParams(location.search).get('store');
@@ -94,6 +185,7 @@
             if (revCount > 0) revAvg = Math.round(revAvg / revCount * 10) / 10;
 
             document.title = (s.storeName || 'Store') + ' — Volant Mall';
+            storeData = s;
             document.getElementById('storeBanner').innerHTML = `
                 <div class="store-banner ${s.bannerUrl ? 'has-banner' : ''}" ${s.bannerUrl ? `style="--banner-bg:url('${escapeHtml(s.bannerUrl)}');"` : ''}>
                     <div class="store-banner-inner">
@@ -110,6 +202,9 @@
                         </div>
                     </div>
                 </div>`;
+
+            renderOwnerStrip();
+            loadCrossVolant();
 
             products = [];
             prodSnap.forEach(doc => {
@@ -171,11 +266,8 @@
         }).join('');
     }
 
-    function accountClick() {
-        if (currentUser) signOutUser(); else requireAuth('index.html');
-    }
-
     loadStore();
+    auth.onAuthStateChanged(function () { if (storeId && storeData) renderOwnerStrip(); });
     </script>
 </body>
 </html>

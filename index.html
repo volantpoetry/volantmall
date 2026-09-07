@@ -24,12 +24,24 @@
                 <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
             </a>
             <div class="topbar-right">
-                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="orders.html"><i class="fas fa-box-open"></i> My Orders</a>
-                <button class="icon-btn" id="userBtn" title="Sign in" onclick="accountClick()"></button>
-                <button class="icon-btn" id="cartOpenBtn" title="Cart" onclick="openCart()">
+                <div class="user-wrap" id="userBtnWrap">
+                    <button class="icon-btn" id="userBtn" title="Sign in" onclick="accountClick()"></button>
+                    <div class="account-menu" id="accountMenu"></div>
+                </div>
+                <button class="btn-cart" id="cartOpenBtn" title="Cart" onclick="openCart()">
                     <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartCount">0</span>
                 </button>
+                <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+                <nav class="nav-links" id="navLinks">
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
+                    <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
+                    <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+                </nav>
             </div>
         </div>
     </header>
@@ -39,7 +51,7 @@
         <h1>Shop from <span>Ghana's sellers</span></h1>
         <p>Beauty, fashion, electronics and more — buy directly from real sellers across Ghana, delivered to your door or collected in person.</p>
         <div class="hero-cta">
-            <a class="btn btn-accent btn-lg" href="submit.html"><i class="fas fa-store"></i> Become a Seller</a>
+            <a class="btn btn-accent btn-lg" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Become a Seller</a>
             <a class="btn btn-outline btn-lg" style="background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.35);" href="#shop"><i class="fas fa-caret-down"></i> Start Shopping</a>
         </div>
     </section>
@@ -99,27 +111,43 @@
         </div>
     </section>
 
+    <!-- ===== LYRICS (Volant Lyrics) — shown only when there are published pieces ===== -->
+    <section class="lyrics-band" id="lyricsBand" style="display:none;">
+        <div class="lyrics-inner">
+            <div class="lyrics-head">
+                <div class="lyrics-head-left">
+                    <div class="lyrics-overline"><i class="fas fa-gem"></i> Volant Lyrics</div>
+                    <h2>Discover Original Lyrics</h2>
+                    <p>Fresh lyrics and poetry from the Volant community — read one in minutes.</p>
+                </div>
+                <div class="lyrics-actions">
+                </div>
+            </div>
+            <div class="lyrics-track" id="lyricsTrack"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+        </div>
+    </section>
+
     <footer class="site-footer">
         <div class="foot-inner">
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
-                <a href="submit.html">Become a Seller</a>
+                <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
                 <h4>Help</h4>
-                <a href="../../shared/terms.html">Terms</a>
-                <a href="../../shared/privacy.html">Privacy</a>
-                <a href="../../shared/contact.html">Contact</a>
+                <a href="https://volantpoetry.vercel.app/shared/terms.html">Terms</a>
+                <a href="https://volantpoetry.vercel.app/shared/privacy.html">Privacy</a>
+                <a href="https://volantpoetry.vercel.app/shared/contact.html">Contact Us</a>
             </div>
             <div class="foot-col">
                 <h4>Platform</h4>
-                <a href="../../index.html">Volant Poetry</a>
-                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantpoetry.vercel.app/">Volant Poetry</a>
+                <a href="https://volantlyrics.vercel.app/">Volant Lyrics</a>
                 <a href="https://volantreads.vercel.app/">Volant Reads</a>
-                <a href="../../codes/index.html">Volant Codes</a>
+                <a href="https://volantcodes.vercel.app/">Volant Codes</a>
             </div>
         </div>
         <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
@@ -168,7 +196,7 @@
         try {
             const [prodSnap, sellerSnap] = await Promise.all([
                 db.collection('mall-products').where('status', 'in', ['active', 'stockout']).get(),
-                db.collection('mall-sellers').where('active', '==', true).limit(12).get()
+                db.collection('mall-sellers').where('active', '==', true).limit(50).get()
             ]);
 
             allProducts = [];
@@ -202,16 +230,21 @@
                     bio: d.bio || '',
                     location: d.location || '',
                     category: d.category || 'other',
+                    customCategory: d.customCategory || '',
                     productCount: 0,
+                    inStockCount: 0,
                     city: d.city || '',
                     logoUrl: d.logoUrl || ''
                 });
             });
 
-            // count per seller
+            // count per seller (featured uses in-stock items shoppers can actually buy)
             allProducts.forEach(p => {
                 const s = allSellers.find(x => x.id === p.ownerId);
-                if (s) s.productCount++;
+                if (s) {
+                    s.productCount++;
+                    if (p.status === 'active' && p.stock > 0) s.inStockCount++;
+                }
             });
 
             renderSellers();
@@ -231,18 +264,21 @@
 
     function renderSellers() {
         const grid = document.getElementById('storeGrid');
-        const withItems = allSellers.filter(s => s.productCount > 0);
-        if (withItems.length === 0) {
-            grid.innerHTML = `<div class="empty-state" style="padding:1.6rem;"><i class="fas fa-store"></i><p>Stores opening soon. Be the first to sell!</p><a class="btn btn-primary btn-sm" href="submit.html">Open your store</a></div>`;
+        // Genuinely featured: top stores by in-stock listings, up to 8
+        const featured = allSellers
+            .filter(s => s.inStockCount > 0)
+            .sort((a, b) => b.inStockCount - a.inStockCount)
+            .slice(0, 8);
+        if (featured.length === 0) {
+            grid.innerHTML = `<div class="empty-state" style="padding:1.6rem;"><i class="fas fa-store"></i><p>Stores opening soon. Be the first to sell!</p><a class="btn btn-primary btn-sm" href="submit.html" onclick="return goSell(event)">Open your store</a></div>`;
             return;
         }
-        const featured = withItems.slice(0, 8);
         grid.innerHTML = featured.map(s => `
             <a class="scard" href="store.html?store=${encodeURIComponent(s.id)}">
                 <div class="s-avatar">${s.logoUrl ? `<img src="${escapeHtml(s.logoUrl)}" alt="">` : escapeHtml(s.storeName.charAt(0).toUpperCase())}</div>
                 <div class="s-info">
                     <div class="s-name">${escapeHtml(s.storeName)}</div>
-                    <div class="s-cat"><i class="fas fa-tag"></i> ${escapeHtml(s.customCategory || catLabel(s.category))} · ${s.productCount} item${s.productCount === 1 ? '' : 's'}</div>
+                    <div class="s-cat"><i class="fas fa-tag"></i> ${escapeHtml(s.customCategory || catLabel(s.category))} · ${s.inStockCount} item${s.inStockCount === 1 ? '' : 's'}</div>
                     ${s.city ? `<div class="s-cat"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s.city)}</div>` : ''}
                 </div>
             </a>
@@ -315,8 +351,9 @@
         return t ? (t.toMillis ? t.toMillis() : (t.seconds ? t.seconds * 1000 : 0)) : 0;
     }
 
-    // ===== BOOKS (Volant Reads) =====
+// ===== BOOKS (Volant Reads) =====
     const BOOKS_STORE = 'https://volantreads.vercel.app/';
+    const LYRICS_STORE = 'https://volantlyrics.vercel.app/';
 
     async function loadBooks() {
         try {
@@ -341,6 +378,48 @@
             console.error('Books load error:', err);
             const el = document.getElementById('booksTrack');
             if (el) el.innerHTML = `<div class="empty-state books-empty"><i class="fas fa-book-open"></i><p>Could not load books right now. <a href="${BOOKS_STORE}index.html" style="color:var(--accent);text-decoration:underline;">Visit Volant Reads</a></p></div>`;
+        }
+    }
+
+
+    async function loadLyrics() {
+        try {
+            const snap = await db.collection('volant-lyrics').where('status', '==', 'active').limit(40).get();
+            const lyrics = [];
+            snap.forEach(dc => {
+                const d = dc.data();
+                let t = 0;
+                if (d.createdAt) {
+                    if (typeof d.createdAt.toDate === 'function') t = d.createdAt.toDate().getTime();
+                    else { const n = new Date(d.createdAt).getTime(); if (!isNaN(n)) t = n; }
+                }
+                lyrics.push({ id: dc.id, title: d.title || d.name || 'Untitled', author: d.submittedByUsername || d.submittedByName || '', excerpt: d.description || d.snippet || d.firstLine || '', t });
+            });
+            lyrics.sort((a, b) => b.t - a.t);
+            const shown = lyrics.slice(0, 8);
+            if (shown.length === 0) {
+                const band = document.getElementById('lyricsBand');
+                if (band) band.style.display = 'none';
+                return;
+            }
+            const track = document.getElementById('lyricsTrack');
+            if (!track) return;
+            track.innerHTML = shown.map(l => `
+                <a class="lcard" href="${LYRICS_STORE}details.html?id=${encodeURIComponent(l.id)}" target="_blank" rel="noopener">
+                    <div class="lcard-body">
+                        <div class="lcard-title">${escapeHtml(l.title)}</div>
+                        <div class="lcard-author"><i class="fas fa-user"></i> ${escapeHtml(l.author || 'Anonymous')}</div>
+                        <p class="lcard-excerpt">${escapeHtml(l.excerpt || '')}</p>
+                    </div>
+                    <div class="lcard-foot">
+                        <span class="lcard-open">Read <i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </a>`).join('');
+            document.getElementById('lyricsBand').style.display = '';
+        } catch (err) {
+            console.error('Lyrics load error:', err);
+            const band = document.getElementById('lyricsBand');
+            if (band) band.style.display = 'none';
         }
     }
 
@@ -385,13 +464,7 @@
     }
 
     // ===== ACCOUNT =====
-    function accountClick() {
-        if (currentUser) {
-            signOutUser();
-        } else {
-            requireAuth('index.html');
-        }
-    }
+
 
     // ===== CART DRAWER =====
     function openCart() {
@@ -739,6 +812,7 @@
     // ===== INIT =====
     loadMall();
     loadBooks();
+    loadLyrics();
     </script>
 </body>
 </html>

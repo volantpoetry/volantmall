@@ -24,9 +24,21 @@
                 <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
             </a>
             <div class="topbar-right">
-                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-plus-circle"></i> List Product</a>
+                <a class="btn btn-ghost btn-sm" href="submit.html?add=1"><i class="fas fa-plus-circle"></i> List Product</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-store"></i> Storefront</a>
-                <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+                <div class="user-wrap" id="userBtnWrap">
+                    <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+                    <div class="account-menu" id="accountMenu"></div>
+                </div>
+                <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+                <nav class="nav-links" id="navLinks">
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
+                    <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
+                    <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+                </nav>
             </div>
         </div>
     </header>
@@ -57,6 +69,10 @@
 
             <!-- PRODUCTS -->
             <div id="tabProducts" class="section" style="padding-top:0.5rem;">
+                <div class="section-head" style="flex-wrap:wrap;gap:0.6rem;margin-bottom:0.8rem;">
+                    <h2 style="font-size:1.15rem;margin:0;">My Products</h2>
+                    <a class="btn btn-outline btn-sm" href="submit.html?add=1"><i class="fas fa-plus"></i> Add product</a>
+                </div>
                 <div id="productList"></div>
             </div>
 
@@ -72,9 +88,13 @@
                     <p class="sub">Update your store name, location and contact details.</p>
                     <div class="form-field">
                         <label>Store Logo & Banner</label>
-                        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;">
                             <div class="logo-slot" id="mLogoSlot" onclick="pickManageImg('logo')"><i class="fas fa-image"></i></div>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="pickManageImg('banner')"><i class="fas fa-image"></i> Change banner</button>
+                            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="pickManageImg('banner')"><i class="fas fa-image"></i> Change banner</button>
+                                <button type="button" class="btn btn-ghost btn-sm" id="mLogoRemoveBtn" style="display:none;" onclick="markRemoveImg('logo')"><i class="fas fa-trash-alt"></i> Remove logo</button>
+                                <button type="button" class="btn btn-ghost btn-sm" id="mBannerRemoveBtn" style="display:none;" onclick="markRemoveImg('banner')"><i class="fas fa-trash-alt"></i> Remove banner</button>
+                            </div>
                         </div>
                         <div class="form-hint">Square logo + wide banner for your storefront.</div>
                     </div>
@@ -135,22 +155,22 @@
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
-                <a href="submit.html">Become a Seller</a>
+                <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
                 <h4>Help</h4>
-                <a href="../../shared/terms.html">Terms</a>
-                <a href="../../shared/privacy.html">Privacy</a>
-                <a href="../../shared/contact.html">Contact</a>
+                <a href="https://volantpoetry.vercel.app/shared/terms.html">Terms</a>
+                <a href="https://volantpoetry.vercel.app/shared/privacy.html">Privacy</a>
+                <a href="https://volantpoetry.vercel.app/shared/contact.html">Contact Us</a>
             </div>
             <div class="foot-col">
                 <h4>Platform</h4>
-                <a href="../../index.html">Volant Poetry</a>
-                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantpoetry.vercel.app/">Volant Poetry</a>
+                <a href="https://volantlyrics.vercel.app/">Volant Lyrics</a>
                 <a href="https://volantreads.vercel.app/">Volant Reads</a>
-                <a href="../../codes/index.html">Volant Codes</a>
+                <a href="https://volantcodes.vercel.app/">Volant Codes</a>
             </div>
         </div>
         <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
@@ -175,7 +195,7 @@
         try {
             const storeSnap = await db.collection('mall-sellers').doc(uid).get();
             if (!storeSnap.exists) {
-                document.getElementById('dash').innerHTML = `<div class="empty-state"><i class="fas fa-store-alt"></i><p>You haven't opened a store yet.</p><a class="btn btn-primary" href="submit.html">Open your store</a></div>`;
+                document.getElementById('dash').innerHTML = `<div class="empty-state"><i class="fas fa-store-alt"></i><p>You haven't opened a store yet.</p><a class="btn btn-primary" href="submit.html" onclick="return goSell(event)">Open your store</a></div>`;
                 return;
             }
             myStore = storeSnap.data();
@@ -230,7 +250,7 @@
         const list = document.getElementById('productList');
         const live = myProducts.filter(p => p.status !== 'deleted');
         if (!live.length) {
-            list.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>No products yet.</p><a class="btn btn-primary btn-sm" href="submit.html">List your first product</a></div>`;
+            list.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>No products yet.</p><a class="btn btn-primary btn-sm" href="submit.html?add=1">List your first product</a></div>`;
             return;
         }
         list.innerHTML = live.map(p => {
@@ -374,7 +394,8 @@
     }
 
     function switchTab(tab) {
-        ['tProducts', 'tOrders', 'tStore'].forEach(id => document.getElementById(id).classList.toggle('active', id === ('t' + tab.charAt(0).toUpperCase() + tab.slice(1))));
+        const idMap = { products: 'tProducts', orders: 'tOrders', settings: 'tStore' };
+        Object.keys(idMap).forEach(key => document.getElementById(idMap[key]).classList.toggle('active', key === tab));
         document.getElementById('tabProducts').style.display = tab === 'products' ? '' : 'none';
         document.getElementById('tabOrders').style.display = tab === 'orders' ? '' : 'none';
         document.getElementById('tabSettings').style.display = tab === 'settings' ? '' : 'none';
@@ -399,12 +420,23 @@
     function renderManageBranding() {
         const logo = document.getElementById('mLogoSlot');
         const banner = document.getElementById('mBannerSlot');
-        if (pendingMImg.logo) logo.innerHTML = `<img src="${pendingMImg.logo.url}" alt="">`;
-        else if (myStore && myStore.logoUrl) logo.innerHTML = `<img src="${escapeHtml(myStore.logoUrl)}" alt="">`;
+        const logoRemoved = pendingMImg.logo && pendingMImg.logo.remove;
+        const bannerRemoved = pendingMImg.banner && pendingMImg.banner.remove;
+        if (pendingMImg.logo && !logoRemoved) logo.innerHTML = `<img src="${pendingMImg.logo.url}" alt="">`;
+        else if (!logoRemoved && myStore && myStore.logoUrl) logo.innerHTML = `<img src="${escapeHtml(myStore.logoUrl)}" alt="">`;
         else logo.innerHTML = `<i class="fas fa-image"></i>`;
-        if (pendingMImg.banner) banner.innerHTML = `<img src="${pendingMImg.banner.url}" alt="">`;
-        else if (myStore && myStore.bannerUrl) banner.innerHTML = `<img src="${escapeHtml(myStore.bannerUrl)}" alt="">`;
-        else banner.innerHTML = `<i class="fas fa-image" style="margin-right:0.4rem;"></i> Tap or click "Change banner" to upload`;
+        if (pendingMImg.banner && !bannerRemoved) banner.innerHTML = `<img src="${pendingMImg.banner.url}" alt="">`;
+        else if (!bannerRemoved && myStore && myStore.bannerUrl) banner.innerHTML = `<img src="${escapeHtml(myStore.bannerUrl)}" alt="">`;
+        else banner.innerHTML = `<i class="fas fa-image" style="margin-right:0.4rem;"></i> ${logoRemoved || bannerRemoved ? '' : 'Tap or click "Change banner" to upload'}`;
+        const lr = document.getElementById('mLogoRemoveBtn');
+        if (lr) lr.style.display = (pendingMImg.logo || (myStore && myStore.logoUrl)) && !logoRemoved ? '' : 'none';
+        const br = document.getElementById('mBannerRemoveBtn');
+        if (br) br.style.display = (pendingMImg.banner || (myStore && myStore.bannerUrl)) && !bannerRemoved ? '' : 'none';
+    }
+
+    function markRemoveImg(kind) {
+        pendingMImg[kind] = { remove: true };
+        renderManageBranding();
     }
 
     function pickManageImg(kind) {
@@ -429,12 +461,19 @@
         const card = document.getElementById('payoutCard');
         if (!myStore) return;
         if (myStore.subaccountCode) {
+            const pd = (userData && userData.payoutDetails) || null;
+            const dest = pd
+                ? (pd.type === 'bank'
+                    ? 'Bank •••• ' + String(pd.accountNumber || '').slice(-4)
+                    : (pd.network || 'MoMo') + ' •••• ' + String(pd.phoneNumber || '').slice(-4))
+                : '';
             card.innerHTML = `
                 <div style="display:flex;gap:0.7rem;align-items:center;">
                     <div style="width:44px;height:44px;border-radius:50%;background:var(--success-bg);color:var(--success);display:grid;place-items:center;"><i class="fas fa-check"></i></div>
-                    <div>
+                    <div style="flex:1;">
                         <div style="font-weight:600;">Payouts active</div>
-                        <div style="font-size:0.82rem;color:var(--ink-soft);">Subaccount ${escapeHtml(myStore.subaccountCode)} · sales settle to your MoMo/bank</div>
+                        <div style="font-size:0.82rem;color:var(--ink-soft);">${dest ? escapeHtml(dest) : 'Subaccount ' + escapeHtml(myStore.subaccountCode)} · sales settle to your MoMo/bank</div>
+                        <a class="btn btn-outline btn-sm" style="margin-top:0.4rem;" href="submit.html?setup=1"><i class="fas fa-edit"></i> Update payout details</a>
                     </div>
                 </div>`;
         } else {
@@ -452,7 +491,7 @@
                     <div style="width:44px;height:44px;border-radius:50%;background:${found ? 'var(--accent-soft)' : 'var(--danger-bg)'};color:${found ? 'var(--accent)' : 'var(--danger)'};display:grid;place-items:center;"><i class="fas fa-${found ? 'info' : 'exclamation'}"></i></div>
                     <div>
                         ${inner}
-                        <a class="btn btn-primary btn-sm" style="margin-top:0.4rem;" href="submit.html"><i class="fas fa-edit"></i> ${found ? 'Review & activate' : 'Set up payouts'}</a>
+                        <a class="btn btn-primary btn-sm" style="margin-top:0.4rem;" href="submit.html?setup=1"><i class="fas fa-edit"></i> ${found ? 'Review & activate' : 'Set up payouts'}</a>
                     </div>
                 </div>`;
         }
@@ -493,20 +532,23 @@
         if (!data.storeName) { showToast('Store name is required.', 'error'); return; }
         if (!data.location && cat !== 'digital') { showToast('Pickup / shop location is required.', 'error'); return; }
         data.phone = document.getElementById('sPhone').value.trim();
+        const logoRemoved = pendingMImg.logo && pendingMImg.logo.remove;
+        const bannerRemoved = pendingMImg.banner && pendingMImg.banner.remove;
         try {
             if (pendingMImg.logo || pendingMImg.banner) {
-                const up = async (kind) => {
+                const up = async (kind, wasRemoved) => {
                     const p = pendingMImg[kind];
                     if (!p) return myStore && myStore[kind + 'Url'] ? myStore[kind + 'Url'] : null;
-                    const ref = storage.ref('mall/' + currentUser.uid + '/store/' + kind + '.jpg');
-                    await ref.put(p.file);
-                    return ref.getDownloadURL();
+                    if (wasRemoved) return firebase.firestore.FieldValue.delete();
+                    return uploadToCloudinary(p.file);
                 };
-                data.logoUrl = await up('logo');
-                data.bannerUrl = await up('banner');
+                data.logoUrl = await up('logo', logoRemoved);
+                data.bannerUrl = await up('banner', bannerRemoved);
             }
             await db.collection('mall-sellers').doc(currentUser.uid).update(data);
             myStore = { ...myStore, ...data };
+            if (logoRemoved) delete myStore.logoUrl;
+            if (bannerRemoved) delete myStore.bannerUrl;
             document.getElementById('dashName').textContent = data.storeName;
             pendingMImg = { logo: null, banner: null };
             renderManageBranding();
@@ -514,9 +556,6 @@
         } catch (e) { console.error(e); showToast('Save failed.', 'error'); }
     }
 
-    function accountClick() {
-        if (currentUser) signOutUser(); else requireAuth('manage.html');
-    }
     </script>
 </body>
 </html>

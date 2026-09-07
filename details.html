@@ -23,12 +23,24 @@
                 <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
             </a>
             <div class="topbar-right">
-                <a class="btn btn-ghost btn-sm" href="submit.html"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
-                <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
-                <button class="icon-btn" id="cartOpenBtn" title="Cart" onclick="goCart()">
+                <div class="user-wrap" id="userBtnWrap">
+                    <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+                    <div class="account-menu" id="accountMenu"></div>
+                </div>
+                <button class="btn-cart" id="cartOpenBtn" title="Cart" onclick="goCart()">
                     <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartCount">0</span>
                 </button>
+                <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+                <nav class="nav-links" id="navLinks">
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
+                    <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
+                    <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+                </nav>
             </div>
         </div>
     </header>
@@ -42,22 +54,22 @@
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
-                <a href="submit.html">Become a Seller</a>
+                <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
                 <h4>Help</h4>
-                <a href="../../shared/terms.html">Terms</a>
-                <a href="../../shared/privacy.html">Privacy</a>
-                <a href="../../shared/contact.html">Contact</a>
+                <a href="https://volantpoetry.vercel.app/shared/terms.html">Terms</a>
+                <a href="https://volantpoetry.vercel.app/shared/privacy.html">Privacy</a>
+                <a href="https://volantpoetry.vercel.app/shared/contact.html">Contact Us</a>
             </div>
             <div class="foot-col">
                 <h4>Platform</h4>
-                <a href="../../index.html">Volant Poetry</a>
-                <a href="../../lyrics/index.html">Volant Lyrics</a>
+                <a href="https://volantpoetry.vercel.app/">Volant Poetry</a>
+                <a href="https://volantlyrics.vercel.app/">Volant Lyrics</a>
                 <a href="https://volantreads.vercel.app/">Volant Reads</a>
-                <a href="../../codes/index.html">Volant Codes</a>
+                <a href="https://volantcodes.vercel.app/">Volant Codes</a>
             </div>
         </div>
         <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
@@ -209,9 +221,6 @@
 
     function goCart() {
         window.location.href = 'index.html?buy=1';
-    }
-function accountClick() {
-        if (currentUser) signOutUser(); else requireAuth('index.html');
     }
 
     // ===== REVIEWS =====

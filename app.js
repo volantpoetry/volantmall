@@ -13,7 +13,34 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
-const storage = typeof firebase.storage === 'function' ? firebase.storage() : null;
+
+// ===== CLOUDINARY (uploads — same CDN as the rest of the platform) =====
+// Mall store logo/banner + product photos use the 'volant_mall' unsigned
+// preset. 'profile_pics' is used ONLY by user profile/avatar uploads.
+const CLOUDINARY_CONFIG = {
+    cloudName: 'dzoq4pgjn',
+    uploadPreset: 'volant_mall',
+    folder: 'volant-mall'
+};
+
+async function uploadToCloudinary(file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+    if (CLOUDINARY_CONFIG.folder) fd.append('folder', CLOUDINARY_CONFIG.folder);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`, {
+        method: 'POST',
+        body: fd
+    });
+    if (!res.ok) {
+        throw new Error('Upload failed (' + res.status + ')');
+    }
+    const data = await res.json();
+    if (!data.secure_url) {
+        throw new Error((data.error && data.error.message) || 'Upload failed');
+    }
+    return data.secure_url;
+}
 
 // ===== PAYSTACK =====
 const PAYSTACK_API_BASE = 'https://volantpoetry.vercel.app/api';
@@ -24,6 +51,21 @@ function isDevMode() {
     return location.protocol === 'file:' ||
         location.hostname === 'localhost' ||
         location.hostname === '127.0.0.1';
+}
+
+// ===== SELL ENTRY =====
+// Signed-in sellers go straight to their public store; new sellers go to setup.
+function goSell(event) {
+    if (!currentUser) return true;
+    if (event) event.preventDefault();
+    db.collection('mall-sellers').doc(currentUser.uid).get()
+        .then(snap => {
+            location.href = snap.exists
+                ? 'store.html?store=' + encodeURIComponent(currentUser.uid)
+                : 'submit.html';
+        })
+        .catch(() => { location.href = 'submit.html'; });
+    return false;
 }
 
 async function loadPaystackConfig() {
@@ -55,33 +97,134 @@ auth.onAuthStateChanged(async (user) => {
         userData = null;
     }
     renderAvatar();
+    updateMobileNavAuth();
     if (typeof onAppAuthChange === 'function') onAppAuthChange(user);
 });
 
 function renderAvatar() {
     const el = document.getElementById('userBtn');
-    if (!el) return;
-    if (currentUser) {
+    const menu = document.getElementById('accountMenu');
+    if (!currentUser) {
+        if (el) {
+            el.style.background = 'var(--primary-soft)';
+            el.innerHTML = '<i class="fas fa-user" style="font-size:0.95rem;color:var(--primary);"></i>';
+            el.title = 'Sign in';
+        }
+        if (menu) menu.innerHTML = '';
+        return;
+    }
+    const photoURL = (userData && (userData.cachedAvatarURL || userData.photoURL)) || currentUser.photoURL || null;
+    if (el) {
         const displayName = (userData && (userData.username || userData.displayName)) || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '') || 'User';
-        const photoURL = (userData && (userData.cachedAvatarURL || userData.photoURL)) || null;
         el.title = currentUser.email || 'Account';
         if (photoURL) {
-            el.style.backgroundImage = `url(${photoURL})`;
-            el.style.backgroundSize = 'cover';
-            el.style.backgroundPosition = 'center';
-            el.innerHTML = '';
+            el.style.background = '';
+            el.innerHTML = `<img src="${escapeHtml(photoURL)}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="avatarImgError(this)">`;
         } else {
-            el.style.backgroundImage = 'none';
-            el.style.background = colorFromName(displayName);
             el.innerHTML = `<span style="color:white;font-size:0.75rem;font-weight:700;line-height:1;">${getInitials(displayName)}</span>`;
+            el.style.background = colorFromName(displayName);
         }
-    } else {
-        el.style.backgroundImage = 'none';
-        el.style.background = '';
-        el.innerHTML = `<i class="fas fa-sign-in-alt"></i>`;
-        el.title = 'Sign in';
+    }
+    if (!menu) return;
+    const displayName = (userData && (userData.username || userData.displayName)) || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '') || 'User';
+    const email = currentUser.email || '';
+    menu.innerHTML = `
+        <div class="acct-head">
+            <div class="acct-pic">${photoURL ? `<img src="${escapeHtml(photoURL)}" alt="" onerror="avatarImgError(this)">` : `<span>${escapeHtml(getInitials(displayName))}</span>`}</div>
+            <div class="acct-id">
+                <div class="acct-name">${escapeHtml(displayName)}</div>
+                ${email ? `<div class="acct-email">${escapeHtml(email)}</div>` : ''}
+            </div>
+        </div>
+        <hr>
+        <button class="acct-item" onclick="toggleAccountMenu(); signOutUser();"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+        <small class="acct-foot">Signed in on Volant Mall</small>`;
+}
+
+function avatarImgError(img) {
+    const el = (img && (img.closest('#userBtn') || img.closest('.acct-pic'))) || null;
+    if (!el) return;
+    if (!currentUser) {
+        renderAvatar();
+        return;
+    }
+    const name = (userData && (userData.username || userData.displayName)) || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '') || 'U';
+    el.innerHTML = `<span style="color:white;font-size:0.75rem;font-weight:700;line-height:1;">${getInitials(name)}</span>`;
+    el.style.background = colorFromName(name);
+}
+
+let accountMenuWasOpen = false;
+
+function toggleAccountMenu(forceClose) {
+    if (!currentUser) { requireAuth(); return; }
+    const menu = document.getElementById('accountMenu');
+    if (!menu) return;
+    if (forceClose || menu.classList.contains('open')) menu.classList.remove('open');
+    else menu.classList.add('open');
+}
+
+function accountClick() {
+    if (currentUser) toggleAccountMenu();
+    else requireAuth();
+}
+
+document.addEventListener('click', function (e) {
+    if (e.target.closest('#userBtnWrap')) return;
+    const menu = document.getElementById('accountMenu');
+    if (menu && menu.classList.contains('open')) menu.classList.remove('open');
+});
+
+// ===== MOBILE NAV (burger menu) =====
+function initMobileNav() {
+    const toggle = document.getElementById('menuToggle');
+    const links = document.getElementById('navLinks');
+    if (!toggle || !links) return;
+    toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const open = links.classList.toggle('open');
+        toggle.innerHTML = open ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+    });
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('#navLinks') || e.target.closest('#menuToggle')) return;
+        if (links.classList.contains('open')) {
+            links.classList.remove('open');
+            toggle.innerHTML = '<i class="fas fa-bars"></i>';
+        }
+    });
+    const signOutLink = document.getElementById('mobileSignOutBtn');
+    if (signOutLink) signOutLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        links.classList.remove('open');
+        toggle.innerHTML = '<i class="fas fa-bars"></i>';
+        signOutUser();
+    });
+}
+
+function updateMobileNavAuth() {
+    const signInLink = document.getElementById('mobileSignInBtn');
+    const signOutLink = document.getElementById('mobileSignOutBtn');
+    if (signInLink) {
+        signInLink.style.display = currentUser ? 'none' : '';
+        if (!currentUser) {
+            signInLink.href = 'login.html?platform=mall&redirect=' + encodeURIComponent(location.pathname.split('/').pop() || 'index.html');
+        }
+    }
+    if (signOutLink) signOutLink.style.display = currentUser ? '' : 'none';
+    const sellLink = document.querySelector('.nav-selllink');
+    const myStoreLink = document.querySelector('.nav-mystore');
+    if (sellLink && myStoreLink) {
+        if (currentUser) {
+            sellLink.style.display = 'none';
+            myStoreLink.style.display = '';
+            myStoreLink.href = 'store.html?store=' + encodeURIComponent(currentUser.uid);
+        } else {
+            sellLink.style.display = '';
+            myStoreLink.style.display = 'none';
+        }
     }
 }
+
+initMobileNav();
 
 function requireAuth(redirect) {
     const target = redirect || location.pathname.split('/').pop() || 'index.html';

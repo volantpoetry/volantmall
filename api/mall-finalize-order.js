@@ -45,12 +45,15 @@ async function verifyPaystack(reference, email, expectedAmountPaise) {
         return { ok: false, message: 'Could not reach Paystack to verify payment.' };
     }
     if (!res.ok) {
-        return { ok: false, message: 'Transaction verification failed on Paystack.' };
+        const errBody = await res.json().catch(() => ({}));
+        console.error('Paystack verify HTTP error:', res.status, errBody);
+        return { ok: false, message: 'Paystack verification failed (HTTP ' + res.status + '): ' + (errBody.message || 'unknown error') };
     }
     const body = await res.json();
     const txn = body.data;
     if (!body.status || !txn || txn.status !== 'success') {
-        return { ok: false, message: `Transaction not successful. Status: ${(txn && txn.status) || 'unknown'}` };
+        console.error('Paystack verify logical error:', body);
+        return { ok: false, message: 'Transaction not successful. Status: ' + ((txn && txn.status) || body.message || 'unknown') };
     }
     if (Number(txn.amount) !== Number(expectedAmountPaise)) {
         return { ok: false, message: 'Amount mismatch between checkout and Paystack.' };
@@ -272,32 +275,46 @@ module.exports = async (req, res) => {
     // killed/crashed invocation (that surfaces as "Failed to fetch").
     try {
         const { reference, idToken, checkout } = req.body || {};
-        if (!reference) return res.status(400).json({ success: false, message: 'Reference is required.' });
+        console.log('[FINALIZE] Request received — reference:', reference, '| has idToken:', !!idToken, '| has checkout body:', !!checkout);
+
+        if (!reference) {
+            console.error('[FINALIZE] No reference provided.');
+            return res.status(400).json({ success: false, message: 'Reference is required.' });
+        }
 
         let decoded;
         try {
             decoded = await verifyToken(idToken);
+            console.log('[FINALIZE] Auth OK — uid:', decoded.uid);
         } catch (e) {
+            console.error('[FINALIZE] Auth failed:', e.message);
             return res.status(401).json({ success: false, message: 'Authentication failed.' });
         }
+
+        const hasSecret = !!process.env.MALL_PAYSTACK_SECRET_KEY;
+        console.log('[FINALIZE] MALL_PAYSTACK_SECRET_KEY set:', hasSecret, '| key prefix:', hasSecret ? process.env.MALL_PAYSTACK_SECRET_KEY.substring(0, 7) + '...' : 'NONE');
 
         const adminDb = db();
         const checkoutDoc = await adminDb.collection('mall-checkouts').doc(reference).get();
         if (!checkoutDoc.exists) {
+            console.error('[FINALIZE] Checkout doc NOT FOUND for ref:', reference);
             return res.status(400).json({ success: false, message: 'Checkout session not found for this reference.' });
         }
+        const cd = checkoutDoc.data();
+        console.log('[FINALIZE] Checkout doc found — status:', cd.status, '| items:', (cd.items || []).length, '| email:', cd.email);
 
         const result = await finaliseOrder(adminDb, {
             reference,
             checkout: {
-                items: (checkout && checkout.items) || (checkoutDoc.data().items || []),
-                shipping: (checkout && checkout.shipping) || checkoutDoc.data().shipping || null,
-                email: (checkout && checkout.email) || (checkoutDoc.data().email || ''),
-                phone: checkoutDoc.data().phone || '',
+                items: (checkout && checkout.items) || (cd.items || []),
+                shipping: (checkout && checkout.shipping) || cd.shipping || null,
+                email: (checkout && checkout.email) || (cd.email || ''),
+                phone: cd.phone || '',
                 uid: decoded.uid
             }
         });
 
+        console.log('[FINALIZE] Result:', result.ok ? 'SUCCESS' : 'FAILED', '| status:', result.statusCode, '| message:', result.message);
         return res.status(result.statusCode || 500).json({
             success: result.ok,
             alreadyFinalized: result.alreadyFinalized || false,
@@ -307,7 +324,7 @@ module.exports = async (req, res) => {
             message: result.message || ''
         });
     } catch (err) {
-        console.error('mall-finalize-order handler error:', err);
+        console.error('[FINALIZE] UNCAUGHT handler error:', err);
         return res.status(500).json({
             success: false,
             message: 'Order could not be confirmed right now. Your payment is safe - the webhook will finalise it.'

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Notifications — Volant Mall</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="manifest" href="manifest.json">
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="index.html">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+            </a>
+            <div class="topbar-right">
+                <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <div class="user-wrap" id="userBtnWrap">
+                    <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+                    <div class="account-menu" id="accountMenu"></div>
+                </div>
+                <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
+                <nav class="nav-links" id="navLinks">
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
+                    <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
+                    <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>
+                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="section" id="gate" style="display:none;">
+            <div class="empty-state">
+                <i class="fas fa-bell"></i>
+                <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Notifications</h2>
+                <p style="color:var(--ink-soft);margin-bottom:1.2rem;">Sign in to see updates on your orders and store.</p>
+                <button class="btn btn-primary" onclick="requireAuth('notifications.html')"><i class="fas fa-sign-in-alt"></i> Sign in</button>
+            </div>
+        </section>
+
+        <section class="section" id="notifSec" style="display:none;">
+            <div class="section-head">
+                <h2>Notifications</h2>
+                <button class="btn btn-ghost btn-sm" id="markAllBtn" onclick="markAllRead()"><i class="fas fa-check-double"></i> Mark all read</button>
+            </div>
+            <div id="notifList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+        </section>
+    </div>
+
+    <footer class="site-footer">
+        <div class="foot-inner">
+            <div class="foot-col foot-brand">
+                <div class="fb-logo">
+                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
+                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                </div>
+                <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
+            </div>
+            <div class="foot-col">
+                <h4>Volant Mall</h4>
+                <a href="index.html">Shop</a>
+                <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
+                <a href="orders.html">My Orders</a>
+                <a href="notifications.html">Notifications</a>
+                <a href="refund.html">Refunds & Returns</a>
+                <a href="faq.html">How it Works & FAQ</a>
+            </div>
+            <div class="foot-col">
+                <h4>Help</h4>
+                <a href="https://volantpoetry.vercel.app/shared/terms.html">Terms</a>
+                <a href="https://volantpoetry.vercel.app/shared/privacy.html">Privacy</a>
+                <a href="https://volantpoetry.vercel.app/shared/contact.html">Contact Us</a>
+            </div>
+            <div class="foot-col">
+                <h4>Platform</h4>
+                <a href="https://volantpoetry.vercel.app/">Volant Poetry</a>
+                <a href="https://volantlyrics.vercel.app/">Volant Lyrics</a>
+                <a href="https://volantreads.vercel.app/">Volant Reads</a>
+                <a href="https://volantcodes.vercel.app/">Volant Codes</a>
+            </div>
+        </div>
+        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+    </footer>
+
+    <div id="toast"></div>
+
+    <script src="app.js"></script>
+    <script>
+    let myNotifs = [];
+
+    function onAppAuthChange(user) {
+        if (user) {
+            document.getElementById('gate').style.display = 'none';
+            document.getElementById('notifSec').style.display = '';
+            loadNotifications();
+        } else {
+            document.getElementById('gate').style.display = '';
+            document.getElementById('notifSec').style.display = 'none';
+        }
+    }
+
+    const notifIcons = {
+        new_order: 'fas fa-store', order_status: 'fas fa-shipping-fast', product_approved: 'fas fa-check-circle', product_rejected: 'fas fa-ban', info: 'fas fa-info-circle'
+    };
+
+    function ts(t) {
+        return t ? (t.toMillis ? t.toMillis() : (t.seconds ? t.seconds * 1000 : 0)) : 0;
+    }
+
+    async function loadNotifications() {
+        try {
+            const snap = await db.collection('notifications')
+                .where('userId', '==', currentUser.uid)
+                .orderBy('createdAt', 'desc')
+                .limit(40)
+                .get();
+            myNotifs = [];
+            const unread = [];
+            snap.forEach(doc => {
+                const d = doc.data();
+                myNotifs.push({ id: doc.id, ...d });
+                if (!d.read) unread.push(doc.id);
+            });
+            render();
+            if (unread.length) {
+                const batch = db.batch();
+                unread.forEach(id => batch.update(db.collection('notifications').doc(id), { read: true }));
+                await batch.commit().catch(() => {});
+            }
+        } catch (err) {
+            console.error('Notifications error:', err);
+            document.getElementById('notifList').innerHTML = `<div class="empty-state"><p>Could not load notifications.</p></div>`;
+        }
+    }
+
+    function render() {
+        const list = document.getElementById('notifList');
+        if (!myNotifs.length) {
+            list.innerHTML = `<div class="empty-state"><i class="fas fa-bell-slash"></i><p>No notifications yet. Order updates and seller news will show up here.</p></div>`;
+            return;
+        }
+        list.innerHTML = myNotifs.map(n => `
+            <div class="notif-card ${n.read ? 'read' : ''}">
+                <div class="notif-icon"><i class="${notifIcons[n.type] || notifIcons.info}"></i></div>
+                <div class="notif-body">
+                    <div class="notif-title">${escapeHtml(n.title || 'Update')}</div>
+                    <div class="notif-text">${escapeHtml(n.body || '')}</div>
+                    <div class="notif-date">${new Date(ts(n.createdAt)).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+                ${n.orderId ? `<a class="btn btn-ghost btn-sm" href="orders.html"><i class="fas fa-arrow-right"></i></a>` : ''}
+            </div>`).join('');
+    }
+
+    async function markAllRead() {
+        try {
+            const batch = db.batch();
+            myNotifs.filter(n => !n.read).forEach(n => batch.update(db.collection('notifications').doc(n.id), { read: true }));
+            await batch.commit();
+            myNotifs.forEach(n => n.read = true);
+            render();
+            showToast('All marked as read.', 'success');
+        } catch (e) { console.error(e); }
+    }
+    </script>
+</body>
+</html>

@@ -356,6 +356,42 @@ const MALL_CATEGORIES = [
     { key: 'other', label: 'Other' }
 ];
 
+// ===== WISHLIST =====
+const MALL_WISHLIST_KEY = 'volant_mall_wishlist';
+function getWishlist() {
+    try { return JSON.parse(localStorage.getItem(MALL_WISHLIST_KEY)) || []; } catch (e) { return []; }
+}
+function saveWishlist(list) {
+    localStorage.setItem(MALL_WISHLIST_KEY, JSON.stringify(list));
+}
+function toggleWish(id) {
+    const list = getWishlist();
+    const on = list.includes(id);
+    if (on) saveWishlist(list.filter(x => x !== id));
+    else saveWishlist([...list, id]);
+    refreshWishButtons();
+    return !on;
+}
+function isWished(id) {
+    return getWishlist().includes(id);
+}
+function refreshWishButtons() {
+    document.querySelectorAll('.wish-btn').forEach(btn => {
+        const id = btn.getAttribute('data-wish-id');
+        if (!id) return;
+        const on = isWished(id);
+        btn.classList.toggle('on', on);
+        btn.title = on ? 'Remove from wishlist' : 'Save to wishlist';
+    });
+}
+
+// ===== SERVICE WORKER (offline shell) =====
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e));
+    });
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
     updateCartBadge();

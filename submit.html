@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sell on Volant Mall</title>
+    <meta name="description" content="Open your store and start selling on Volant Mall">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="manifest" href="manifest.json">
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -187,10 +190,6 @@
                 </div>
                 <div class="form-row-3">
                     <div class="form-field">
-                        <label>Category</label>
-                        <select id="pCategory" onchange="togglePOtherCat()"></select>
-                    </div>
-                    <div class="form-field">
                         <label>Price (GHS)</label>
                         <input id="pPrice" type="number" min="0.01" step="0.01" placeholder="45.00" />
                     </div>
@@ -199,9 +198,14 @@
                         <input id="pStock" type="number" min="1" step="1" value="10" />
                     </div>
                 </div>
-                <div class="form-field" id="pOtherCatWrap" style="display:none;">
-                    <label>Specify Category</label>
-                    <input id="pOtherCat" placeholder="e.g. Custom design, Artwork, Software..." maxlength="60" />
+                <div class="form-field">
+                    <label>Tags / Categories <span style="font-weight:400;font-size:0.75rem;color:var(--ink-soft);">(select all that apply)</span></label>
+                    <div class="category-chips" id="pCatChips" style="margin-bottom:0.35rem;"></div>
+                    <div class="tag-add-row">
+                        <input id="pCustomTag" placeholder="Add your own tag, e.g. handmade, limited" maxlength="40" onkeydown="if(event.key==='Enter'){event.preventDefault();addPtag();}" />
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="addPtag()"><i class="fas fa-plus"></i> Add tag</button>
+                    </div>
+                    <div class="custom-tags" id="pTagList"></div>
                 </div>
                 <div class="form-field">
                     <label>Description</label>
@@ -248,11 +252,20 @@
 
     <footer class="site-footer">
         <div class="foot-inner">
+            <div class="foot-col foot-brand">
+                <div class="fb-logo">
+                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
+                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                </div>
+                <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
+            </div>
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
+                <a href="notifications.html">Notifications</a>
+                <a href="refund.html">Refunds & Returns</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
@@ -338,9 +351,43 @@
         if (wrap) wrap.style.display = document.getElementById('sCategory').value === 'other' ? '' : 'none';
     }
 
-    function togglePOtherCat() {
-        const wrap = document.getElementById('pOtherCatWrap');
-        if (wrap) wrap.style.display = document.getElementById('pCategory').value === 'other' ? '' : 'none';
+    function togglePOtherCat() { /* kept for compatibility */ }
+
+    const selectedPCats = new Set();
+    const pCustomTags = [];
+
+    function renderPCatChips() {
+        const wrap = document.getElementById('pCatChips');
+        if (!wrap) return;
+        wrap.innerHTML = MALL_CATEGORIES.map(c => `
+            <button type="button" class="chip ${selectedPCats.has(c.key) ? 'active' : ''}" onclick="togglePCat('${c.key}')">${c.label}</button>
+        `).join('');
+        renderPTagList();
+    }
+    function togglePCat(key) {
+        if (selectedPCats.has(key)) selectedPCats.delete(key);
+        else selectedPCats.add(key);
+        renderPCatChips();
+    }
+    function addPtag() {
+        const input = document.getElementById('pCustomTag');
+        const v = input.value.trim();
+        if (!v) { showToast('Type a tag first.', 'info'); return; }
+        if (pCustomTags.some(t => t.toLowerCase() === v.toLowerCase())) { showToast('Tag already added.', 'info'); return; }
+        pCustomTags.push(v);
+        input.value = '';
+        renderPCatChips();
+    }
+    function removePtag(i) {
+        pCustomTags.splice(i, 1);
+        renderPCatChips();
+    }
+    function renderPTagList() {
+        const el = document.getElementById('pTagList');
+        if (!el) return;
+        el.innerHTML = pCustomTags.map((t, i) => `
+            <span class="tag-pill">${escapeHtml(t)} <i class="fas fa-times" onclick="removePtag(${i})" title="Remove"></i></span>
+        `).join('') || '';
     }
 
     function togglePayout() {
@@ -482,6 +529,8 @@
                 return;
             }
             try {
+                let idToken = '';
+                try { idToken = await currentUser.getIdToken(); } catch (e) { /* token failures handled below */ }
                 const res = await fetch(PAYSTACK_API_BASE + '/mall-create-subaccount', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -489,7 +538,8 @@
                         userId: currentUser.uid,
                         email: currentUser.email || '',
                         payoutData: payoutData,
-                        username: storeName
+                        username: storeName,
+                        idToken: idToken
                     })
                 });
                 const result = await res.json();
@@ -688,12 +738,12 @@
         const title = document.getElementById('pTitle').value.trim();
         const price = parseFloat(document.getElementById('pPrice').value);
         const stock = parseInt(document.getElementById('pStock').value, 10) || 0;
-        const cat = document.getElementById('pCategory').value;
         const desc = document.getElementById('pDesc').value.trim();
-        let customCategory = '';
-        if (cat === 'other') {
-            customCategory = document.getElementById('pOtherCat').value.trim();
-            if (!customCategory) { showToast('Specify the product category.', 'error'); return; }
+
+        if (selectedPCats.size === 0 && pCustomTags.length === 0) {
+            showToast('Select at least one category or tag.', 'error');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
         }
 
         if (!title || !price || price <= 0) { showToast('Enter a title and valid price.', 'error'); return; }
@@ -703,6 +753,15 @@
         const delivery = document.getElementById('pDelivery').checked;
         const pickup = document.getElementById('pPickup').checked;
         if (!delivery && !pickup) { showToast('Enable pickup, delivery, or both.', 'error'); return; }
+
+        // primary category = first selected standard category; custom tags are appended as free tags
+        const catKeys = [...selectedPCats];
+        const primaryCat = catKeys.length
+            ? (catKeys.find(k => k !== 'other') || catKeys[0])
+            : 'other';
+        const tags = catKeys
+            .map(k => (MALL_CATEGORIES.find(c => c.key === k) || {}).label || k)
+            .concat(pCustomTags);
 
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
@@ -725,8 +784,10 @@
                 storeName: myStore.storeName || 'Store',
                 storeHandle: myStore.storeHandle || '',
                 title: title,
-                category: cat,
-                customCategory: customCategory,
+                category: primaryCat,
+                categories: catKeys,
+                customCategory: pCustomTags.length ? pCustomTags.join(', ') : (primaryCat === 'other' ? 'Other' : ''),
+                tags: tags,
                 price: price,
                 currency: 'GHS',
                 description: desc,
@@ -738,12 +799,12 @@
                 delivery: delivery,
                 deliveryFee: delivery ? (parseFloat(document.getElementById('pDelFee').value) || 0) : 0,
                 deliveryRegions: delivery ? Array.from(selectedRegions) : [],
-                status: 'active',
+                status: 'pending',
                 saleCount: 0,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            showToast('Product published! 🎉', 'success');
+            showToast('Product submitted for review ✅', 'success');
             setTimeout(() => location.href = 'manage.html', 1300);
         } catch (err) {
             console.error('Save product error:', err);
@@ -755,13 +816,14 @@
 
     function buildCategorySelects() {
         const opts = MALL_CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
-        document.getElementById('sCategory').innerHTML = opts;
-        document.getElementById('pCategory').innerHTML = opts;
+        const sCat = document.getElementById('sCategory');
+        if (sCat) sCat.innerHTML = opts;
     }
 
     renderPicker();
     renderRegionChips();
     buildCategorySelects();
+    renderPCatChips();
     </script>
 </body>
 </html>

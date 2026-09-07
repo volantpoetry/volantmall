@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Seller Dashboard — Volant Mall</title>
+    <meta name="description" content="Manage your store, products and orders on Volant Mall">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="manifest" href="manifest.json">
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -57,6 +60,11 @@
             <div class="section-head" style="margin-top:1.5rem;">
                 <h2>Hi, <span id="dashName">Seller</span> 👋</h2>
                 <a class="btn btn-outline btn-sm" id="storeLink" href="#" target="_self"><i class="fas fa-external-link-alt"></i> View my store</a>
+            </div>
+
+            <div class="admin-bar" id="adminBar" style="display:none;margin-bottom:1rem;">
+                <span><i class="fas fa-shield-alt"></i> You are a Volant Mall moderator.</span>
+                <a class="btn btn-outline btn-sm" href="approvals.html"><i class="fas fa-tasks"></i> Review pending products</a>
             </div>
 
             <div class="stat-row" id="statsRow"></div>
@@ -132,14 +140,17 @@
         <div class="modal">
             <h3 id="editTitle">Edit Product</h3>
             <div class="form-field"><label>Product Title</label><input id="eTitle" /></div>
+<div class="form-field">
+                <label>Main Categories <span style="font-weight:400;font-size:0.72rem;color:var(--ink-soft);">(pick any — buyers find you in each one)</span></label>
+                <div class="cat-chipgrid" id="eCatChips"></div>
+                <div class="form-field" style="margin-top:0.55rem;margin-bottom:0;">
+                    <label>Other / custom tags <span style="font-weight:400;font-size:0.72rem;color:var(--ink-soft);">(comma separated)</span></label>
+                    <input id="eOtherCat" placeholder="e.g. Custom design, Artwork, Software..." maxlength="120" />
+                </div>
+            </div>
 <div class="form-row-3">
-                    <div class="form-field"><label>Category</label><select id="eCategory" onchange="toggleEOtherCat()"></select></div>
                     <div class="form-field"><label>Price (GHS)</label><input id="ePrice" type="number" step="0.01" /></div>
                     <div class="form-field"><label>Stock</label><input id="eStock" type="number" step="1" /></div>
-                </div>
-                <div class="form-field" id="eOtherCatWrap" style="display:none;">
-                    <label>Specify Category</label>
-                    <input id="eOtherCat" placeholder="e.g. Custom design, Artwork, Software..." maxlength="60" />
                 </div>
             <div class="form-field"><label>Description</label><textarea id="eDesc" rows="3"></textarea></div>
             <label class="check-row"><input type="checkbox" id="ePickup" /><div><div class="c-title">Offer pickup</div><div class="c-sub">Buyers collect the item.</div></div></label>
@@ -152,11 +163,20 @@
 
     <footer class="site-footer">
         <div class="foot-inner">
+            <div class="foot-col foot-brand">
+                <div class="fb-logo">
+                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
+                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                </div>
+                <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
+            </div>
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
+                <a href="notifications.html">Notifications</a>
+                <a href="refund.html">Refunds & Returns</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
@@ -184,6 +204,7 @@
     let myProducts = [];
     let myOrders = [];
     let editingId = null;
+    let editingCats = [];
 
     function onAppAuthChange(user) {
         if (user) { document.getElementById('gate').style.display = 'none'; document.getElementById('dash').style.display = ''; loadDashboard(); }
@@ -201,6 +222,11 @@
             myStore = storeSnap.data();
             document.getElementById('dashName').textContent = myStore.storeName || 'Seller';
             document.getElementById('storeLink').href = 'store.html?store=' + encodeURIComponent(uid);
+
+            db.collection('admins').doc(uid).get().then(admSnap => {
+                const bar = document.getElementById('adminBar');
+                if (bar) bar.style.display = admSnap.exists ? '' : 'none';
+            }).catch(() => {});
 
             const [prodSnap, ordSnap] = await Promise.all([
                 db.collection('mall-products').where('ownerId', '==', uid).orderBy('createdAt', 'desc').get(),
@@ -255,16 +281,24 @@
         }
         list.innerHTML = live.map(p => {
             const stockOut = p.status === 'stockout' || p.stock <= 0;
+            const pending = p.status === 'pending' || p.status === 'rejected';
+            const statusBadge = pending
+                ? `<span class="status-badge ${p.status === 'rejected' ? 'cancelled' : 'processing'}">${p.status === 'rejected' ? 'Rejected' : 'Pending review'}</span>`
+                : '';
+            const stockToggle = pending
+                ? `<span class="mini-btn" title="Under moderation" style="cursor:not-allowed;opacity:0.45;"><i class="fas fa-hourglass-half"></i></span>`
+                : `<button class="mini-btn" title="${stockOut ? 'Relist' : 'Mark out of stock'}" onclick="toggleStock('${p.id}')"><i class="fas ${stockOut ? 'fa-eye' : 'fa-eye-slash'}"></i></button>`;
+            const pCats = (Array.isArray(p.categories) && p.categories.length ? p.categories : [p.category || 'other']).map(catLabel).join(', ');
             return `
             <div class="mproduct">
                 <div class="md-img">${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;font-size:1.2rem;"></i>`}</div>
                 <div class="md-body">
                     <div class="md-title">${escapeHtml(p.title)}</div>
-                    <div class="md-sub">${escapeHtml(p.customCategory || catLabel(p.category))} · ${formatGHS(p.price)} · ${p.stock} left · ${p.saleCount || 0} sold</div>
-                    <div class="md-sub">${p.delivery ? '<i class="fas fa-truck"></i> Delivery ' + formatGHS(p.deliveryFee) : ''}${p.delivery && p.pickup ? ' · ' : ''}${p.pickup ? '<i class="fas fa-walking"></i> Pickup' : ''}</div>
+                    <div class="md-sub">${escapeHtml(pCats)}${p.customCategory ? ' · ' + escapeHtml(p.customCategory) : ''} · ${formatGHS(p.price)} · ${p.stock} left · ${p.saleCount || 0} sold ${statusBadge}</div>
+                    <div class="md-sub">${p.delivery ? '<i class="fas fa-truck"></i> Delivery ' + formatGHS(p.deliveryFee) : ''}${p.delivery && p.pickup ? ' · ' : ''}${p.pickup ? '<i class="fas fa-walking"></i> Pickup' : ''}${pending ? '<br><span style="color:var(--ink-soft);font-size:0.78rem;">New listings are checked by moderators before going live.</span>' : ''}</div>
                 </div>
                 <div class="md-actions">
-                    <button class="mini-btn" title="${stockOut ? 'Relist' : 'Mark out of stock'}" onclick="toggleStock('${p.id}')"><i class="fas ${stockOut ? 'fa-eye' : 'fa-eye-slash'}"></i></button>
+                    ${stockToggle}
                     <button class="mini-btn" title="Edit" onclick="openEditor('${p.id}')"><i class="fas fa-pen"></i></button>
                     <button class="mini-btn danger" title="Delete" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash-alt"></i></button>
                 </div>
@@ -275,6 +309,7 @@
     async function toggleStock(id) {
         try {
             const p = myProducts.find(x => x.id === id);
+            if (!p || p.status === 'pending' || p.status === 'rejected') return;
             const next = p.status === 'stockout' ? 'active' : 'stockout';
             await db.collection('mall-products').doc(id).update({ status: next });
             p.status = next;
@@ -306,9 +341,10 @@
         document.getElementById('ePickupLoc').value = p.pickupLocation || '';
         document.getElementById('eDelivery').checked = !!p.delivery;
         document.getElementById('eDelFee').value = p.deliveryFee || '';
-        document.getElementById('eCategory').value = p.category || 'other';
+        editingCats = (Array.isArray(p.categories) && p.categories.length) ? [...p.categories] : [p.category || 'other'];
+        if (editingCats.indexOf('other') === -1 && !editingCats.length) editingCats = ['other'];
         document.getElementById('eOtherCat').value = p.customCategory || '';
-        toggleEOtherCat();
+        renderEditCatChips();
         document.getElementById('modalBackdrop').classList.add('active');
     }
     function closeEditor() { document.getElementById('modalBackdrop').classList.remove('active'); editingId = null; }
@@ -320,21 +356,24 @@
             price: parseFloat(document.getElementById('ePrice').value) || 0,
             stock: parseInt(document.getElementById('eStock').value, 10) || 0,
             description: document.getElementById('eDesc').value.trim(),
-            category: document.getElementById('eCategory').value,
             pickup: document.getElementById('ePickup').checked,
             pickupLocation: document.getElementById('ePickupLoc').value.trim(),
             delivery: document.getElementById('eDelivery').checked,
-            deliveryFee: parseFloat(document.getElementById('eDelFee').value) || 0,
-            status: (parseInt(document.getElementById('eStock').value, 10) || 0) > 0 ? 'active' : 'stockout'
+            deliveryFee: parseFloat(document.getElementById('eDelFee').value) || 0
         };
+        const wasPending = (myProducts.find(x => x.id === editingId) || {}).status === 'pending'
+            || (myProducts.find(x => x.id === editingId) || {}).status === 'rejected';
+        data.status = (parseInt(document.getElementById('eStock').value, 10) || 0) > 0
+            ? (wasPending ? (myProducts.find(x => x.id === editingId) || {}).status : 'active')
+            : 'stockout';
         if (!data.title || data.price <= 0) { showToast('Enter a title and valid price.', 'error'); return; }
         if (!data.delivery && !data.pickup) { showToast('Enable pickup, delivery, or both.', 'error'); return; }
-        if (data.category === 'other') {
-            data.customCategory = document.getElementById('eOtherCat').value.trim();
-            if (!data.customCategory) { showToast('Specify the product category.', 'error'); return; }
-        } else {
-            data.customCategory = '';
-        }
+        if (editingCats.length === 0) { showToast('Select at least one main category.', 'error'); return; }
+        const customCats = document.getElementById('eOtherCat').value.trim();
+        data.category = editingCats.find(k => k !== 'other') || editingCats[0];
+        data.categories = [...editingCats];
+        data.customCategory = customCats;
+        data.tags = editingCats.map(catLabel).concat(customCats ? customCats.split(',').map(t => t.trim()).filter(Boolean) : []);
         try {
             await db.collection('mall-products').doc(editingId).update(data);
             const p = myProducts.find(x => x.id === editingId);
@@ -344,6 +383,9 @@
             showToast('Product updated ✓', 'success');
         } catch (e) { console.error(e); showToast('Update failed.', 'error'); }
     }
+
+    const ALL_STATUSES = ['processing', 'ready', 'shipped', 'completed', 'cancelled'];
+    const STATUS_LABELS = { processing: 'Processing', ready: 'Ready for pickup', shipped: 'Shipped', completed: 'Delivered', cancelled: 'Cancelled' };
 
     function renderOrders() {
         const list = document.getElementById('orderList');
@@ -359,9 +401,7 @@
                         <div class="order-date">${new Date(o.purchasedAt && o.purchasedAt.toDate ? o.purchasedAt.toDate() : Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                     </div>
                     <select class="status-badge" onchange="setOrderStatus('${o.id}', this.value)" style="border:1px solid var(--line);padding:0.3rem 0.7rem;border-radius:30px;font-size:0.78rem;font-weight:600;">
-                        <option value="processing" ${o.orderStatus === 'processing' ? 'selected' : ''}>Processing</option>
-                        <option value="completed" ${o.orderStatus === 'completed' ? 'selected' : ''}>Delivered / Completed</option>
-                        <option value="cancelled" ${o.orderStatus === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                        ${ALL_STATUSES.map(s => `<option value="${s}" ${o.orderStatus === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}
                     </select>
                 </div>
                 ${o.items.map(it => `
@@ -379,17 +419,37 @@
                         <span class="lab">Deliver to</span><span>${escapeHtml(o.shipping.name)} · ${escapeHtml(o.shipping.phone)}<br>${escapeHtml(o.shipping.address)}, ${escapeHtml(o.shipping.city)}, ${escapeHtml(o.shipping.region)}</span>` : ''}
                     ${o.items && o.items.some(x => x.fulfillment === 'pickup') ? `<span class="lab">Pickup</span><span>${escapeHtml((o.items.find(x => x.fulfillment === 'pickup') || {}).pickupLocation || 'Arrange with buyer')}</span>` : ''}
                     <span class="lab">Total</span><span><strong>${formatGHS(o.amount)}</strong></span>
-                </div>
-            </div>`).join('');
+                    </div>
+                    ${(o.trace && o.trace.length) ? `
+                    <div class="order-trace">
+                        ${o.trace.map(t => `<div class="tr-step"><span class="tr-dot"></span><span class="tr-txt">${escapeHtml(STATUS_LABELS[t.status] || t.status)}</span><span class="tr-note">${escapeHtml(t.note || '')}</span></div>`).join('')}
+                    </div>` : ''}
+                </div>`).join('');
     }
 
     async function setOrderStatus(id, status) {
+        const o = myOrders.find(x => x.id === id);
+        if (!o) return;
         try {
-            await db.collection('mall-orders').doc(id).update({ orderStatus: status, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            const o = myOrders.find(x => x.id === id);
-            if (o) o.orderStatus = status;
+            const trace = Array.isArray(o.trace) ? o.trace.slice() : [];
+            trace.push({ status: status, at: firebase.firestore.FieldValue.serverTimestamp(), note: 'Updated by seller' });
+            await db.collection('mall-orders').doc(id).update({ orderStatus: status, trace: trace, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            o.orderStatus = status;
+            o.trace = trace;
             renderStats();
-            showToast('Order marked ' + status + '.', 'success');
+            // notify the buyer of the update
+            db.collection('notifications').add({
+                userId: o.userId || '_',
+                type: 'order_status',
+                title: 'Order update: ' + (STATUS_LABELS[status] || status),
+                body: 'Your order #' + String(o.ref || id).slice(0, 18) + ' from ' + (o.sellerName || 'the store') + ' is now ' + (STATUS_LABELS[status] || status) + '.',
+                orderId: id,
+                ref: o.paymentRef || o.ref || '',
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(e => console.warn('Buyer notification failed:', e));
+            showToast('Order marked ' + (STATUS_LABELS[status] || status) + '.', 'success');
+            renderOrders();
         } catch (e) { console.error(e); showToast('Update failed.', 'error'); }
     }
 
@@ -500,17 +560,26 @@
     function buildCategorySelects() {
         const opts = MALL_CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
         document.getElementById('sCategory').innerHTML = opts;
-        document.getElementById('eCategory').innerHTML = opts;
+    }
+
+    function renderEditCatChips() {
+        const grid = document.getElementById('eCatChips');
+        if (!grid) return;
+        grid.innerHTML = MALL_CATEGORIES.map(c => `
+            <button type="button" class="cat-chip ${editingCats.includes(c.key) ? 'active' : ''}" data-key="${c.key}" onclick="toggleEditCat(this)">${c.label}</button>
+        `).join('');
+    }
+
+    function toggleEditCat(btn) {
+        const key = btn.dataset.key;
+        const i = editingCats.indexOf(key);
+        if (i === -1) editingCats.push(key); else editingCats.splice(i, 1);
+        renderEditCatChips();
     }
 
     function toggleMOtherCat() {
         const wrap = document.getElementById('sOtherCatWrap');
         if (wrap) wrap.style.display = document.getElementById('sCategory').value === 'other' ? '' : 'none';
-    }
-
-    function toggleEOtherCat() {
-        const wrap = document.getElementById('eOtherCatWrap');
-        if (wrap) wrap.style.display = document.getElementById('eCategory').value === 'other' ? '' : 'none';
     }
 
     async function saveSettings() {

@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Store — Volant Mall</title>
+    <meta name="description" content="Browse products from a verified seller on Volant Mall. Shop with Mobile Money or card.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Volant Mall">
+    <meta property="og:title" content="Store — Volant Mall">
+    <meta property="og:description" content="Browse products from a verified seller on Volant Mall.">
+    <meta property="og:url" content="https://volantmall.vercel.app/store.html">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://volantmall.vercel.app/store.html">
+    <link rel="manifest" href="manifest.json">
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -58,11 +67,20 @@
 
     <footer class="site-footer">
         <div class="foot-inner">
+            <div class="foot-col foot-brand">
+                <div class="fb-logo">
+                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
+                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                </div>
+                <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
+            </div>
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" id="footSellLink" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
+                <a href="notifications.html">Notifications</a>
+                <a href="refund.html">Refunds & Returns</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
@@ -215,7 +233,9 @@
                     price: Number(d.price) || 0,
                     images: d.images || [],
                     status: d.status,
-                    stock: Number(d.stock) || 0
+                    stock: Number(d.stock) || 0,
+                    ratingSum: Number(d.ratingSum) || 0,
+                    ratingCount: Number(d.ratingCount) || 0
                 });
             });
             renderProducts();
@@ -250,13 +270,17 @@
         }
         grid.innerHTML = products.map(p => {
             const out = p.status === 'stockout' || p.stock <= 0;
+            const wished = isWished(p.id);
+            const rating = p.ratingCount > 0 ? (p.ratingSum / p.ratingCount) : 0;
             return `
             <div class="pcard">
                 <a class="thumb" href="details.html?id=${encodeURIComponent(p.id)}">
                     ${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" loading="lazy" alt="${escapeHtml(p.title)}">` : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
                 </a>
+                <button class="wish-btn ${wished ? 'on' : ''}" data-wish-id="${p.id}" onclick="toggleWish('${p.id}');return false;" title="${wished ? 'Remove from wishlist' : 'Save to wishlist'}"><i class="fas fa-heart"></i></button>
                 <div class="body">
                     <span class="ptitle"><a href="details.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a></span>
+                    ${rating > 0 ? `<div class="p-rating"><span class="stars">${starsHTML(rating)}</span> <span class="r-num">${rating.toFixed(1)}</span></div>` : ''}
                     <div class="price-row">
                         <span class="price">${formatGHS(p.price)}</span>
                         <span class="stock-tag ${out ? 'out' : ''}">${out ? 'Out of stock' : 'In stock'}</span>

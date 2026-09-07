@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Volant Mall — Shop Ghana</title>
+    <meta name="description" content="Shop beauty, fashion, electronics and more from real sellers across Ghana. Pay with Mobile Money or card via Paystack.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Volant Mall">
+    <meta property="og:title" content="Volant Mall — Shop Ghana">
+    <meta property="og:description" content="Shop beauty, fashion, electronics and more from real sellers across Ghana. Pay with Mobile Money or card via Paystack.">
+    <meta property="og:image" content="https://volantpoetry.vercel.app/images/logokk.png">
+    <meta property="og:url" content="https://volantmall.vercel.app/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://volantmall.vercel.app/">
+    <link rel="manifest" href="manifest.json">
+    <link rel="sitemap" type="application/xml" href="sitemap.xml">
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -129,11 +141,20 @@
 
     <footer class="site-footer">
         <div class="foot-inner">
+            <div class="foot-col foot-brand">
+                <div class="fb-logo">
+                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
+                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                </div>
+                <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
+            </div>
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
+                <a href="notifications.html">Notifications</a>
+                <a href="refund.html">Refunds & Returns</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
@@ -187,6 +208,7 @@
     let allProducts = [];
     let allSellers = [];
     let activeCategory = 'all';
+    let viewWishlist = false;
     let isProcessingPayment = false;
 
     const regionOptions = ['Greater Accra', 'Ashanti', 'Western', 'Western North', 'Central', 'Eastern', 'Volta', 'Oti', 'Bono', 'Bono East', 'Ahafo', 'Northern', 'Savannah', 'North East', 'Upper East', 'Upper West'];
@@ -208,6 +230,8 @@
                     title: d.title,
                     price: Number(d.price) || 0,
                     category: catKey,
+                    categories: (Array.isArray(d.categories) && d.categories.length) ? d.categories : [catKey],
+                    customCategory: d.customCategory || '',
                     images: d.images || [],
                     ownerId: d.ownerId,
                     storeName: d.storeName || 'Store',
@@ -215,7 +239,14 @@
                     stock: Number(d.stock) || 0,
                     status: d.status,
                     createdAt: d.createdAt,
-                    saleCount: Number(d.saleCount) || 0
+                    saleCount: Number(d.saleCount) || 0,
+                    ratingSum: Number(d.ratingSum) || 0,
+                    ratingCount: Number(d.ratingCount) || 0,
+                    delivery: !!d.delivery,
+                    pickup: !!d.pickup,
+                    deliveryFee: Number(d.deliveryFee) || 0,
+                    description: d.description || '',
+                    currency: d.currency || 'GHS'
                 });
             });
             allProducts.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
@@ -288,9 +319,17 @@
     function renderChips() {
         const chips = document.getElementById('catChips');
         const items = [{ key: 'all', label: 'All' }, ...MALL_CATEGORIES];
-        chips.innerHTML = items.map(c => `
-            <button class="chip ${activeCategory === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">${c.label}</button>
+        chips.innerHTML = `
+            <button class="chip wish-chip ${viewWishlist ? 'active' : ''}" onclick="toggleWishlistView()"><i class="fas fa-heart"></i> Wishlist</button>
+        ` + items.map(c => `
+            <button class="chip ${!viewWishlist && activeCategory === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">${c.label}</button>
         `).join('');
+    }
+
+    function toggleWishlistView() {
+        viewWishlist = !viewWishlist;
+        if (viewWishlist) activeCategory = 'all';
+        setCategory(activeCategory);
     }
 
     function setCategory(key) {
@@ -301,9 +340,11 @@
 
     function filteredProducts() {
         const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+        const wish = getWishlist();
         return allProducts.filter(p => {
-            if (activeCategory !== 'all' && p.category !== activeCategory) return false;
-            if (q && !(p.title.toLowerCase().includes(q) || p.storeName.toLowerCase().includes(q) || (p.customCategory ? p.customCategory : catLabel(p.category)).toLowerCase().includes(q))) return false;
+            if (viewWishlist && !wish.includes(p.id)) return false;
+            if (activeCategory !== 'all' && p.category !== activeCategory && !(p.categories || []).includes(activeCategory)) return false;
+            if (q && !(p.title.toLowerCase().includes(q) || p.storeName.toLowerCase().includes(q) || (p.customCategory ? p.customCategory : (p.categories || []).map(catLabel).join(' ')).toLowerCase().includes(q))) return false;
             return true;
         });
     }
@@ -317,6 +358,8 @@
         }
         grid.innerHTML = list.map(p => {
             const out = p.status === 'stockout' || p.stock <= 0;
+            const wished = getWishlist().includes(p.id);
+            const rating = p.ratingCount > 0 ? (p.ratingSum / p.ratingCount) : 0;
             return `
             <div class="pcard">
                 <a class="thumb" href="details.html?id=${encodeURIComponent(p.id)}">
@@ -324,10 +367,14 @@
                         ? `<img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.title)}" loading="lazy">`
                         : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
                 </a>
+                <button class="wish-btn ${wished ? 'on' : ''}" data-wish-id="${p.id}" onclick="toggleWish('${p.id}');return false;" title="${wished ? 'Remove from wishlist' : 'Save to wishlist'}"><i class="fas fa-heart"></i></button>
                 <div class="body">
-                    <span class="cat">${escapeHtml(p.customCategory || catLabel(p.category))}</span>
+                    ${p.customCategory
+                        ? `<div class="p-cats"><span class="cat">${escapeHtml(p.customCategory)}</span></div>`
+                        : `<div class="p-cats">${(p.categories || []).map(c => `<span class="cat">${escapeHtml(catLabel(c))}</span>`).join('')}</div>`}
                     <a class="ptitle" href="details.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a>
                     <div class="seller">by <a href="store.html?store=${encodeURIComponent(p.ownerId)}">${escapeHtml(p.storeName)}</a></div>
+                    ${rating > 0 ? `<div class="p-rating"><span class="stars">${starsForCard(rating)}</span> <span class="r-num">${rating.toFixed(1)}</span></div>` : ''}
                     <div class="price-row">
                         <span class="price">${formatGHS(p.price)}</span>
                         <span class="stock-tag ${out ? 'out' : ''}">${out ? 'Out of stock' : 'In stock'}</span>
@@ -335,6 +382,13 @@
                 </div>
             </div>`;
         }).join('');
+    }
+
+    function starsForCard(rating) {
+        const full = Math.round(rating) || 0;
+        let s = '';
+        for (let i = 1; i <= 5; i++) s += `<span class="${i <= full ? '' : 'off'}">★</span>`;
+        return s;
     }
 
     function applyFilters() { renderProducts(); }
@@ -618,6 +672,28 @@
         }
         if (totalGHS <= 0) { showToast('Invalid cart total.', 'error'); return false; }
 
+        // ===== CREATE THE SERVER-SIDE CHECKOUT SESSION =====
+        // The Paystack reference doubles as the mall-checkouts doc id,
+        // so the webhook can finalise the order even if this tab closes.
+        const ref = 'VOL-' + Date.now() + '-' + (currentUser.uid || 'x').slice(0, 8);
+        const shipping = window.__shipping || null;
+        try {
+            await db.collection('mall-checkouts').doc(ref).set({
+                userId: currentUser.uid,
+                email: currentUser.email || '',
+                phone: (shipping && shipping.phone) || (userData && userData.phone) || '',
+                shipping: shipping,
+                items: items.map(it => ({ id: it.id, qty: it.qty || 1, fulfillment: it.fulfillment || 'pickup' })),
+                subaccountHint: items[0] ? (items[0].sellerSub || '') : '',
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (err) {
+            console.error('Checkout session error:', err);
+            showToast('Could not start checkout. Try again.', 'error');
+            return false;
+        }
+
         // ===== RESOLVE SELLERS + SUBACCOUNTS =====
         const sellerGroups = {};
         let hasAllSubs = true;
@@ -690,21 +766,27 @@
                 amount: Math.round(totalGHS * 100),
                 currency: 'GHS',
                 bearer: 'account',
+                reference: ref,
                 metadata: {
                     custom_fields: [
                         { display_name: "Items", variable_name: "items", value: itemTitles },
                         { display_name: "Platform", variable_name: "platform", value: "volant-mall" },
                         { display_name: "Customer ID", variable_name: "customer_id", value: currentUser.uid }
                     ]
-                },
-                callback: async function (response) {
-                    const ok = await handlePaymentCallback(response, totalGHS, sellerGroups);
-                    resolve(ok);
-                },
-                onClose: function () {
-                    showToast('Payment cancelled. You can try again.', 'info');
-                    resolve(false);
                 }
+            };
+
+            // Paystack's inline SDK validator rejects async/arrow/inline
+            // functions for callback & onClose ("callback must be a valid
+            // function"), so pass plain function declarations only.
+            paymentConfig.callback = function (response) {
+                completeCheckoutOnServer(ref)
+                    .then(function (ok) { resolve(ok); })
+                    .catch(function () { resolve(false); });
+            };
+            paymentConfig.onClose = function () {
+                showToast('Payment cancelled. You can try again.', 'info');
+                resolve(false);
             };
 
             if (splitConfig && splitConfig.type === 'percentage') {
@@ -724,95 +806,76 @@
         });
     }
 
-    async function handlePaymentCallback(response, totalGHS, sellerGroups) {
-        // ===== VERIFY =====
-        if (isDevMode()) {
-            console.warn('[DEV] skipping server verification for:', response.reference);
-        } else {
+    async function completeCheckoutOnServer(ref) {
+        // ===== FINALISE SERVER-SIDE =====
+        // The API verifies the Paystack charge, recomputes all prices from
+        // Firestore, checks stock, writes the per-seller orders and sends
+        // the seller a notification - all atomically. It is idempotent, so
+        // we retry a few times in case the serverless function was cold or
+        // hit its duration cap mid-flight.
+        showToast('Payment received — confirming your order…', 'info');
+        let lastErr = null;
+        for (let attempt = 1; attempt <= 5; attempt++) {
             try {
-                const res = await fetch(PAYSTACK_API_BASE + '/mall-verify-transaction', {
+                const idToken = await currentUser.getIdToken();
+                const res = await fetch(PAYSTACK_API_BASE + '/mall-finalize-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        reference: response.reference,
-                        amount: totalGHS,
-                        email: currentUser.email,
-                        itemId: 'volant-mall'
-                    })
+                    body: JSON.stringify({ reference: ref, idToken: idToken })
                 });
-                const result = await res.json();
-                if (!result.success) {
-                    showToast('Payment could not be verified. Contact support.', 'error');
-                    return false;
+                const body = await res.json().catch(() => null);
+                if (!body) { lastErr = new Error('Empty response from server'); continue; }
+
+                if (body.success) {
+                    saveCartItems([]);
+                    window.__shipping = null;
+                    renderCart();
+                    showToast('Payment successful! Order placed 🎉', 'success');
+                    setTimeout(() => { location.href = 'orders.html'; }, 1400);
+                    return true;
                 }
-            } catch (err) {
-                console.error('Verification error:', err);
-                showToast('Payment verification failed.', 'error');
+                if (body.alreadyFinalized) {
+                    saveCartItems([]);
+                    window.__shipping = null;
+                    renderCart();
+                    showToast('Order already confirmed 🎉', 'success');
+                    setTimeout(() => { location.href = 'orders.html'; }, 1400);
+                    return true;
+                }
+                showToast((body.message || 'Order could not be confirmed.') + ' Keep your reference: ' + ref, 'error');
                 return false;
+            } catch (err) {
+                console.error('Finalise error (attempt ' + attempt + '):', err);
+                lastErr = err;
+                await new Promise(r => setTimeout(r, 2500));
             }
         }
-
-        // ===== CREATE ORDERS (one per seller) =====
-        const items = getCartItems();
-        const shipping = window.__shipping || null;
-        const ref = response.reference || ('mall_' + Date.now());
-
-        try {
-            for (const [sellerId, g] of Object.entries(sellerGroups)) {
-                const orderItems = items.filter(it => it.sellerId === sellerId).map(it => ({
-                    productId: it.id,
-                    title: it.title,
-                    price: Number(it.price) || 0,
-                    qty: it.qty || 1,
-                    image: it.image || '',
-                    fulfillment: it.fulfillment,
-                    deliveryFee: it.fulfillment === 'delivery' ? (Number(it.deliveryFee) || 0) : 0
-                }));
-                const amount = g.total;
-
-                await db.collection('mall-orders').add({
-                    userId: currentUser.uid,
-                    sellerId: sellerId,
-                    sellerName: g.sellerName || 'Store',
-                    items: orderItems,
-                    shipping: shipping,
-                    platform: 'mall',
-                    ref: ref + '_' + sellerId.slice(0, 6),
-                    amount: g.total,
-                    userPhone: (shipping && shipping.phone) || (userData && userData.phone) || currentUser.email || '',
-                    paymentStatus: 'paid',
-                    orderStatus: 'processing',
-                    purchasedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // bump seller product sale counts
-                await Promise.all(orderItems.map(oi =>
-                    db.collection('mall-products').doc(oi.productId).update({
-                        saleCount: firebase.firestore.FieldValue.increment(oi.qty),
-                        stock: firebase.firestore.FieldValue.increment(-oi.qty)
-                    }).catch(e => console.warn('Sale count update failed:', e))
-                ));
-            }
-        } catch (err) {
-            console.error('Order creation error:', err);
-            showToast('Payment succeeded but order could not be saved. Save your reference: ' + ref, 'error');
-            return false;
-        }
-
-        // clear bought items from cart
-        const boughtIds = items.map(i => i.id);
-        saveCartItems(getCartItems().filter(i => !boughtIds.includes(i.id)));
-        window.__shipping = null;
-        renderCart();
-        showToast('Payment successful! Order placed 🎉', 'success');
-        setTimeout(() => { location.href = 'orders.html'; }, 1400);
-        return true;
+        console.error('Finalise failed after retries:', lastErr);
+        showToast('Payment received but confirming took too long. Hold on - the webhook is finalising your order. Ref: ' + ref, 'error');
+        return false;
     }
 
     // ===== INIT =====
     loadMall();
     loadBooks();
     loadLyrics();
+
+    // Buy Now from a product page: add-to-cart already ran, then we land here.
+    // Open the cart drawer straight into the checkout process.
+    const buyParam = new URLSearchParams(location.search).get('buy');
+    if (buyParam === '1') {
+        window.scrollTo(0, 0);
+        history.replaceState(null, '', location.pathname);
+        setTimeout(() => {
+            openCart();
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            if (checkoutBtn) {
+                checkoutBtn.classList.add('pulse-checkout');
+                setTimeout(() => checkoutBtn.classList.remove('pulse-checkout'), 2600);
+            }
+            showToast('Bag ready — review it, then tap Checkout.', 'info');
+        }, 350);
+    }
     </script>
 </body>
 </html>

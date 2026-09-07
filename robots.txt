@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /manage.html
+Disallow: /submit.html
+Disallow: /notifications.html
+Disallow: /approvals.html
+Disallow: /login.html
+Disallow: /404.html
+
+Sitemap: https://volantmall.vercel.app/sitemap.xml

@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Product — Volant Mall</title>
+    <meta name="description" content="Shop products from real Ghanaian sellers on Volant Mall. Pay with Mobile Money or card.">
+    <meta property="og:type" content="product">
+    <meta property="og:site_name" content="Volant Mall">
+    <meta property="og:title" content="Product — Volant Mall">
+    <meta property="og:description" content="Shop products from real Ghanaian sellers on Volant Mall.">
+    <meta property="og:image" content="https://volantpoetry.vercel.app/images/logokk.png">
+    <meta property="og:url" content="https://volantmall.vercel.app/details.html">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://volantmall.vercel.app/details.html">
+    <link rel="manifest" href="manifest.json">
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -51,11 +61,20 @@
 
     <footer class="site-footer">
         <div class="foot-inner">
+            <div class="foot-col foot-brand">
+                <div class="fb-logo">
+                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
+                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                </div>
+                <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
+            </div>
             <div class="foot-col">
                 <h4>Volant Mall</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
+                <a href="notifications.html">Notifications</a>
+                <a href="refund.html">Refunds & Returns</a>
                 <a href="faq.html">How it Works & FAQ</a>
             </div>
             <div class="foot-col">
@@ -108,6 +127,7 @@
             document.title = product.title + ' — Volant Mall';
             renderDetail(seller);
             loadReviews();
+            updateProductMeta();
         } catch (err) {
             console.error(err);
             document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>Error loading product.</p></div>`;
@@ -119,11 +139,23 @@
         return c ? c.label : 'Other';
     }
 
+    function updateProductMeta() {
+        const setMeta = (prop, content) => {
+            const el = document.querySelector('meta[property="' + prop + '"]');
+            if (el && content) el.setAttribute('content', content);
+        };
+        setMeta('og:title', product.title + ' — Volant Mall');
+        setMeta('og:url', 'https://volantmall.vercel.app/details.html?id=' + encodeURIComponent(product.id));
+        setMeta('og:description', String(product.description || '').slice(0, 300) || 'Buy this on Volant Mall.');
+        if (product.images && product.images[0]) setMeta('og:image', product.images[0]);
+    }
+
     function renderDetail(seller) {
         const imgs = (product.images && product.images.length) ? product.images : [null];
         const out = product.status === 'stockout' || currentStock <= 0;
         const deliveryEligible = !!product.delivery;
         const pickupEligible = !!product.pickup;
+        const wished = isWished(product.id);
 
         document.getElementById('detailWrap').innerHTML = `
             <div class="detail-wrap">
@@ -138,8 +170,12 @@
                 </div>
 
                 <div class="info-box">
-                    <span class="cat-badge">${escapeHtml(product.customCategory || catLabel(product.category))}</span>
+                    <div class="p-cats">
+                        ${(product.categories && product.categories.length ? product.categories : [product.category || 'other']).map(c => `<span class="cat-badge">${escapeHtml(catLabel(c))}</span>`).join('')}
+                        ${product.customCategory ? `<span class="cat-badge">${escapeHtml(product.customCategory)}</span>` : ''}
+                    </div>
                     <h1>${escapeHtml(product.title)}</h1>
+                    ${(product.tags && product.tags.length) ? `<div class="p-tags">${product.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
                     <p class="d-seller">Sold by <a href="store.html?store=${encodeURIComponent(product.ownerId)}"><i class="fas fa-store"></i> ${escapeHtml(seller.storeName || 'Store')}</a>${seller.city ? ' · ' + escapeHtml(seller.city) : ''}</p>
                     <div class="d-price">${formatGHS(product.price)}</div>
                     <div class="d-rating" id="dRating"></div>
@@ -185,6 +221,9 @@
                         <button class="btn btn-outline" onclick="addOne('cart')" ${out ? 'disabled' : ''}><i class="fas fa-cart-plus"></i> Add to Cart</button>
                         <button class="btn btn-primary" onclick="addOne('buy')" ${out ? 'disabled' : ''}><i class="fas fa-bolt"></i> Buy Now</button>
                     </div>
+                    <button class="btn btn-ghost btn-sm details-wish ${wished ? 'on' : ''}" onclick="toggleDetailsWish();return false;" id="detailsWishBtn" style="margin-top:0.6rem;width:100%;justify-content:center;">
+                        <i class="fas fa-heart"></i> <span>${wished ? 'Saved to wishlist' : 'Save to wishlist'}</span>
+                    </button>
                 </div>
             </div>
 
@@ -221,6 +260,18 @@
 
     function goCart() {
         window.location.href = 'index.html?buy=1';
+    }
+
+    function toggleDetailsWish() {
+        if (!product) return;
+        const on = toggleWish(product.id);
+        const btn = document.getElementById('detailsWishBtn');
+        if (btn) {
+            btn.classList.toggle('on', on);
+            btn.querySelector('span').textContent = on ? 'Saved to wishlist' : 'Save to wishlist';
+        }
+        showToast(on ? 'Saved to wishlist ❤️' : 'Removed from wishlist', on ? 'success' : 'info');
+        return false;
     }
 
     // ===== REVIEWS =====
@@ -333,6 +384,13 @@
                 comment: comment.trim(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            // keep the catalogue average on the product doc itself (atomic)
+            await db.collection('mall-products').doc(product.id).update({
+                ratingSum: firebase.firestore.FieldValue.increment(myRating),
+                ratingCount: firebase.firestore.FieldValue.increment(1)
+            }).catch(e => console.warn('Could not update product rating:', e));
+            product.ratingSum = (product.ratingSum || 0) + myRating;
+            product.ratingCount = (product.ratingCount || 0) + 1;
             showToast('Review published! ⭐', 'success');
             myRating = 0;
             loadReviews();

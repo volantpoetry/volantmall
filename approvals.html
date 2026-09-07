@@ -50,8 +50,8 @@
             <div class="empty-state">
                 <i class="fas fa-shield-alt"></i>
                 <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Moderation</h2>
-                <p style="color:var(--ink-soft);margin-bottom:1.2rem;">Sign in to review pending products.</p>
-                <button class="btn btn-primary" onclick="requireAuth('approvals.html')"><i class="fas fa-sign-in-alt"></i> Sign in</button>
+                <p style="color:var(--ink-soft);margin-bottom:1.2rem;">Sign in with your moderator credentials to review pending products.</p>
+                <a class="btn btn-primary" href="admin/admin-login.html?redirect=../approvals.html"><i class="fas fa-sign-in-alt"></i> Moderator sign in</a>
             </div>
         </section>
 
@@ -67,7 +67,8 @@
                 <i class="fas fa-lock"></i>
                 <h2 style="font-size:1.4rem;margin-bottom:0.4rem;">Moderators only</h2>
                 <p style="color:var(--ink-soft);">This area is for Volant Mall moderators.</p>
-                <a class="btn btn-primary" href="index.html">Back to shop</a>
+                <a class="btn btn-primary" href="admin/admin-login.html?redirect=../approvals.html"><i class="fas fa-sign-in-alt"></i> Moderator sign in</a>
+                <a class="btn btn-ghost" href="index.html">Back to shop</a>
             </div>
         </section>
     </div>

@@ -672,26 +672,23 @@
         }
         if (totalGHS <= 0) { showToast('Invalid cart total.', 'error'); return false; }
 
-        // ===== CREATE THE SERVER-SIDE CHECKOUT SESSION =====
-        // The Paystack reference doubles as the mall-checkouts doc id,
-        // so the webhook can finalise the order even if this tab closes.
-        const ref = 'VOL-' + Date.now() + '-' + (currentUser.uid || 'x').slice(0, 8);
+        // ===== CHECKOUT SESSION =====
+        // Reads-style: let Paystack generate the transaction reference. The
+        // checkout doc is written under the ACTUAL reference from the callback
+        // (response.reference) so the webhook can always finalise the order.
         const shipping = window.__shipping || null;
-        try {
-            await db.collection('mall-checkouts').doc(ref).set({
-                userId: currentUser.uid,
-                email: currentUser.email || '',
-                phone: (shipping && shipping.phone) || (userData && userData.phone) || '',
-                shipping: shipping,
-                items: items.map(it => ({ id: it.id, qty: it.qty || 1, fulfillment: it.fulfillment || 'pickup' })),
-                subaccountHint: items[0] ? (items[0].sellerSub || '') : '',
-                status: 'pending',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } catch (err) {
-            console.error('Checkout session error:', err);
-            showToast('Could not start checkout. Try again.', 'error');
-            return false;
+        const checkoutPayload = {
+            userId: currentUser.uid,
+            email: currentUser.email || '',
+            phone: (shipping && shipping.phone) || (userData && userData.phone) || '',
+            shipping: shipping,
+            items: items.map(it => ({ id: it.id, qty: it.qty || 1, fulfillment: it.fulfillment || 'pickup' })),
+            subaccountHint: items[0] ? (items[0].sellerSub || '') : '',
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        async function writeCheckoutSession(checkoutRef) {
+            await db.collection('mall-checkouts').doc(checkoutRef).set(checkoutPayload);
         }
 
         // ===== RESOLVE SELLERS + SUBACCOUNTS =====
@@ -766,7 +763,6 @@
                 amount: Math.round(totalGHS * 100),
                 currency: 'GHS',
                 bearer: 'account',
-                reference: ref,
                 metadata: {
                     custom_fields: [
                         { display_name: "Items", variable_name: "items", value: itemTitles },
@@ -780,7 +776,13 @@
             // functions for callback & onClose ("callback must be a valid
             // function"), so pass plain function declarations only.
             paymentConfig.callback = function (response) {
-                completeCheckoutOnServer(ref)
+                // Reads-style: Paystack generated the reference. The payload's
+                // txn.reference is the single source of truth — write the
+                // checkout doc under it, then finalise.
+                var payRef = (response && response.reference) ? response.reference : 'VOL-' + Date.now();
+                writeCheckoutSession(payRef)
+                    .catch(function () {})
+                    .then(function () { return completeCheckoutOnServer(payRef); })
                     .then(function (ok) { resolve(ok); })
                     .catch(function () { resolve(false); });
             };
@@ -825,6 +827,11 @@
                 });
                 const body = await res.json().catch(() => null);
                 if (!body) { lastErr = new Error('Empty response from server'); continue; }
+
+                console.log('[FINALIZE] attempt ' + attempt + ' → HTTP ' + res.status, body);
+                if (!res.ok) {
+                    console.error('[FINALIZE] failed with HTTP ' + res.status + ' | message:', (body.message || '(none)'), '| alreadyFinalized:', body.alreadyFinalized);
+                }
 
                 if (body.success) {
                     saveCartItems([]);

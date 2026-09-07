@@ -213,7 +213,7 @@ async function finaliseOrder(adminDb, { reference, checkout }) {
                 userPhone: (shipping && cleanPhone(shipping.phone)) || checkout.phone || checkout.email || '',
                 paymentStatus: 'paid',
                 orderStatus: 'processing',
-                trace: [{ status: 'paid', at: firebaseNow(admin), note: 'Payment received and order placed.' }],
+                trace: [{ status: 'paid', at: admin.firestore.Timestamp.now(), note: 'Payment received and order placed.' }],
                 purchasedAt: firebaseNow(admin)
             });
             orderIds.push(orderRef.id);

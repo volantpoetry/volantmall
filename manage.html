@@ -432,7 +432,7 @@
         if (!o) return;
         try {
             const trace = Array.isArray(o.trace) ? o.trace.slice() : [];
-            trace.push({ status: status, at: firebase.firestore.FieldValue.serverTimestamp(), note: 'Updated by seller' });
+            trace.push({ status: status, at: firebase.firestore.Timestamp.now(), note: 'Updated by seller' });
             await db.collection('mall-orders').doc(id).update({ orderStatus: status, trace: trace, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
             o.orderStatus = status;
             o.trace = trace;

@@ -43,7 +43,7 @@ async function uploadToCloudinary(file) {
 }
 
 // ===== PAYSTACK =====
-const PAYSTACK_API_BASE = 'https://volantpoetry.vercel.app/api';
+const PAYSTACK_API_BASE = 'https://volantmall.vercel.app/api';
 const PAYSTACK_PUBLIC_KEY_FALLBACK = 'pk_test_bba6e3bfb9fefff1b6c49aceb34344c8f92b9499';
 let PAYSTACK_PUBLIC_KEY = '';
 

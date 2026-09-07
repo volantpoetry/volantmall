@@ -1318,6 +1318,7 @@ input, select, textarea { font-family: inherit; font-size: 0.95rem; }
     .topbar-inner { padding: 0 1rem; }
     .container { padding: 0 1rem; }
     .section { padding: 1.6rem 0; }
+    .form-card { padding: 1.15rem; }
     .img-picker { grid-template-columns: repeat(2, 1fr); }
     .btn-stack-sm { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
     .store-banner-inner { flex-direction: column; text-align: center; }

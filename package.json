@@ -1,0 +1,9 @@
+{
+  "name": "volant-mall",
+  "version": "1.0.0",
+  "description": "Volant Mall with Paystack Integration",
+  "main": "index.html",
+  "dependencies": {
+    "firebase-admin": "^11.11.1"
+  }
+}

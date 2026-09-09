@@ -1,4 +1,5 @@
-const CACHE = 'volant-mall-v2'
+const CACHE = 'volant-mall-v3'
+const HARD_RESET = true
 
 const CORE = [
     '/',
@@ -8,6 +9,9 @@ const CORE = [
     '/details.html',
     '/store.html',
     '/orders.html',
+    '/notifications.html',
+    '/manage.html',
+    '/submit.html',
     '/faq.html',
     '/refund.html',
     '/manifest.json',
@@ -24,9 +28,26 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
     e.waitUntil(
-        caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+        caches.keys()
+            .then(keys => Promise.all(
+                keys.filter(k => k !== CACHE).map(async k => {
+                    const cache = await caches.open(k);
+                    const reqs = await cache.keys();
+                    await Promise.all(reqs.map(r => cache.delete(r)));
+                    return caches.delete(k);
+                })
+            ))
     );
     self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'REFRESH') {
+        caches.open(CACHE).then(c => Promise.all(CORE.map(url => c.add(url))))
+            .then(() => self.skipWaiting())
+            .then(() => self.clients.matchAll({ includeUncontrolled: true }))
+            .then(clients => clients.forEach(c => c.postMessage({ type: 'UPDATED' })));
+    }
 });
 
 self.addEventListener('fetch', (e) => {
@@ -35,6 +56,20 @@ self.addEventListener('fetch', (e) => {
     if (url.startsWith('http') === false) return;
     if (url.includes('/api/')) return;
     if (url.includes('firestore.googleapis') || url.includes('googleapis.com') || url.includes('gstatic.com') || url.includes('paystack.co')) {
+        return;
+    }
+    const isNav = e.request.mode === 'navigate';
+    if (isNav || HARD_RESET) {
+        // Network-first: always try fresh, fall back to cache offline.
+        e.respondWith(
+            fetch(e.request)
+                .then(netResponse => {
+                    const copy = netResponse.clone();
+                    caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+                    return netResponse;
+                })
+                .catch(() => caches.match(e.request))
+        );
         return;
     }
     e.respondWith(

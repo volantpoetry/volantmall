@@ -38,6 +38,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="orders.html"><i class="fas fa-box-open"></i> My Orders</a>
+                <button class="icon-btn theme-btn" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i></button>
                 <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Sign in" onclick="accountClick()"></button>
@@ -150,6 +151,15 @@
         </div>
     </section>
 
+    <nav class="mobile-nav" id="mobileNav" aria-label="Mobile">
+        <a href="index.html" class="mnav-item active"><i class="fas fa-store"></i><span>Shop</span></a>
+        <a href="orders.html" class="mnav-item"><i class="fas fa-receipt"></i><span>Orders</span></a>
+        <button class="mnav-item mnav-cart" onclick="openCart()" title="Cart"><i class="fas fa-shopping-bag"></i><span>Bag</span><span class="mnav-badge" id="mnavCartCount">0</span></button>
+        <a href="notifications.html" class="mnav-item"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <button class="mnav-item mnav-theme" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i><span>Theme</span></button>
+        <a href="submit.html" class="mnav-item" onclick="return goSell(event)"><i class="fas fa-store-alt"></i><span>Sell</span></a>
+    </nav>
+
     <footer class="site-footer">
         <div class="foot-inner">
             <div class="foot-col foot-brand">
@@ -230,10 +240,12 @@
         return {
             id, title: d.title,
             price: Number(d.price) || 0,
+            salePrice: Number(d.salePrice) || 0,
             category: catKey,
             categories: (Array.isArray(d.categories) && d.categories.length) ? d.categories : [catKey],
             customCategory: d.customCategory || '',
             images: d.images || [],
+            tags: (Array.isArray(d.tags) && d.tags.length) ? d.tags : [],
             ownerId: d.ownerId,
             storeName: d.storeName || 'Store',
             storeHandle: d.storeHandle || '',
@@ -248,7 +260,8 @@
             deliveryFee: Number(d.deliveryFee) || 0,
             deliveryRegions: (Array.isArray(d.deliveryRegions) && d.deliveryRegions.length) ? d.deliveryRegions : null,
             description: d.description || '',
-            currency: d.currency || 'GHS'
+            currency: d.currency || 'GHS',
+            verifiedSeller: false
         };
     }
 
@@ -278,6 +291,7 @@
             if (s) {
                 s.productCount++;
                 if (p.status === 'active' && p.stock > 0) s.inStockCount++;
+                p.verifiedSeller = !!s.verified;
             }
         });
     }
@@ -393,7 +407,16 @@
                     return false;
                 }
             }
-            if (q && !(p.title.toLowerCase().includes(q) || p.storeName.toLowerCase().includes(q) || (p.customCategory ? p.customCategory : (p.categories || []).map(catLabel).join(' ')).toLowerCase().includes(q))) return false;
+            if (q) {
+                const hay = [
+                    p.title,
+                    p.storeName,
+                    p.customCategory ? p.customCategory : (p.categories || []).map(catLabel).join(' '),
+                    (p.tags || []).join(' '),
+                    p.description || ''
+                ].join(' ').toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
             return true;
         });
     }
@@ -417,13 +440,19 @@
             const out = p.status === 'stockout' || p.stock <= 0;
             const wished = getWishlist().includes(p.id);
             const rating = p.ratingCount > 0 ? (p.ratingSum / p.ratingCount) : 0;
+            const onSale = p.salePrice > 0 && p.salePrice < p.price;
+            const pct = onSale ? Math.round(((p.price - p.salePrice) / p.price) * 100) : 0;
+            const stockLabel = out ? 'Out of stock' : (p.saleCount > 0 ? `In stock · ${p.saleCount} sold` : 'In stock');
+            const fastNote = p.delivery ? `<span class="trust-badge trust-delivery" title="Fast delivery"><i class="fas fa-truck-fast"></i></span>` : '';
             return `
             <div class="pcard">
                 <a class="thumb" href="details.html?id=${encodeURIComponent(p.id)}">
                     ${p.images && p.images[0]
                         ? `<img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.title)}" loading="lazy">`
                         : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
+                    ${onSale ? `<span class="sale-tag">-${pct}%</span>` : ''}
                 </a>
+                ${p.verifiedSeller ? `<span class="trust-verified" title="Verified seller"><i class="fas fa-check-circle"></i> Verified</span>` : ''}
                 <button class="wish-btn ${wished ? 'on' : ''}" data-wish-id="${p.id}" onclick="toggleWish('${p.id}');return false;" title="${wished ? 'Remove from wishlist' : 'Save to wishlist'}"><i class="fas fa-heart"></i></button>
                 <div class="body">
                     ${p.customCategory
@@ -433,10 +462,14 @@
                     <div class="seller">by <a href="store.html?store=${encodeURIComponent(p.ownerId)}">${escapeHtml(p.storeName)}</a></div>
                     ${rating > 0 ? `<div class="p-rating"><span class="stars">${starsForCard(rating)}</span> <span class="r-num">${rating.toFixed(1)}</span></div>` : ''}
                     <div class="price-row">
-                        <span class="price">${formatGHS(p.price)}</span>
-                        <span class="stock-tag ${out ? 'out' : ''}">${out ? 'Out of stock' : 'In stock'}</span>
+                        <span class="price">${onSale ? `${formatGHS(p.salePrice)} <span class="price-strike">${formatGHS(p.price)}</span>` : formatGHS(p.price)}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="stock-tag ${out ? 'out' : ''}">${stockLabel}</span>
+                        ${fastNote}
                     </div>
                 </div>
+                <button class="share-mini" onclick="shareProduct(event, '${encodeURIComponent(p.id)}', '${escapeHtml(p.title).replace(/'/g, "\\'")}')" title="Share"><i class="fas fa-share-alt"></i></button>
             </div>`;
         }).join('');
     }
@@ -982,10 +1015,58 @@
         return false;
     }
 
+    // ===== SHARE / REFERRAL =====
+    function shareProduct(event, encId, title) {
+        if (event) event.preventDefault();
+        const url = 'https://volantmall.vercel.app/details.html?id=' + encId.split('%3D').join('=');
+        const text = 'Check out "' + (title || 'this product') + '" on Volant Mall!';
+        try {
+            if (navigator.share) { navigator.share({ title: text, url: url }).catch(() => {}); return; }
+        } catch (e) { /* unshareable */ }
+        if (navigator.clipboard) { navigator.clipboard.writeText(text + ' ' + url).catch(() => {}); }
+        showToast('Link copied to clipboard 📋', 'success');
+    }
+
+    function copyReferralLink() {
+        const uid = currentUser ? currentUser.uid : '';
+        const base = location.origin;
+        const url = base + '/index.html' + (uid ? '?ref=' + encodeURIComponent(uid) : '');
+        const text = 'Shop Volant Mall — discover local sellers, fresh products & trusted stores. ' + url;
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.resolve()).then(() => {
+            showToast('Referral link copied — share it to earn from first-time orders 🎁', 'success');
+        }).catch(() => { prompt('Your referral link:', url); });
+        return false;
+    }
+
+    function trackReferral() {
+        const ref = new URLSearchParams(location.search).get('ref');
+        if (!ref) return;
+        try {
+            localStorage.setItem('vm_ref', ref);
+            if (currentUser) {
+                db.collection('users').doc(currentUser.uid).set({ referredBy: ref }, { merge: true }).catch(() => {});
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === '/' && !isTypingTarget(e)) {
+            e.preventDefault();
+            const inp = document.getElementById('searchInput');
+            if (inp && !viewWishlist) { inp.focus(); inp.select(); }
+        }
+    });
+
+    function isTypingTarget(e) {
+        const t = e.target;
+        return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    }
+
     // ===== INIT =====
     loadMall();
     loadBooks();
     loadLyrics();
+    if (currentUser) trackReferral(); else auth.onAuthStateChanged(function () { if (currentUser) trackReferral(); });
 
     // Buy Now from a product page: add-to-cart already ran, then we land here.
     // Open the cart drawer straight into the checkout process.

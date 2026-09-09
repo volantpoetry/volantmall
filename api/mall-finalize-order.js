@@ -31,6 +31,16 @@ function cleanPhone(p) {
     return String(p || '').replace(/\s+/g, '');
 }
 
+// Effective catalogue price: if a salePrice is set and it is a valid lower
+// number, the buyer pays the sale price. Flash/sale pricing is enforced
+// server-side so no client can undercharge.
+function appliedPrice(p) {
+    const base = Number(p.price) || 0;
+    const sale = Number(p.salePrice);
+    if (Number.isFinite(sale) && sale > 0 && sale < base) return sale;
+    return base;
+}
+
 async function verifyPaystack(reference, email, expectedAmountPaise) {
     const MALL_PAYSTACK_SECRET_KEY = process.env.MALL_PAYSTACK_SECRET_KEY;
     if (!MALL_PAYSTACK_SECRET_KEY) {
@@ -117,7 +127,7 @@ async function finaliseOrder(adminDb, { reference, checkout }) {
         resolved.push({
             productId: snap.id,
             title: String(p.title || 'Product'),
-            price: Number(p.price) || 0,
+            price: appliedPrice(p),
             currency: p.currency || 'GHS',
             qty: req.qty,
             image: (p.images && p.images[0]) || '',
@@ -257,7 +267,40 @@ async function finaliseOrder(adminDb, { reference, checkout }) {
         };
     }
 
+    // ---- referral: notify the referrer on their friend's FIRST order ----
+    try {
+        await rewardReferrer(adminDb, userId, reference, expectedPaise);
+    } catch (e) {
+        console.warn('Referral notify error:', e);
+    }
+
     return { ok: true, statusCode: 200, orderIds, reference, amount: expectedPaise / 100, message: 'Order confirmed.' };
+}
+
+// Best-effort: when a buyer who arrived via ?ref= completes their first
+// order, send the referrer a notification (potential affiliate/credit hook
+// for the future).
+async function rewardReferrer(adminDb, userId, reference, amountPaise) {
+    if (!userId) return;
+    const userRef = adminDb.collection('users').doc(userId);
+    const userSnap = await userRef.get();
+    let refUid = '';
+    if (userSnap.exists) refUid = (userSnap.data().referredBy || '').trim();
+    if (!refUid || refUid === userId) return;
+
+    const previousOrders = await adminDb.collection('mall-orders')
+        .where('userId', '==', userId).limit(1).get();
+    if (!previousOrders.empty) return; // not their first order
+
+    await adminDb.collection('notifications').add({
+        userId: refUid,
+        type: 'referral',
+        title: 'Your referral made a purchase 🎁',
+        body: 'Someone you invited placed their first order on Volant Mall (' + (Number(amountPaise) || 0) / 100 + ' GHS). Rewards are on the way!',
+        ref: reference,
+        read: false,
+        createdAt: firebaseNow(require('firebase-admin'))
+    });
 }
 
 // ===== HTTP handler =====

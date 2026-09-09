@@ -56,6 +56,53 @@ function isDevMode() {
         location.hostname === '127.0.0.1';
 }
 
+// ===== THEME (dark mode) =====
+function currentTheme() {
+    try { return localStorage.getItem('vm_theme') || 'light'; } catch (e) { return 'light'; }
+}
+function applyTheme() {
+    const t = currentTheme();
+    document.documentElement.setAttribute('data-theme', t);
+    const btns = document.querySelectorAll('[data-theme-btn]');
+    btns.forEach(b => {
+        const icon = b.querySelector('i') || b.querySelector('.fa-moon, .fa-sun');
+        if (icon) {
+            icon.className = 'fas ' + (t === 'dark' ? 'fa-sun' : 'fa-moon');
+        } else {
+            b.innerHTML = t === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+        b.title = t === 'dark' ? 'Light mode' : 'Dark mode';
+    });
+    const menuTheme = document.querySelector('.nav-links .nav-theme');
+    if (menuTheme) {
+        menuTheme.innerHTML = t === 'dark'
+            ? '<i class="fas fa-sun"></i> Light mode'
+            : '<i class="fas fa-moon"></i> Dark mode';
+    }
+}
+function toggleTheme() {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('vm_theme', next); } catch (e) {}
+    applyTheme();
+}
+// apply early (before paint)
+(function () {
+    try {
+        const t = localStorage.getItem('vm_theme');
+        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    } catch (e) {}
+})();
+document.addEventListener('DOMContentLoaded', applyTheme);
+
+// Effective shoppable price — a valid salePrice (lower than list) wins.
+function effectivePrice(p) {
+    if (!p) return 0;
+    const base = Number(p.price) || 0;
+    const sale = Number(p.salePrice);
+    if (Number.isFinite(sale) && sale > 0 && sale < base) return sale;
+    return base;
+}
+
 // ===== SELL ENTRY =====
 // Signed-in sellers go straight to their public store; new sellers go to setup.
 function renderSellerSocials(seller) {
@@ -200,8 +247,21 @@ function renderAvatar() {
             </div>
         </div>
         <hr>
+        <button class="acct-item" onclick="shareReferral();"><i class="fas fa-gift"></i> Share & earn</button>
         <button class="acct-item" onclick="toggleAccountMenu(); signOutUser();"><i class="fas fa-sign-out-alt"></i> Sign out</button>
         <small class="acct-foot">Signed in on Volant Mall</small>`;
+}
+
+function shareReferral() {
+    const base = location.origin || 'https://volantmall.vercel.app';
+    const url = base + '/index.html' + (currentUser ? '?ref=' + encodeURIComponent(currentUser.uid) : '');
+    const text = 'Shop Volant Mall — discover local sellers, fresh products & trusted stores. ' + url;
+    try {
+        if (navigator.share) { navigator.share({ title: 'Volant Mall', text: text, url: url }).catch(() => {}); toggleAccountMenu(); return; }
+    } catch (e) { /* fall through */ }
+    if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(() => {}); }
+    showToast('Referral link copied — earn when friends order 🎁', 'success');
+    toggleAccountMenu();
 }
 
 function renderNotifBadge() {
@@ -363,6 +423,8 @@ function getCartCount() {
 function updateCartBadge() {
     const b = document.getElementById('cartCount');
     if (b) b.textContent = getCartCount();
+    const m = document.getElementById('mnavCartCount');
+    if (m) m.textContent = getCartCount();
 }
 function addToCart(product, qty, fulfillment) {
     const items = getCartItems();
@@ -373,7 +435,7 @@ function addToCart(product, qty, fulfillment) {
         items.push({
             id: product.id,
             title: product.title,
-            price: Number(product.price) || 0,
+            price: effectivePrice(product),
             currency: product.currency || 'GHS',
             qty: qty,
             sellerId: product.ownerId,
@@ -528,8 +590,34 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 
 // ===== INIT =====
+function injectDrawerTheme() {
+    const nav = document.getElementById('navLinks');
+    if (!nav) return;
+    // On pages with the mobile bottom-nav theme button (Shop/Details/Store/
+    // Orders/Alerts) we don't duplicate the toggle inside the drawer.
+    if (document.querySelector('.mobile-nav .mnav-theme')) {
+        const existing = nav.querySelector('.nav-theme');
+        if (existing) existing.remove();
+        return;
+    }
+    if (nav.querySelector('.nav-theme')) return;
+    const item = document.createElement('a');
+    item.href = '#';
+    item.className = 'nav-theme';
+    item.style.cursor = 'pointer';
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleTheme();
+    });
+    const signOut = nav.querySelector('#mobileSignOutBtn');
+    if (signOut) nav.insertBefore(item, signOut);
+    else nav.appendChild(item);
+    applyTheme();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateCartBadge();
     loadPaystackConfig();
     renderAvatar();
+    injectDrawerTheme();
 });

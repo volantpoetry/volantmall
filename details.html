@@ -35,6 +35,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <button class="icon-btn theme-btn" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i></button>
                 <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
@@ -59,6 +60,15 @@
     <div class="container" id="detailWrap">
         <div class="spinner-wrap" style="min-height:50vh;"><div class="spinner"></div></div>
     </div>
+
+    <nav class="mobile-nav" id="mobileNav" aria-label="Mobile">
+        <a href="index.html" class="mnav-item"><i class="fas fa-store"></i><span>Shop</span></a>
+        <a href="orders.html" class="mnav-item"><i class="fas fa-receipt"></i><span>Orders</span></a>
+        <button class="mnav-item mnav-cart" onclick="goCart()" title="Cart"><i class="fas fa-shopping-bag"></i><span>Bag</span><span class="mnav-badge" id="mnavCartCount">0</span></button>
+        <a href="notifications.html" class="mnav-item"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <button class="mnav-item mnav-theme" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i><span>Theme</span></button>
+        <a href="submit.html" class="mnav-item" onclick="return goSell(event)"><i class="fas fa-store-alt"></i><span>Sell</span></a>
+    </nav>
 
     <footer class="site-footer">
         <div class="foot-inner">
@@ -134,6 +144,7 @@
             renderDetail(seller);
             startRealtime();
             updateProductMeta();
+            loadRelated();
         } catch (err) {
             console.error(err);
             document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>Error loading product.</p></div>`;
@@ -162,12 +173,16 @@
         const deliveryEligible = !!product.delivery;
         const pickupEligible = !!product.pickup;
         const wished = isWished(product.id);
+        const onSale = (Number(product.salePrice) || 0) > 0 && Number(product.salePrice) < Number(product.price);
+        const pct = onSale ? Math.round(((product.price - product.salePrice) / product.price) * 100) : 0;
+        const waBtn = sellerWhatsapp(seller);
 
         document.getElementById('detailWrap').innerHTML = `
             <div class="detail-wrap">
                 <div class="gallery">
-                    <div class="main-img">
+                    <div class="main-img ${imgs[0] ? 'zoomable' : ''}" onclick="zoomImage(event)">
                         ${imgs[0] ? `<img id="mainImg" src="${escapeHtml(imgs[0])}" alt="${escapeHtml(product.title)}">` : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
+                        ${imgs[0] ? `<span class="zoom-hint"><i class="fas fa-search-plus"></i> Click to zoom</span>` : ''}
                     </div>
                     ${imgs.length > 1 ? `<div class="thumbs">${imgs.slice(0, 4).map((u, i) => `
                         <div class="t ${i === 0 ? 'active' : ''}" onclick="setMain(${i}, '${escapeHtml(u || '')}')">
@@ -179,13 +194,19 @@
                     <div class="p-cats">
                         ${(product.categories && product.categories.length ? product.categories : [product.category || 'other']).map(c => `<span class="cat-badge">${escapeHtml(catLabel(c))}</span>`).join('')}
                         ${product.customCategory ? `<span class="cat-badge">${escapeHtml(product.customCategory)}</span>` : ''}
+                        ${onSale ? `<span class="cat-badge sale-badge"><i class="fas fa-bolt"></i> ${pct}% OFF</span>` : ''}
                     </div>
                     <h1>${escapeHtml(product.title)}</h1>
                     ${(product.tags && product.tags.length) ? `<div class="p-tags">${product.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
                     <p class="d-seller">Sold by <a href="store.html?store=${encodeURIComponent(product.ownerId)}"><i class="fas fa-store"></i> ${escapeHtml(seller.storeName || 'Store')}</a>${seller.verified ? ' <span class="verified-seller" title="Identity verified by Volant Mall"><i class="fas fa-check-circle"></i> Verified</span>' : ''}${seller.city ? ' · ' + escapeHtml(seller.city) : ''}</p>
                     <div class="seller-socials">${renderSellerSocials(seller)}</div>
-                    <div class="d-price">${formatGHS(product.price)}</div>
+                    <div class="d-price">
+                        ${onSale
+                            ? `${formatGHS(product.salePrice)} <span class="price-strike d-price-strike">${formatGHS(product.price)}</span> <span class="save-chip">Save ${formatGHS((product.price - product.salePrice) * Math.max(qty,1))}</span>`
+                            : formatGHS(product.price)}
+                    </div>
                     <div class="d-rating" id="dRating"></div>
+                    ${(product.saleCount || 0) > 0 ? `<div class="trust-row d-trust"><span class="trust-badge"><i class="fas fa-fire"></i> ${product.saleCount} sold</span>${deliveryEligible ? '<span class="trust-badge trust-delivery"><i class="fas fa-truck-fast"></i> Fast delivery</span>' : ''}</div>` : (deliveryEligible ? `<div class="trust-row d-trust"><span class="trust-badge trust-delivery"><i class="fas fa-truck-fast"></i> Fast delivery</span></div>` : '')}
                     ${product.description ? `<p class="d-desc">${escapeHtml(product.description)}</p>` : ''}
                     <p style="font-size:0.86rem;color:var(--ink-soft);margin-bottom:1.2rem;">
                         <i class="fas fa-boxes"></i> ${out ? '<span style="color:var(--danger);font-weight:600;">Out of stock</span>' : (currentStock < 10 ? 'Only <b>' + currentStock + '</b> left' : 'In stock')}
@@ -231,10 +252,15 @@
                     <button class="btn btn-ghost btn-sm details-wish ${wished ? 'on' : ''}" onclick="toggleDetailsWish();return false;" id="detailsWishBtn" style="margin-top:0.6rem;width:100%;justify-content:center;">
                         <i class="fas fa-heart"></i> <span>${wished ? 'Saved to wishlist' : 'Save to wishlist'}</span>
                     </button>
+                    <div class="detail-actions">
+                        <button class="btn btn-outline btn-sm" onclick="shareProductDetails(event)"><i class="fas fa-share-alt"></i> Share</button>
+                        ${waBtn ? `<a class="btn btn-outline btn-sm" href="${waBtn}?text=${encodeURIComponent('Hi! I have a question about "' + product.title + '" on Volant Mall.')}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Message seller</a>` : ''}
+                    </div>
                 </div>
             </div>
 
-            <div id="reviewsSection"></div>`;
+            <div id="reviewsSection"></div>
+            <div id="relatedSection"></div>`;
     }
 
     function selectFulfillment(f) {
@@ -410,6 +436,15 @@
                 ratingSum: firebase.firestore.FieldValue.increment(myRating),
                 ratingCount: firebase.firestore.FieldValue.increment(1)
             }).catch(e => console.warn('Could not update product rating:', e));
+            db.collection('notifications').add({
+                userId: product.ownerId || '_',
+                type: 'review',
+                title: 'New rating ⭐',
+                body: (userData && (userData.displayName || userData.name)) || (currentUser.displayName || 'A buyer') + ' rated "' + (product.title || '').slice(0, 40) + '" ' + myRating + (myRating > 1 ? ' stars' : ' star') + (comment.trim() ? ' with a comment.' : '.'),
+                ref: product.id,
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(e => console.warn('Seller rating notification failed:', e));
             product.ratingSum = (product.ratingSum || 0) + myRating;
             product.ratingCount = (product.ratingCount || 0) + 1;
             showToast('Review published!', 'success');
@@ -469,6 +504,123 @@
         const img = document.getElementById('mainImg') || document.querySelector('.main-img');
         if (url) img.src = url;
         document.querySelectorAll('.thumbs .t').forEach((t, j) => t.classList.toggle('active', j === i));
+    }
+
+    function zoomImage(event) {
+        const img = document.getElementById('mainImg');
+        if (!img || !img.src) return;
+        let overlay = document.getElementById('zoomOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'zoomOverlay';
+            overlay.className = 'zoom-overlay';
+            overlay.onclick = () => { overlay.classList.remove('active'); document.body.style.overflow = ''; };
+            document.body.appendChild(overlay);
+        }
+        const view = document.createElement('div');
+        view.className = 'zoom-view';
+        view.innerHTML = `<img src="${escapeHtml(img.src)}" alt="Zoom"><button class="zoom-close" onclick="closeZoom(event)"><i class="fas fa-times"></i></button>`;
+        overlay.innerHTML = '';
+        overlay.appendChild(view);
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeZoom(event) {
+        if (event) event.stopPropagation();
+        const overlay = document.getElementById('zoomOverlay');
+        if (overlay) { overlay.classList.remove('active'); document.body.style.overflow = ''; }
+    }
+
+    function shareProductDetails(event) {
+        if (event) event.preventDefault();
+        const url = 'https://volantmall.vercel.app/details.html?id=' + encodeURIComponent(product.id);
+        const text = 'Check out "' + product.title + '" on Volant Mall!';
+        try {
+            if (navigator.share) { navigator.share({ title: text, url: url }).catch(() => {}); return; }
+        } catch (e) { /* unshareable */ }
+        if (navigator.clipboard) { navigator.clipboard.writeText(text + ' ' + url).catch(() => {}); }
+        showToast('Link copied to clipboard 📋', 'success');
+    }
+
+    function sellerWhatsapp(s) {
+        if (!s) return '';
+        const wa = (s.socials && s.socials.whatsapp) || s.phone || '';
+        const num = String(wa).replace(/[^0-9]/g, '');
+        return num ? 'https://wa.me/' + num : '';
+    }
+
+    // ===== RECENTLY VIEWED + RELATED =====
+    function noteViewed(id) {
+        try {
+            let list = JSON.parse(localStorage.getItem('vm_recent') || '[]');
+            list = list.filter(x => x !== id);
+            list.unshift(id);
+            localStorage.setItem('vm_recent', JSON.stringify(list.slice(0, 10)));
+        } catch (e) { /* ignore */ }
+    }
+
+    async function loadRelated() {
+        noteViewed(product.id);
+        const sec = document.getElementById('relatedSection');
+        if (!sec) return;
+        sec.innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+
+        const mainCats = (product.categories && product.categories.length) ? product.categories : [product.category || 'other'];
+        const related = [];
+        let recent = [];
+        try { recent = JSON.parse(localStorage.getItem('vm_recent') || '[]').filter(x => x !== product.id); } catch (e) { recent = []; }
+
+        try {
+            const snap = await db.collection('mall-products').where('status', 'in', ['active', 'stockout']).limit(60).get();
+            const pool = [];
+            snap.forEach(d => { pool.push({ id: d.id, ...d.data() }); });
+            // Related: same category first, then same store, then everything
+            const scored = pool
+                .filter(p => p.id !== product.id)
+                .map(p => {
+                    const pCats = (p.categories && p.categories.length) ? p.categories : [p.category || 'other'];
+                    let score = 0;
+                    if (pCats.some(c => mainCats.includes(c))) score += 3;
+                    if (p.customCategory && product.customCategory && p.customCategory === product.customCategory) score += 2;
+                    if (p.ownerId === product.ownerId) score += 2;
+                    if ((p.tags || []).some(t => (product.tags || []).includes(t))) score += 1;
+                    score += ((p.saleCount || 0) / 10);
+                    return { p, score };
+                })
+                .sort((a, b) => b.score - a.score);
+            scored.slice(0, 8).forEach(s => related.push(s.p));
+            // recently viewed from pool
+            recent.forEach(rid => { const f = pool.find(p => p.id === rid); if (f && !related.some(r => r.id === rid) && related.length < 12) related.push(f); });
+        } catch (err) {
+            console.warn('Related load error:', err);
+        }
+
+        if (!related.length) { sec.innerHTML = ''; return; }
+        sec.innerHTML = `
+            <div class="section-head"><h2>You might also like</h2></div>
+            <div class="grid related-grid">${related.map(p => {
+                const out = p.status === 'stockout' || Number(p.stock) <= 0;
+                const onSale = (Number(p.salePrice) || 0) > 0 && Number(p.salePrice) < Number(p.price);
+                const pct = onSale ? Math.round(((p.price - p.salePrice) / p.price) * 100) : 0;
+                const rating = Number(p.ratingCount) > 0 ? (Number(p.ratingSum) / Number(p.ratingCount)) : 0;
+                return `
+                <div class="pcard">
+                    <a class="thumb" href="details.html?id=${encodeURIComponent(p.id)}">
+                        ${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.title)}" loading="lazy">` : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
+                        ${onSale ? `<span class="sale-tag">-${pct}%</span>` : ''}
+                    </a>
+                    <div class="body">
+                        <a class="ptitle" href="details.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a>
+                        <div class="seller">by <a href="store.html?store=${encodeURIComponent(p.ownerId)}">${escapeHtml(p.storeName || 'Store')}</a></div>
+                        ${rating > 0 ? `<div class="p-rating"><span class="stars">${'★'.repeat(Math.round(rating))}<span class="off">${'★'.repeat(5 - Math.round(rating))}</span></span> <span class="r-num">${rating.toFixed(1)}</span></div>` : ''}
+                        <div class="price-row">
+                            <span class="price">${onSale ? `${formatGHS(p.salePrice)} <span class="price-strike">${formatGHS(p.price)}</span>` : formatGHS(p.price)}</span>
+                            <span class="stock-tag ${out ? 'out' : ''}">${out ? 'Out of stock' : 'In stock'}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('')}</div>`;
     }
 
     loadProduct();

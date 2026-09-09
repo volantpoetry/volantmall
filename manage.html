@@ -29,6 +29,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html?add=1"><i class="fas fa-plus-circle"></i> List Product</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-store"></i> Storefront</a>
+                <button class="icon-btn theme-btn" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i></button>
                 <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
@@ -514,6 +515,31 @@
         return out;
     }
 
+    // ===== PROGRESS STEPPER (seller view) =====
+    function renderStepper(o) {
+        const ordered = [
+            { key: 'paid', label: 'Paid', icon: 'fa-credit-card' },
+            { key: 'processing', label: 'Processing', icon: 'fa-box' },
+            { key: 'ready', label: 'Ready', icon: 'fa-check-circle' },
+            { key: 'shipped', label: 'Shipped', icon: 'fa-truck' },
+            { key: 'completed', label: 'Delivered', icon: 'fa-hand-holding-box' },
+            { key: 'received', label: 'Received', icon: 'fa-check-double' }
+        ];
+        const rank = {};
+        ordered.forEach((s, i) => rank[s.key] = i);
+        const current = o.orderStatus;
+        const reached = {};
+        if (Array.isArray(o.trace)) tidyTrace(o.trace).forEach(t => { if (rank[t.status] !== undefined) reached[rank[t.status]] = true; });
+        if (current === 'cancelled' || rank[current] === undefined) {
+            return `<div class="stepper cancelled"><span class="step done"><i class="fas fa-ban"></i> Cancelled</span></div>`;
+        }
+        return `<div class="stepper">${ordered.map(s => {
+            const done = rank[s.key] <= rank[current] || reached[rank[s.key]] || current === 'received';
+            const isCurrent = s.key === current;
+            return `<span class="step ${done ? 'done' : ''} ${isCurrent ? 'current' : ''}"><i class="fas ${s.icon}"></i><span class="step-label">${s.label}</span></span>`;
+        }).join('<span class="step-conn"></span>')}</div>`;
+    }
+
     function renderOrders() {
         const list = document.getElementById('orderList');
         if (!myOrders.length) {
@@ -533,6 +559,7 @@
                         ${ALL_STATUSES.map(s => `<option value="${s}" ${o.orderStatus === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}
                     </select>`}
                 </div>
+                ${renderStepper(o)}
                 ${o.items.map(it => `
                     <div class="order-item">
                         <div class="oi-img">${it.image ? `<img src="${escapeHtml(it.image)}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;"></i>`}</div>

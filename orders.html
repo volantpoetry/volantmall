@@ -28,6 +28,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <button class="icon-btn theme-btn" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i></button>
                 <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
@@ -61,6 +62,15 @@
             <div id="orderList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
         </section>
     </div>
+
+    <nav class="mobile-nav" id="mobileNav" aria-label="Mobile">
+        <a href="index.html" class="mnav-item"><i class="fas fa-store"></i><span>Shop</span></a>
+        <a href="orders.html" class="mnav-item active"><i class="fas fa-receipt"></i><span>Orders</span></a>
+        <button class="mnav-item mnav-cart" onclick="location.href='index.html?buy=1'" title="Cart"><i class="fas fa-shopping-bag"></i><span>Bag</span><span class="mnav-badge" id="mnavCartCount">0</span></button>
+        <a href="notifications.html" class="mnav-item"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <button class="mnav-item mnav-theme" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i><span>Theme</span></button>
+        <a href="submit.html" class="mnav-item" onclick="return goSell(event)"><i class="fas fa-store-alt"></i><span>Sell</span></a>
+    </nav>
 
     <footer class="site-footer">
         <div class="foot-inner">
@@ -251,6 +261,38 @@
         return out;
     }
 
+    // ===== PROGRESS STEPPER =====
+    // Clean timeline: Paid → Processing → Shipped → Delivered → Received.
+    // Cancelled short-circuits to a single red step.
+    function renderStepper(o) {
+        const ordered = [
+            { key: 'paid', label: 'Paid', icon: 'fa-credit-card' },
+            { key: 'processing', label: 'Processing', icon: 'fa-box' },
+            { key: 'ready', label: 'Ready', icon: 'fa-check-circle' },
+            { key: 'shipped', label: 'Shipped', icon: 'fa-truck' },
+            { key: 'completed', label: 'Delivered', icon: 'fa-hand-holding-box' },
+            { key: 'received', label: 'Received', icon: 'fa-check-double' }
+        ];
+        const rank = {};
+        ordered.forEach((s, i) => rank[s.key] = i);
+        const current = o.orderStatus;
+        const traceStatuses = Array.isArray(o.trace) ? tidyTrace(o.trace).map(t => t.status) : [];
+        const reached = {};
+        traceStatuses.forEach(st => { reached[st] = true; reached[ordered.find(x => x.key === st) ? rank[st] : st] = true; });
+
+        if (current === 'cancelled' || rank[current] === undefined) {
+            return `<div class="stepper cancelled"><span class="step done"><i class="fas fa-ban"></i> Cancelled</span></div>`;
+        }
+
+        let seenAny = false;
+        return `<div class="stepper">${ordered.map(s => {
+            const done = rank[s.key] <= rank[current] || reached[s.key] || reached[rank[s.key]];
+            if (done) seenAny = true;
+            const isCurrent = s.key === current;
+            return `<span class="step ${done ? 'done' : ''} ${isCurrent ? 'current' : ''}"><i class="fas ${s.icon}"></i><span class="step-label">${s.label}</span></span>`;
+        }).join('<span class="step-conn"></span>')}</div>`;
+    }
+
     function renderOrderList() {
         const list = document.getElementById('orderList');
         if (!ordersList.length) {
@@ -266,6 +308,7 @@
                     </div>
                     <span class="status-badge ${statusClasses[o.orderStatus] || 'processing'}">${statusLabels[o.orderStatus] || o.orderStatus}</span>
                 </div>
+                ${renderStepper(o)}
                 ${o.items.map(it => `
                     <div class="order-item">
                         <div class="oi-img">${it.image ? `<img src="${escapeHtml(it.image)}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;"></i>`}</div>

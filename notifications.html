@@ -27,6 +27,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <button class="icon-btn theme-btn" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i></button>
                 <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
@@ -64,6 +65,15 @@
             <div id="notifList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
         </section>
     </div>
+
+    <nav class="mobile-nav" id="mobileNav" aria-label="Mobile">
+        <a href="index.html" class="mnav-item"><i class="fas fa-store"></i><span>Shop</span></a>
+        <a href="orders.html" class="mnav-item"><i class="fas fa-receipt"></i><span>Orders</span></a>
+        <button class="mnav-item mnav-cart" onclick="location.href='index.html?buy=1'" title="Cart"><i class="fas fa-shopping-bag"></i><span>Bag</span><span class="mnav-badge" id="mnavCartCount">0</span></button>
+        <a href="notifications.html" class="mnav-item active"><i class="fas fa-bell"></i><span>Alerts</span></a>
+        <button class="mnav-item mnav-theme" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i><span>Theme</span></button>
+        <a href="submit.html" class="mnav-item" onclick="return goSell(event)"><i class="fas fa-store-alt"></i><span>Sell</span></a>
+    </nav>
 
     <footer class="site-footer">
         <div class="foot-inner">
@@ -118,7 +128,7 @@
     }
 
     const notifIcons = {
-        new_order: 'fas fa-store', order_status: 'fas fa-shipping-fast', product_approved: 'fas fa-check-circle', product_rejected: 'fas fa-ban', info: 'fas fa-info-circle'
+        new_order: 'fas fa-store', order_status: 'fas fa-shipping-fast', product_approved: 'fas fa-check-circle', product_rejected: 'fas fa-ban', review: 'fas fa-star', message: 'fas fa-comment-dots', referral: 'fas fa-gift', nudge: 'fas fa-clock', info: 'fas fa-info-circle'
     };
 
     function ts(t) {

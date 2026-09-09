@@ -26,6 +26,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="../approvals.html"><i class="fas fa-clipboard-check"></i> Moderation</a>
                 <a class="btn btn-ghost btn-sm" href="../index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <button class="icon-btn theme-btn" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i></button>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
                     <div class="account-menu" id="accountMenu"></div>
@@ -82,6 +83,14 @@
                 <div style="font-weight:700;margin-bottom:0.6rem;">Recent orders</div>
                 <div id="ordersList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
             </div>
+
+            <div class="order-card" style="box-shadow:none;border:1px solid var(--line);margin-top:1.2rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;flex-wrap:wrap;gap:0.5rem;">
+                    <div style="font-weight:700;">Stores</div>
+                    <button class="btn btn-outline btn-sm" onclick="loadStores()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+                <div id="storesList"><div class="empty-state"><p style="color:var(--ink-soft);font-size:0.85rem;">List of seller storefronts appears here.</p></div></div>
+            </div>
         </section>
     </div>
 
@@ -114,6 +123,7 @@
                 loadStats();
                 loadPending();
                 loadOrders();
+                loadStores();
             } else {
                 document.getElementById('adminSec').style.display = 'none';
                 document.getElementById('denied').style.display = '';
@@ -236,6 +246,116 @@
             console.error(err);
             list.innerHTML = `<div class="empty-state"><p style="color:var(--ink-soft);font-size:0.85rem;">Could not load orders: ${escapeHtml(String(err.message || err))}</p></div>`;
         }
+    }
+
+    // ===== STORES MANAGEMENT =====
+    // Paginate through all seller storefronts in batches (feature E: at least
+    // 50 per pass) so an admin never hits the single-query limit.
+    async function fetchAllSellers() {
+        const sellers = [];
+        let last = null;
+        while (true) {
+            let q = db.collection('mall-sellers').orderBy('storeName');
+            if (last) q = q.startAfter(last);
+            const snap = await q.limit(50).get();
+            if (snap.empty) break;
+            snap.forEach(d => sellers.push({ id: d.id, ...d.data() }));
+            if (snap.size < 50) break;
+            last = snap.docs[snap.docs.length - 1];
+        }
+        return sellers;
+    }
+
+    async function loadStores() {
+        const list = document.getElementById('storesList');
+        list.innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+        try {
+            const sellers = await fetchAllSellers();
+            if (!sellers.length) {
+                list.innerHTML = `<div class="empty-state"><i class="fas fa-store-slash"></i><p>No seller storefronts yet.</p></div>`;
+                loadStats();
+                return;
+            }
+            const prodCounts = {};
+            try {
+                const prods = await db.collection('mall-products').where('status', 'in', ['active', 'stockout']).get();
+                prods.forEach(d => { const o = d.data().ownerId; if (o) prodCounts[o] = (prodCounts[o] || 0) + 1; });
+            } catch (e) { console.warn('Product counts unavailable:', e); }
+            list.innerHTML = sellers.map(s => `
+                <div class="mproduct" style="align-items:flex-start;">
+                    <div class="md-img">${s.logoUrl ? `<img src="${escapeHtml(s.logoUrl)}" alt="">` : `<i class="fas fa-store" style="color:#b7aad9;font-size:1.2rem;"></i>`}</div>
+                    <div class="md-body" style="flex:1;">
+                        <div class="md-title">${escapeHtml(s.storeName || 'Store')} ${s.verified ? `<span class="verified-seller"><i class="fas fa-check-circle"></i></span>` : ''}</div>
+                        <div class="md-sub">${escapeHtml(s.ownerId || '')?.slice(0, 10)} · ${prodCounts[s.id] || 0} product${(prodCounts[s.id] || 0) === 1 ? '' : 's'} · ${s.city ? escapeHtml(s.city) : 'no city'}</div>
+                        <div class="md-sub">${s.active === false ? '<span style="color:var(--danger);font-weight:600;">Delisted</span>' : 'Live'}</div>
+                        ${s.phone ? `<div class="md-sub"><i class="fas fa-phone"></i> ${escapeHtml(s.phone)}</div>` : ''}
+                    </div>
+                    <div class="md-actions" style="flex-wrap:wrap;display:flex;gap:0.4rem;">
+                        <a class="btn btn-outline btn-sm" href="../store.html?store=${encodeURIComponent(s.id)}" target="_blank"><i class="fas fa-eye"></i></a>
+                        <button class="btn btn-outline btn-sm" onclick="toggleSellerVerify('${s.id}')" title="${s.verified ? 'Remove verified' : 'Mark verified'}"><i class="fas ${s.verified ? 'fa-check-circle' : 'fa-circle'}"></i></button>
+                        <button class="btn btn-ghost btn-sm" style="${s.active === false ? 'color:var(--success);' : 'color:var(--danger);border-color:var(--line);'}" onclick="toggleSellerActive('${s.id}')">${s.active === false ? 'Relist' : 'Delist'}</button>
+                        <button class="btn btn-primary btn-sm" onclick="sendSellerMessage('${s.id}')"><i class="fas fa-paper-plane"></i> Message</button>
+                    </div>
+                </div>`).join('');
+            loadStats();
+        } catch (err) {
+            console.error(err);
+            list.innerHTML = `<div class="empty-state"><p style="color:var(--ink-soft);font-size:0.85rem;">Could not load stores: ${escapeHtml(String(err.message || err))}</p></div>`;
+        }
+    }
+
+    async function toggleSellerVerify(id) {
+        try {
+            const s = await db.collection('mall-sellers').doc(id).get();
+            if (!s.exists) return showToast('Store not found.', 'error');
+            await db.collection('mall-sellers').doc(id).update({ verified: !s.data().verified });
+            showToast(s.data().verified ? 'Verification removed.' : 'Store marked verified.', 'success');
+            loadStores();
+        } catch (e) { console.error(e); showToast('Update failed.', 'error'); }
+    }
+
+    async function toggleSellerActive(id) {
+        try {
+            const s = await db.collection('mall-sellers').doc(id).get();
+            if (!s.exists) return showToast('Store not found.', 'error');
+            const nextActive = s.data().active !== false;
+            await db.collection('mall-sellers').doc(id).update({ active: !nextActive, activeAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await db.collection('notifications').add({
+                userId: id,
+                type: 'info',
+                title: nextActive ? 'Your store was delisted' : 'Your store is live again ✅',
+                body: nextActive
+                    ? 'A moderator delisted your store. Review your listings and contact support if this seems wrong.'
+                    : 'Your store is back and visible to shoppers on Volant Mall.',
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(e => console.warn('Notify error:', e));
+            showToast(nextActive ? 'Store delisted.' : 'Store relisted.', 'success');
+            loadStores();
+        } catch (e) { console.error(e); showToast('Update failed.', 'error'); }
+    }
+
+    async function sendSellerMessage(id) {
+        let name = 'this seller';
+        try {
+            const s = await db.collection('mall-sellers').doc(id).get();
+            if (s.exists && s.data().storeName) name = s.data().storeName;
+        } catch (e) { /* fall back to generic greeting */ }
+        const msg = prompt('Message to ' + name + ' (will appear in their notifications):');
+        if (msg === null) return;
+        const text = msg.trim();
+        if (!text) return;
+        try {
+            await db.collection('notifications').add({
+                userId: id,
+                type: 'message',
+                title: 'Message from a moderator',
+                body: text,
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showToast('Message sent to seller.', 'success');
+        } catch (e) { console.error(e); showToast('Could not send message.', 'error'); }
     }
     </script>
 

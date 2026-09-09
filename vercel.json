@@ -2,10 +2,6 @@
   "functions": {
     "api/*.js": {
       "memory": 1024,
-      "maxDuration": 10
-    },
-    "api/mall-auto-close.js": {
-      "memory": 512,
       "maxDuration": 60
     }
   },

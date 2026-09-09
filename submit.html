@@ -29,6 +29,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
                 <a class="btn btn-ghost btn-sm" href="manage.html"><i class="fas fa-chart-line"></i> Dashboard</a>
+                <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
                     <div class="account-menu" id="accountMenu"></div>
@@ -91,15 +92,19 @@
                     <label>Store Name</label>
                     <input id="sName" placeholder="e.g. Ama's Beauty Hub" maxlength="50" />
                 </div>
+                <div class="form-field">
+                    <label>Categories <span style="font-weight:400;font-size:0.72rem;color:var(--ink-soft);">(tap all that apply — the first you pick is your main category)</span></label>
+                    <div class="cat-chipgrid" id="sCatChips"></div>
+                </div>
                 <div class="form-row">
-<div class="form-field">
-                    <label>Main Category</label>
-                    <select id="sCategory" onchange="toggleOtherCat()"></select>
-                </div>
-                <div class="form-field" id="sOtherCatWrap" style="display:none;">
-                    <label>Specify Category</label>
-                    <input id="sOtherCat" placeholder="e.g. Antiques, Handmade crafts, Art..." maxlength="60" />
-                </div>
+                    <div class="form-field" id="sOtherCatWrap" style="display:none;">
+                        <label>Other / add a custom category</label>
+                        <div style="display:flex;gap:0.5rem;">
+                            <input id="sOtherCat" placeholder="e.g. Antiques, Handmade crafts, Art..." maxlength="60" onkeydown="if(event.key==='Enter'){event.preventDefault();addOtherCat();}" />
+                            <button type="button" class="btn btn-primary btn-sm" style="white-space:nowrap;" onclick="addOtherCat()"><i class="fas fa-plus"></i> Add</button>
+                        </div>
+                        <p class="form-hint">Added categories become selectable chips shared with all sellers.</p>
+                    </div>
                     <div class="form-field">
                         <label>City / Town</label>
                         <input id="sCity" placeholder="e.g. Accra" maxlength="40" />
@@ -308,6 +313,8 @@
 
     async function loadState() {
         try {
+            sharedStoreCats = await loadSharedCustomCats();
+            renderStoreCats();
             const snap = await db.collection('mall-sellers').doc(currentUser.uid).get();
             if (snap.exists) {
                 myStore = snap.data();
@@ -348,13 +355,69 @@
 
     function toggleOtherCat() {
         const wrap = document.getElementById('sOtherCatWrap');
-        if (wrap) wrap.style.display = document.getElementById('sCategory').value === 'other' ? '' : 'none';
+        if (wrap) wrap.style.display = selectedStoreCats.has('other') ? '' : 'none';
+    }
+
+    const selectedStoreCats = new Set();
+
+    let sharedStoreCats = [];
+
+    function renderStoreCats() {
+        const grid = document.getElementById('sCatChips');
+        if (!grid) return;
+        const sharedChips = sharedStoreCats.map(c => ({ key: 'custom:' + c, label: c, custom: true }));
+        const selectedCustoms = [...selectedStoreCats].filter(k => k.indexOf('custom:') === 0 && !sharedStoreCats.includes(k.slice(7)))
+            .map(k => ({ key: k, label: k.slice(7), custom: true }));
+        const allCats = [...MALL_CATEGORIES, ...sharedChips, ...selectedCustoms];
+        grid.innerHTML = allCats.map(c => `
+            <button type="button" class="cat-chip ${selectedStoreCats.has(c.key) ? 'active' : ''}" data-key="${c.key}" onclick="toggleStoreCat(this)">
+                ${c.label}${selectedStoreCats.has(c.key) && [...selectedStoreCats][0] === c.key ? '<small style="display:block;font-size:0.6rem;opacity:0.8;font-weight:400;">★ Main</small>' : ''}
+                ${c.custom ? '<small class="chip-shared">shared</small>' : ''}
+            </button>
+        `).join('');
+    }
+
+    function toggleStoreCat(btn) {
+        const key = btn.getAttribute('data-key');
+        if (selectedStoreCats.has(key)) selectedStoreCats.delete(key);
+        else selectedStoreCats.add(key);
+        renderStoreCats();
+        toggleOtherCat();
+        setStoreBtnDirty(true);
+    }
+
+    async function addOtherCat() {
+        const input = document.getElementById('sOtherCat');
+        const raw = (input.value || '').trim();
+        if (!raw) { showToast('Type a category name first.', 'info'); return; }
+        const label = titleCaseCat(raw);
+        if (MALL_CATEGORIES.some(c => c.label.toLowerCase() === label.toLowerCase())) { showToast('That is already a built-in category.', 'info'); return; }
+        if (selectedStoreCats.has('custom:' + label)) { showToast('Already added.', 'info'); return; }
+        selectedStoreCats.add('custom:' + label);
+        if (!sharedStoreCats.includes(label)) {
+            sharedStoreCats.push(label);
+            await addSharedCustomCat(label);
+        }
+        input.value = '';
+        renderStoreCats();
+        toggleOtherCat();
+        setStoreBtnDirty(true);
+        showToast(label + ' added and shared with all sellers.', 'success');
     }
 
     function togglePOtherCat() { /* kept for compatibility */ }
 
     const selectedPCats = new Set();
     const pCustomTags = [];
+
+    function setStoreBtnDirty(dirty) {
+        const btn = document.getElementById('saveStoreBtn');
+        if (btn) btn.disabled = !dirty;
+    }
+    function setProductBtnDirty(dirty) {
+        const btn = document.getElementById('submitBtn');
+        if (btn) btn.disabled = !dirty;
+    }
 
     function renderPCatChips() {
         const wrap = document.getElementById('pCatChips');
@@ -368,6 +431,7 @@
         if (selectedPCats.has(key)) selectedPCats.delete(key);
         else selectedPCats.add(key);
         renderPCatChips();
+        setProductBtnDirty(true);
     }
     function addPtag() {
         const input = document.getElementById('pCustomTag');
@@ -377,10 +441,12 @@
         pCustomTags.push(v);
         input.value = '';
         renderPCatChips();
+        setProductBtnDirty(true);
     }
     function removePtag(i) {
         pCustomTags.splice(i, 1);
         renderPCatChips();
+        setProductBtnDirty(true);
     }
     function renderPTagList() {
         const el = document.getElementById('pTagList');
@@ -457,12 +523,15 @@
         if (!myStore) return;
         const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
         set('sName', myStore.storeName);
-        set('sCategory', myStore.category || 'other');
         set('sCity', myStore.city);
         set('sLocation', myStore.location);
         set('sBio', myStore.bio);
         set('sPhone', myStore.phone);
-        set('sOtherCat', myStore.customCategory);
+        selectedStoreCats.clear();
+        const cats = (Array.isArray(myStore.categories) && myStore.categories.length) ? myStore.categories : [myStore.category || 'other'];
+        cats.forEach(k => { if (MALL_CATEGORIES.find(c => c.key === k)) selectedStoreCats.add(k); });
+        (myStore.customCategory || '').split(',').map(s => s.trim()).filter(Boolean).forEach(c => selectedStoreCats.add('custom:' + c));
+        renderStoreCats();
         toggleOtherCat();
         togglePayout();
         renderStoreBranding();
@@ -475,12 +544,13 @@
         const city = document.getElementById('sCity').value.trim();
         const location = document.getElementById('sLocation').value.trim();
         const bio = document.getElementById('sBio').value.trim();
-        const category = document.getElementById('sCategory').value;
-        let customCategory = '';
-        if (category === 'other') {
-            customCategory = document.getElementById('sOtherCat').value.trim();
-            if (!customCategory) { showToast('Specify your store category.', 'error'); return; }
-        }
+        const selectedKeys = [...selectedStoreCats];
+        const builtinKeys = selectedKeys.filter(k => k.indexOf('custom:') !== 0);
+        const customLabels = selectedKeys.filter(k => k.indexOf('custom:') === 0).map(k => k.slice(7));
+        const category = builtinKeys[0] || 'other';
+        const categories = builtinKeys;
+        const customCategory = customLabels.join(', ');
+        if (!selectedStoreCats.size) { showToast('Choose at least one category.', 'error'); return; }
         if (!storeName) { showToast('Enter a store name.', 'error'); return; }
         if (!phone) { showToast('Enter a contact phone.', 'error'); return; }
         if (!city) { showToast('Enter your city / town.', 'error'); return; }
@@ -546,7 +616,9 @@
                 if (result.success) {
                     subaccountCode = result.subaccountCode;
                 } else {
-                    showToast('Payout setup: ' + (result.message || 'failed'), 'error');
+                    const reason = (result.details && result.details.message) || result.message || 'failed';
+                    console.error('Subaccount create failed:', result.details || result.message);
+                    showToast('Payout setup: ' + reason, 'error');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-save"></i> Save Store & Activate Payouts';
                     return;
@@ -601,6 +673,7 @@
             storeName: storeName,
             storeHandle: storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'store',
             category: category,
+            categories: categories,
             customCategory: customCategory,
             city: document.getElementById('sCity').value.trim(),
             location: location,
@@ -659,6 +732,7 @@
             reader.onload = (e) => {
                 pendingImages[index] = { file: file, url: e.target.result };
                 renderPicker();
+                setProductBtnDirty(true);
             };
             reader.readAsDataURL(file);
         };
@@ -668,6 +742,7 @@
     function clearSlot(index) {
         pendingImages[index] = null;
         renderPicker();
+        setProductBtnDirty(true);
     }
 
     // ===== STORE LOGO / BANNER =====
@@ -696,6 +771,7 @@
                 if (kind === 'logo') pendingLogo = { file: file, url: e.target.result };
                 else pendingBanner = { file: file, url: e.target.result };
                 renderStoreBranding();
+                setStoreBtnDirty(true);
             };
             reader.readAsDataURL(file);
         };
@@ -705,6 +781,7 @@
     function clearStoreImg(kind) {
         if (kind === 'logo') pendingLogo = null; else pendingBanner = null;
         renderStoreBranding();
+        setStoreBtnDirty(true);
     }
 
     async function uploadStoreImage(kind) {
@@ -722,14 +799,31 @@
     function toggleRegion(r) {
         if (selectedRegions.has(r)) selectedRegions.delete(r); else selectedRegions.add(r);
         renderRegionChips();
+        setProductBtnDirty(true);
     }
 
     document.getElementById('pPickup').addEventListener('change', () => {
         document.getElementById('pickupLocWrap').style.display = document.getElementById('pPickup').checked ? '' : 'none';
+        setProductBtnDirty(true);
     });
     document.getElementById('pDelivery').addEventListener('change', () => {
         document.getElementById('deliveryWrap').style.display = document.getElementById('pDelivery').checked ? '' : 'none';
+        setProductBtnDirty(true);
     });
+
+    ['pTitle', 'pPrice', 'pStock', 'pDesc', 'pPickupLoc', 'pDelFee'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.addEventListener('input', () => setProductBtnDirty(true)); el.addEventListener('change', () => setProductBtnDirty(true)); }
+    });
+
+    const storeDirtyFields = ['sName', 'sOtherCat', 'sCity', 'sLocation', 'sBio', 'sPhone', 'payoutType', 'momoNetwork', 'momoPhone', 'momoHolder', 'bankName', 'bankAccount', 'accountHolder'];
+    storeDirtyFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.addEventListener('input', () => setStoreBtnDirty(true)); el.addEventListener('change', () => setStoreBtnDirty(true)); }
+    });
+
+    setStoreBtnDirty(false);
+    setProductBtnDirty(false);
 
     async function saveProduct() {
         if (!currentUser) return;
@@ -815,15 +909,17 @@
     }
 
     function buildCategorySelects() {
-        const opts = MALL_CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
-        const sCat = document.getElementById('sCategory');
-        if (sCat) sCat.innerHTML = opts;
+        const pCat = document.getElementById('pCategory');
+        if (pCat) {
+            pCat.innerHTML = MALL_CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
+        }
     }
 
     renderPicker();
     renderRegionChips();
     buildCategorySelects();
     renderPCatChips();
+    renderStoreCats();
     </script>
 </body>
 </html>

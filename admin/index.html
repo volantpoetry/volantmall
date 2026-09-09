@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mall Admin — Volant Mall</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="../index.html">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Admin</span>
+            </a>
+            <div class="topbar-right">
+                <a class="btn btn-ghost btn-sm" href="../approvals.html"><i class="fas fa-clipboard-check"></i> Moderation</a>
+                <a class="btn btn-ghost btn-sm" href="../index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <div class="user-wrap" id="userBtnWrap">
+                    <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
+                    <div class="account-menu" id="accountMenu"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="section" id="gate" style="display:none;">
+            <div class="empty-state">
+                <i class="fas fa-shield-alt"></i>
+                <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Mall Admin</h2>
+                <p style="color:var(--ink-soft);margin-bottom:1.2rem;">Sign in with your moderator credentials to view the dashboard.</p>
+                <a class="btn btn-primary" href="admin-login.html?redirect=../admin/index.html"><i class="fas fa-sign-in-alt"></i> Moderator sign in</a>
+            </div>
+        </section>
+
+        <section class="section" id="denied" style="display:none;">
+            <div class="empty-state">
+                <i class="fas fa-lock"></i>
+                <h2 style="font-size:1.4rem;margin-bottom:0.4rem;">Moderators only</h2>
+                <p style="color:var(--ink-soft);">This area is reserved for Volant Mall moderators.</p>
+                <a class="btn btn-primary" href="admin-login.html?redirect=../admin/index.html"><i class="fas fa-sign-in-alt"></i> Moderator sign in</a>
+                <a class="btn btn-ghost" href="../index.html">Back to shop</a>
+            </div>
+        </section>
+
+        <section class="section" id="adminSec" style="display:none;">
+            <div class="section-head">
+                <h2>Mall overview</h2>
+                <div style="display:flex;gap:0.5rem;">
+                    <a class="btn btn-outline btn-sm" href="../approvals.html"><i class="fas fa-clipboard-check"></i> Review listings</a>
+                </div>
+            </div>
+
+            <div class="stat-row" id="statGrid" style="gap:0.9rem;">
+                <div class="stat"><div class="n" id="stPending">—</div><div class="l"><a class="s-link" href="../approvals.html" style="color:var(--primary);font-size:0.75rem;">Pending products →</a></div></div>
+                <div class="stat"><div class="n" id="stActive">—</div><div class="l">Active listings</div></div>
+                <div class="stat"><div class="n" id="stSellers">—</div><div class="l">Sellers</div></div>
+                <div class="stat"><div class="n" id="stOrders">—</div><div class="l">Total orders</div></div>
+                <div class="stat"><div class="n" id="stSales">—</div><div class="l">Gross sales</div></div>
+            </div>
+
+            <div class="order-card" style="box-shadow:none;border:1px solid var(--line);margin-bottom:1.2rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;flex-wrap:wrap;gap:0.5rem;">
+                    <div style="font-weight:700;">Waiting on moderation</div>
+                    <a href="../approvals.html" style="font-size:0.8rem;color:var(--primary);font-weight:600;">Open moderation page →</a>
+                </div>
+                <div id="pendingList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+            </div>
+
+            <div class="order-card" style="box-shadow:none;border:1px solid var(--line);">
+                <div style="font-weight:700;margin-bottom:0.6rem;">Recent orders</div>
+                <div id="ordersList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="site-footer">
+        <div class="foot-copy">© 2026 Volant Foundry · Mall Admin</div>
+    </footer>
+
+    <div id="toast"></div>
+
+    <script src="../app.js"></script>
+    <script>
+    let isAdmin = false;
+
+    function onAppAuthChange(user) {
+        if (user) { document.getElementById('gate').style.display = 'none'; checkAdmin(); }
+        else {
+            document.getElementById('gate').style.display = '';
+            document.getElementById('adminSec').style.display = 'none';
+            document.getElementById('denied').style.display = 'none';
+        }
+    }
+
+    async function checkAdmin() {
+        try {
+            const snap = await db.collection('admins').doc(currentUser.uid).get();
+            isAdmin = snap.exists;
+            if (isAdmin) {
+                document.getElementById('adminSec').style.display = '';
+                document.getElementById('denied').style.display = 'none';
+                loadStats();
+                loadPending();
+                loadOrders();
+            } else {
+                document.getElementById('adminSec').style.display = 'none';
+                document.getElementById('denied').style.display = '';
+            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById('denied').style.display = '';
+        }
+    }
+
+    async function loadStats() {
+        const el = (id) => document.getElementById(id);
+        try {
+            const [pendingSnap, activeSnap, sellersSnap] = await Promise.all([
+                db.collection('mall-products').where('status', '==', 'pending').get(),
+                db.collection('mall-products').where('status', '==', 'active').get(),
+                db.collection('mall-sellers').get()
+            ]);
+            el('stPending').textContent = pendingSnap.size;
+            el('stActive').textContent = activeSnap.size;
+            el('stSellers').textContent = sellersSnap.size;
+        } catch (e) {
+            console.error(e);
+            el('stPending').textContent = '—';
+            el('stActive').textContent = '—';
+            el('stSellers').textContent = '—';
+        }
+        try {
+            const ordersSnap = await db.collection('mall-orders').get();
+            let gross = 0;
+            ordersSnap.forEach(d => { const a = Number(d.data().amount) || 0; if (a > 0) gross += a; });
+            el('stOrders').textContent = ordersSnap.size;
+            el('stSales').textContent = formatGHS(gross);
+        } catch (e) {
+            console.error(e);
+            el('stOrders').textContent = '—';
+            el('stSales').textContent = '—';
+        }
+    }
+
+    async function loadPending() {
+        const list = document.getElementById('pendingList');
+        try {
+            const snap = await db.collection('mall-products').where('status', '==', 'pending').orderBy('createdAt', 'desc').limit(6).get();
+            if (snap.empty) {
+                list.innerHTML = `<div class="empty-state"><i class="fas fa-check-double"></i><p>Nothing waiting. All caught up!</p></div>`;
+                return;
+            }
+            const rows = [];
+            snap.forEach(d => { rows.push({ id: d.id, ...d.data() }); });
+            list.innerHTML = rows.map(p => `
+                <div class="mproduct" style="align-items:flex-start;">
+                    <div class="md-img">${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;font-size:1.2rem;"></i>`}</div>
+                    <div class="md-body" style="flex:1;">
+                        <div class="md-title">${escapeHtml(p.title)}</div>
+                        <div class="md-sub">${formatGHS(p.price)} · stock ${p.stock} · by ${escapeHtml(p.storeName || 'unknown store')}</div>
+                    </div>
+                    <div class="md-actions">
+                        <a class="btn btn-outline btn-sm" href="../details.html?id=${encodeURIComponent(p.id)}" target="_blank"><i class="fas fa-eye"></i></a>
+                        <button class="btn btn-primary btn-sm" onclick="decide('${p.id}', 'approve')"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="decide('${p.id}', 'reject')"><i class="fas fa-ban"></i></button>
+                    </div>
+                </div>`).join('');
+        } catch (err) {
+            console.error(err);
+            list.innerHTML = `<div class="empty-state"><p style="color:var(--ink-soft);font-size:0.85rem;">Could not load: ${escapeHtml(String(err.message || err))}</p></div>`;
+        }
+    }
+
+    async function decide(id, action) {
+        try {
+            const pSnap = await db.collection('mall-products').doc(id).get();
+            const p = pSnap.exists ? pSnap.data() : { title: 'Product' };
+            if (action === 'reject' && !confirm('Reject "' + (p.title || '') + '"? The seller will be notified.')) return;
+            await db.collection('mall-products').doc(id).update({
+                status: action === 'approve' ? 'active' : 'rejected',
+                reviewedBy: currentUser.uid,
+                reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await db.collection('notifications').add({
+                userId: p.ownerId || '_',
+                type: action === 'approve' ? 'product_approved' : 'product_rejected',
+                title: action === 'approve' ? 'Product approved ✅' : 'Product not approved',
+                body: '"' + (p.title || 'Your listing') + '" was ' + (action === 'approve' ? 'approved and is now live on your store.' : 'not approved by a moderator. Please check and fix it.'),
+                productId: id,
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(e => console.warn('Notify error:', e));
+            showToast(action === 'approve' ? 'Approved.' : 'Rejected.', 'success');
+            loadPending();
+            loadStats();
+        } catch (err) {
+            console.error(err);
+            showToast('Could not update: ' + String(err.message || err), 'error');
+        }
+    }
+
+    async function loadOrders() {
+        const list = document.getElementById('ordersList');
+        try {
+            const snap = await db.collection('mall-orders').orderBy('createdAt', 'desc').limit(8).get();
+            if (snap.empty) {
+                list.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>No orders yet.</p></div>`;
+                return;
+            }
+            const rows = [];
+            snap.forEach(d => { rows.push({ id: d.id, ...d.data() }); });
+            list.innerHTML = rows.map(o => `
+                <div class="mproduct" style="align-items:center;">
+                    <div style="flex:1;">
+                        <div class="md-title">#${escapeHtml(o.id)}</div>
+                        <div class="md-sub">${o.items && o.items.length ? o.items.map(i => escapeHtml(i.title || i.productTitle)).join(', ').slice(0, 80) : '—'} · ${o.status || 'unknown'}</div>
+                    </div>
+                    <div class="md-sub" style="white-space:nowrap;">
+                        <strong>${formatGHS(o.amount)}</strong>
+                        <div style="color:var(--ink-soft);font-size:0.75rem;">${new Date(o.createdAt && o.createdAt.toDate ? o.createdAt.toDate() : Date.now()).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                </div>`).join('');
+        } catch (err) {
+            console.error(err);
+            list.innerHTML = `<div class="empty-state"><p style="color:var(--ink-soft);font-size:0.85rem;">Could not load orders: ${escapeHtml(String(err.message || err))}</p></div>`;
+        }
+    }
+    </script>
+
+</body>
+</html>

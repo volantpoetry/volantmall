@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Moderator Login · Volant Mall</title>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(145deg, #f6f4fc 0%, #edebf5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 40px;
+      padding: 2.5rem 2.2rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow:
+        0 30px 60px -20px rgba(0,0,0,0.25),
+        0 8px 24px rgba(0,0,0,0.04),
+        inset 0 1px 0 rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.2s ease;
+    }
+
+    .platform-badge {
+      display: inline-block;
+      padding: 0.45rem 1.2rem;
+      border-radius: 60px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      background: #2b263b;
+      color: white;
+      margin-bottom: 1.2rem;
+      box-shadow: 0 4px 8px rgba(43, 38, 59, 0.15);
+    }
+    .platform-badge i { margin-right: 0.4rem; color: #f59e0b; }
+
+    h2 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #1d1a2b;
+      margin: 0.2rem 0 0.2rem;
+    }
+    .subtitle {
+      color: #6b677a;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      font-weight: 400;
+      border-left: 3px solid #f59e0b;
+      padding-left: 0.8rem;
+      background: rgba(245, 158, 11, 0.04);
+      border-radius: 0 4px 4px 0;
+    }
+
+    form label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #2b263b;
+      margin: 1.4rem 0 0.35rem;
+      letter-spacing: 0.2px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      border: 1.5px solid #e4e0ed;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      background: rgba(255,255,255,0.5);
+      backdrop-filter: blur(4px);
+      transition: 0.2s;
+      font-family: 'Inter', sans-serif;
+      color: #1d1a2b;
+      outline: none;
+    }
+    input:focus {
+      border-color: #4b2aad;
+      box-shadow: 0 0 0 4px rgba(75, 42, 173, 0.08);
+      background: white;
+    }
+    input::placeholder { color: #b2adc4; font-weight: 400; }
+
+    .password-wrapper { position: relative; width: 100%; }
+    .password-eye {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 1.1rem;
+      user-select: none;
+      color: #9a94af;
+      padding: 4px 6px;
+      border-radius: 30px;
+      transition: 0.15s;
+      line-height: 1;
+    }
+    .password-eye:hover { background: rgba(75, 42, 173, 0.06); color: #4b2aad; }
+    .password-eye.showing { color: #4b2aad; background: rgba(75, 42, 173, 0.08); }
+
+    .btn-primary {
+      width: 100%;
+      padding: 0.95rem;
+      margin-top: 1.8rem;
+      border: none;
+      border-radius: 40px;
+      background: #4b2aad;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 8px 18px rgba(75, 42, 173, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #3a1f85;
+      transform: scale(1.01);
+      box-shadow: 0 10px 24px rgba(75, 42, 173, 0.25);
+    }
+    .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; box-shadow: none; }
+
+    .status {
+      margin-top: 1.2rem;
+      padding: 0.8rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      display: none;
+      font-weight: 500;
+      background: #f5f3fa;
+      border: 1px solid transparent;
+    }
+    .status.show { display: block; }
+    .status.success { background: #eaf6ed; color: #1f6b44; border-color: #b7dfc9; }
+    .status.error { background: #fdeded; color: #b33c3c; border-color: #f5d0d0; }
+    .status.info { background: #e8edfd; color: #2a4a9e; border-color: #c8d4f5; }
+
+    .account-check {
+      background: rgba(245, 242, 252, 0.5);
+      padding: 1rem;
+      border-radius: 30px;
+      margin-top: 1.8rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .account-check a {
+      color: #4b2aad;
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1.5px dotted transparent;
+      transition: 0.1s;
+    }
+    .account-check a:hover { border-bottom-color: #4b2aad; }
+
+    .links { text-align: center; margin-top: 1.2rem; }
+    .links a {
+      color: #6b677a;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.15s;
+      border-bottom: 1px solid transparent;
+    }
+    .links a:hover { color: #4b2aad; border-bottom-color: #4b2aad; }
+
+    .spinner {
+      border: 2.5px solid rgba(255,255,255,0.2);
+      border-top: 2.5px solid white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    @media (max-width: 500px) {
+      .container { padding: 1.8rem 1.4rem; border-radius: 28px; }
+      h2 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="platform-badge"><i class="fas fa-shield-alt"></i>Volant Mall · Moderator</div>
+
+  <h2>Moderator login</h2>
+  <p class="subtitle">Sign in with your moderator credentials to review pending listings.</p>
+
+  <form id="admin-login-form">
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="Moderator username" autocomplete="username" required>
+
+    <label for="password">Password</label>
+    <div class="password-wrapper">
+      <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required>
+      <span id="toggle-password" class="password-eye"><i class="far fa-eye"></i></span>
+    </div>
+
+    <button type="submit" class="btn-primary" id="login-button">
+      <i class="fas fa-sign-in-alt"></i>
+      <span id="buttonText">Sign In</span>
+    </button>
+  </form>
+
+  <div id="login-status" class="status"></div>
+
+  <div class="account-check">
+    <span>Not a moderator? </span>
+    <a href="../index.html">Back to shop</a>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC4DHI8aBVY4JjTvJ-r-TGIDPsewtEWxzU",
+    authDomain: "silent-depth.firebaseapp.com",
+    projectId: "silent-depth",
+    storageBucket: "silent-depth.firebasestorage.app",
+    messagingSenderId: "78008755450",
+    appId: "1:78008755450:web:3fd0f0f298a08820935543",
+    measurementId: "G-WSWDCB7KD8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const form = document.getElementById('admin-login-form');
+  const loginButton = document.getElementById('login-button');
+  const buttonText = document.getElementById('buttonText');
+  const statusEl = document.getElementById('login-status');
+  const passwordInput = document.getElementById('password');
+  const togglePassword = document.getElementById('toggle-password');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectUrl = urlParams.get('redirect');
+  const defaultTarget = redirectUrl ? decodeURIComponent(redirectUrl) : '../approvals.html';
+
+  togglePassword.addEventListener('click', () => {
+    const showing = passwordInput.type === 'text';
+    passwordInput.type = showing ? 'password' : 'text';
+    togglePassword.classList.toggle('showing', !showing);
+    togglePassword.innerHTML = showing ? '<i class="far fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+  });
+
+  function showStatus(message, type = 'error') {
+    statusEl.textContent = message;
+    statusEl.className = `status show ${type}`;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = passwordInput.value.trim();
+
+    if (!username || !password) {
+      showStatus('Please enter your username and password.', 'error');
+      return;
+    }
+
+    loginButton.disabled = true;
+    buttonText.textContent = 'Signing in…';
+
+    try {
+      const q = query(collection(db, 'admins'), where('username', '==', username));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        showStatus('Username not found.', 'error');
+        loginButton.disabled = false;
+        buttonText.textContent = 'Sign In';
+        return;
+      }
+
+      const adminDoc = querySnapshot.docs[0].data();
+      const email = adminDoc.email;
+
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = defaultTarget;
+    } catch (err) {
+      console.error(err);
+      let message = 'Login failed. Please try again.';
+      const code = err.code || '';
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') message = 'Incorrect password.';
+      else if (code === 'auth/user-not-found') message = 'Moderator account not found.';
+      else if (code === 'auth/invalid-email') message = 'Invalid moderator account email.';
+      else if (err.message) message = err.message;
+      showStatus(message, 'error');
+      loginButton.disabled = false;
+      buttonText.textContent = 'Sign In';
+    }
+  });
+</script>
+
+</body>
+</html>

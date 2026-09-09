@@ -28,6 +28,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
                     <div class="account-menu" id="accountMenu"></div>
@@ -105,63 +106,205 @@
         else { document.getElementById('gate').style.display = ''; document.getElementById('ordersSec').style.display = 'none'; }
     }
 
-    const statusLabels = { processing: 'Processing', ready: 'Ready for pickup', shipped: 'Shipped', completed: 'Delivered', cancelled: 'Cancelled' };
-    const statusClasses = { processing: 'processing', ready: 'ready', shipped: 'shipped', completed: 'completed', cancelled: 'cancelled' };
+    const statusLabels = { paid: 'Paid', payment: 'Paid', processing: 'Processing', ready: 'Ready for pickup', shipped: 'Shipped', completed: 'Delivered', received: 'Received', cancelled: 'Cancelled' };
+    const statusClasses = { processing: 'processing', ready: 'ready', shipped: 'shipped', completed: 'completed', received: 'received', cancelled: 'cancelled' };
+    const AUTO_COMPLETE_DAYS = 6;
+    let ordersList = [];
+
+    function orderDeliveredAt(o) {
+        const t = (o.deliveredAt && o.deliveredAt.toDate) ? o.deliveredAt.toDate().getTime() : 0;
+        if (t) return t;
+        if (o.trace) {
+            const c = o.trace.find(x => x.status === 'completed');
+            if (c && c.at && c.at.toDate) return c.at.toDate().getTime();
+        }
+        return 0;
+    }
+
+    function daysLeft(o) {
+        const t = orderDeliveredAt(o);
+        if (!t) return 0;
+        return Math.max(0, AUTO_COMPLETE_DAYS - Math.floor((Date.now() - t) / (24 * 60 * 60 * 1000)));
+    }
+
+    async function buyAgain(orderId) {
+        const o = ordersList.find(x => x.id === orderId);
+        if (!o || !(o.items || []).length) return;
+        let added = 0;
+        const skip = [];
+        for (const it of o.items) {
+            try {
+                const snap = await db.collection('mall-products').doc(it.productId).get();
+                if (!snap.exists || snap.data().status === 'deleted' || (Number(snap.data().stock) || 0) <= 0) {
+                    skip.push(it.title || 'item');
+                    continue;
+                }
+                const p = snap.data();
+                let fulfillment = it.fulfillment === 'delivery' && p.delivery ? 'delivery' : (p.pickup ? 'pickup' : 'delivery');
+                if (fulfillment === 'delivery' && !p.delivery) fulfillment = 'pickup';
+                addToCart({
+                    id: it.productId,
+                    title: p.title || it.title,
+                    price: Number(p.price) || Number(it.price) || 0,
+                    currency: p.currency || 'GHS',
+                    ownerId: p.ownerId,
+                    storeName: p.storeName || o.sellerName || 'Store',
+                    subaccountCode: p.subaccountCode || '',
+                    category: p.category || 'other',
+                    images: p.images || (it.image ? [it.image] : []),
+                    stock: Number(p.stock) || 1,
+                    pickup: !!p.pickup,
+                    delivery: !!p.delivery,
+                    pickupLocation: p.pickupLocation || it.pickupLocation || '',
+                    deliveryFee: Number(p.deliveryFee) || 0,
+                    deliveryRegions: (Array.isArray(p.deliveryRegions) && p.deliveryRegions.length) ? p.deliveryRegions : null
+                }, Math.max(1, Number(it.qty) || 1), fulfillment);
+                added++;
+            } catch (e) {
+                console.warn('Buy again skip:', e);
+                skip.push(it.title || 'item');
+            }
+        }
+        if (!added) {
+            showToast('Those items are no longer available.', 'info');
+            return;
+        }
+        updateCartBadge();
+        const msg = skip.length ? added + ' item(s) added; no longer available: ' + skip.slice(0, 3).join(', ') : added + ' item(s) added to your cart.';
+        showToast(msg, added ? 'success' : 'info');
+        setTimeout(() => { window.location.href = 'index.html?buy=1'; }, 900);
+    }
+
+    async function sweepAutoComplete() {
+        const changed = [];
+        const cutoff = Date.now() - (AUTO_COMPLETE_DAYS * 24 * 60 * 60 * 1000);
+        ordersList.forEach(o => {
+            if (o.orderStatus !== 'completed') return;
+            const t = orderDeliveredAt(o);
+            if (t && t >= cutoff) return;
+            const trace = Array.isArray(o.trace) ? o.trace.slice() : [];
+            trace.push({ status: 'received', at: firebase.firestore.Timestamp.now(), note: 'Auto-completed (no response)' });
+            o.orderStatus = 'received';
+            o.trace = trace;
+            changed.push(o.id);
+        });
+        await Promise.all(changed.map(id => db.collection('mall-orders').doc(id).update({
+            orderStatus: 'received', trace: ordersList.find(x => x.id === id).trace, receivedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(e => console.warn('Auto-complete failed:', e))));
+    }
+
+    async function markReceived(id) {
+        const o = ordersList.find(x => x.id === id);
+        if (!o) return;
+        if (!confirm('Confirm you have received your order and everything is as expected?')) return;
+        try {
+            const trace = Array.isArray(o.trace) ? o.trace.slice() : [];
+            trace.push({ status: 'received', at: firebase.firestore.Timestamp.now(), note: 'Confirmed received by buyer' });
+            await db.collection('mall-orders').doc(id).update({ orderStatus: 'received', trace: trace, receivedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            db.collection('notifications').add({
+                userId: o.sellerId || '_',
+                type: 'order_received',
+                title: 'Order received 🎉',
+                body: (currentUser.displayName || 'The buyer') + ' confirmed receipt of order #' + String(o.ref || id).slice(0, 18) + '. Well done!',
+                orderId: id,
+                ref: o.paymentRef || o.ref || '',
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(e => console.warn('Seller notification failed:', e));
+            o.orderStatus = 'received';
+            o.trace = trace;
+            renderOrderList();
+            showToast('Thanks! Order marked as received.', 'success');
+        } catch (e) { console.error(e); showToast('Could not update status.', 'error'); }
+    }
 
     async function loadOrders() {
         try {
-            const snap = await db.collection('mall-orders')
+            db.collection('mall-orders')
                 .where('userId', '==', currentUser.uid)
                 .orderBy('purchasedAt', 'desc')
                 .limit(50)
-                .get();
-            const orders = [];
-            snap.forEach(doc => { const d = doc.data(); orders.push({ id: doc.id, ...d }); });
-
-            const list = document.getElementById('orderList');
-            if (!orders.length) {
-                list.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>No orders yet.</p><a class="btn btn-primary btn-sm" href="index.html">Start shopping</a></div>`;
-                return;
-            }
-
-            list.innerHTML = orders.map(o => `
-                <div class="order-card">
-                    <div class="order-head">
-                        <div>
-                            <div class="order-ref">#${escapeHtml(String(o.ref || o.id).slice(0, 18))}</div>
-                            <div class="order-date">${new Date(o.purchasedAt && o.purchasedAt.toDate ? o.purchasedAt.toDate() : Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · ${escapeHtml(o.sellerName || 'Store')}</div>
-                        </div>
-                        <span class="status-badge ${statusClasses[o.orderStatus] || 'processing'}">${statusLabels[o.orderStatus] || o.orderStatus}</span>
-                    </div>
-                    ${o.items.map(it => `
-                        <div class="order-item">
-                            <div class="oi-img">${it.image ? `<img src="${escapeHtml(it.image)}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;"></i>`}</div>
-                            <div style="flex:1;">
-                                <div style="font-weight:600;font-size:0.9rem;">${escapeHtml(it.title)}</div>
-                                <div style="font-size:0.78rem;color:var(--ink-soft);">${it.qty} × ${formatGHS(it.price)}${it.fulfillment === 'delivery' ? ' · + ' + formatGHS(it.deliveryFee) + ' delivery' : ' · pickup'}</div>
-                            </div>
-                            <strong>${formatGHS((it.price * it.qty) + (it.fulfillment === 'delivery' ? (it.deliveryFee || 0) : 0))}</strong>
-                        </div>`).join('')}
-                    <div class="order-meta">
-                        ${o.shipping ? `
-                            <span class="lab"><i class="fas fa-truck"></i> Delivered to</span>
-                            <span>${escapeHtml(o.shipping.name)} · ${escapeHtml(o.shipping.phone)}<br>${escapeHtml(o.shipping.address)}, ${escapeHtml(o.shipping.city)}, ${escapeHtml(o.shipping.region)}</span>` : ''}
-                        <span class="lab"><i class="fas fa-wallet"></i> Paid</span>
-                        <span><strong>${formatGHS(o.amount)}</strong> via Paystack</span>
-                    </div>
-                    ${(o.trace && o.trace.length) ? `
-                    <div class="order-trace">
-                        ${o.trace.map(t => `<div class="tr-step"><span class="tr-dot"></span><span class="tr-txt">${escapeHtml(statusLabels[t.status] || t.status)}</span><span class="tr-note">${escapeHtml(t.note || '')}</span></div>`).join('')}
-                    </div>` : ''}
-                </div>`).join('');
+                .onSnapshot(async (snap) => {
+                    ordersList = [];
+                    snap.forEach(doc => { const d = doc.data(); ordersList.push({ id: doc.id, ...d }); });
+                    await sweepAutoComplete();
+                    renderOrderList();
+                }, async (err) => {
+                    console.error('Orders realtime error:', err);
+                    if (String(err.message || '').includes('index')) {
+                        document.getElementById('orderList').innerHTML = `<div class="empty-state"><p>Your Firestore needs a composite index for mall-orders (userId + purchasedAt). Add it in the Firebase console.</p></div>`;
+                    }
+                });
         } catch (err) {
             console.error('Orders load error:', err);
-            if (String(err.message || '').includes('index')) {
-                document.getElementById('orderList').innerHTML = `<div class="empty-state"><p>Your Firestore needs a composite index for mall-orders (userId + purchasedAt). Add it in the Firebase console.</p></div>`;
-            } else {
-                document.getElementById('orderList').innerHTML = `<div class="empty-state"><p>Could not load orders.</p></div>`;
-            }
         }
+    }
+
+    function tidyTrace(trace) {
+        const out = [];
+        const seen = {};
+        trace.forEach(t => {
+            if (seen[t.status]) return;
+            seen[t.status] = true;
+            out.push(t);
+        });
+        return out;
+    }
+
+    function renderOrderList() {
+        const list = document.getElementById('orderList');
+        if (!ordersList.length) {
+            list.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>No orders yet.</p><a class="btn btn-primary btn-sm" href="index.html">Start shopping</a></div>`;
+            return;
+        }
+        list.innerHTML = ordersList.map(o => `
+            <div class="order-card">
+                <div class="order-head">
+                    <div>
+                        <div class="order-ref">#${escapeHtml(String(o.ref || o.id).slice(0, 18))}</div>
+                        <div class="order-date">${new Date(o.purchasedAt && o.purchasedAt.toDate ? o.purchasedAt.toDate() : Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · ${escapeHtml(o.sellerName || 'Store')}</div>
+                    </div>
+                    <span class="status-badge ${statusClasses[o.orderStatus] || 'processing'}">${statusLabels[o.orderStatus] || o.orderStatus}</span>
+                </div>
+                ${o.items.map(it => `
+                    <div class="order-item">
+                        <div class="oi-img">${it.image ? `<img src="${escapeHtml(it.image)}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;"></i>`}</div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600;font-size:0.9rem;">${escapeHtml(it.title)}</div>
+                            <div style="font-size:0.78rem;color:var(--ink-soft);">${it.qty} × ${formatGHS(it.price)}${it.fulfillment === 'delivery' ? ' · + ' + formatGHS(it.deliveryFee) + ' delivery' : ' · pickup'}</div>
+                        </div>
+                        <strong>${formatGHS((it.price * it.qty) + (it.fulfillment === 'delivery' ? (it.deliveryFee || 0) : 0))}</strong>
+                    </div>`).join('')}
+                <div class="order-meta">
+                    ${o.shipping ? `
+                    <div class="om-field">
+                        <span class="lab"><i class="fas fa-truck"></i> Delivered to</span>
+                        <span class="val"><span class="nm">${escapeHtml(o.shipping.name)}</span><span class="addr">${escapeHtml(o.shipping.address)}, ${escapeHtml(o.shipping.city)}, ${escapeHtml(o.shipping.region)}</span></span>
+                    </div>` : ''}
+                    <div class="om-field">
+                        <span class="lab"><i class="fas fa-wallet"></i> Paid</span>
+                        <span class="val"><strong>${formatGHS(o.amount)}</strong> <span style="color:var(--ink-soft);font-weight:400;">via Paystack</span></span>
+                    </div>
+                    ${o.trackingNumber ? `
+                    <div class="om-field">
+                        <span class="lab"><i class="fas fa-box"></i> Tracking</span>
+                        <span class="val"><strong>${escapeHtml(o.trackingNumber)}</strong></span>
+                    </div>` : ''}
+                </div>
+                ${o.orderStatus !== 'cancelled' ? `
+                    <div style="margin-top:0.7rem;">
+                        <button class="btn btn-outline btn-sm" onclick="buyAgain('${o.id}')"><i class="fas fa-redo"></i> Order again</button>
+                    </div>` : ''}
+                ${o.orderStatus === 'completed' ? `
+                    <div class="recv-cta">
+                        <div class="recv-left"><i class="fas fa-box"></i><div><strong>Delivered</strong><span>${daysLeft(o) > 0 ? 'Will auto-complete in ' + daysLeft(o) + ' day' + (daysLeft(o) === 1 ? '' : 's') + ' if not confirmed.' : 'Auto-completing soon — confirm now.'}</span></div></div>
+                        <button class="btn btn-primary btn-sm" onclick="markReceived('${o.id}')"><i class="fas fa-check-circle"></i> Mark as Received</button>
+                    </div>` : ''}
+                ${(o.trace && o.trace.length) ? `
+                <div class="order-trace">
+                    ${tidyTrace(o.trace).map(t => `<div class="tr-step tr-${escapeHtml(String(t.status))}"><span class="tr-dot"></span><span class="tr-txt">${escapeHtml(statusLabels[t.status] || t.status)}</span><span class="tr-note">${escapeHtml(t.note || '')}</span></div>`).join('')}
+                </div>` : ''}
+            </div>`).join('');
     }
     </script>
 </body>

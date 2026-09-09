@@ -29,6 +29,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html?add=1"><i class="fas fa-plus-circle"></i> List Product</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-store"></i> Storefront</a>
+                <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
                     <div class="account-menu" id="accountMenu"></div>
@@ -72,6 +73,7 @@
             <div class="tab-bar">
                 <button class="tab-btn active" id="tProducts" onclick="switchTab('products')"><i class="fas fa-box-open"></i> Products</button>
                 <button class="tab-btn" id="tOrders" onclick="switchTab('orders')"><i class="fas fa-shipping-fast"></i> Orders</button>
+                <button class="tab-btn" id="tReviews" onclick="switchTab('reviews')"><i class="fas fa-star"></i> Reviews</button>
                 <button class="tab-btn" id="tStore" onclick="switchTab('settings')"><i class="fas fa-store"></i> Store & Payouts</button>
             </div>
 
@@ -86,7 +88,20 @@
 
             <!-- ORDERS -->
             <div id="tabOrders" class="section" style="display:none;padding-top:0.5rem;">
+                <div class="section-head" style="flex-wrap:wrap;gap:0.6rem;margin-bottom:0.8rem;">
+                    <h2 style="font-size:1.15rem;margin:0;">Orders</h2>
+                    <button class="btn btn-outline btn-sm" onclick="exportOrdersCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
+                </div>
                 <div id="orderList"></div>
+            </div>
+
+            <!-- REVIEWS -->
+            <div id="tabReviews" class="section" style="display:none;padding-top:0.5rem;">
+                <div class="section-head" style="flex-wrap:wrap;gap:0.6rem;margin-bottom:0.8rem;">
+                    <h2 style="font-size:1.15rem;margin:0;">Product Reviews</h2>
+                    <span style="font-size:0.82rem;color:var(--ink-soft);" id="reviewsSummary"></span>
+                </div>
+                <div id="reviewsList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
             </div>
 
             <!-- SETTINGS -->
@@ -109,10 +124,17 @@
                     <input type="file" id="mFileInput" accept="image/*" style="display:none;">
                     <div class="brand-slot" id="mBannerSlot" onclick="pickManageImg('banner')"><i class="fas fa-image" style="margin-right:0.4rem;"></i> Tap or click "Change banner" to upload</div>
                     <div class="form-field"><label>Store Name</label><input id="sName" /></div>
-                    <div class="form-field"><label>Main Category</label><select id="sCategory" onchange="toggleMOtherCat()"></select></div>
+                    <div class="form-field">
+                        <label>Categories <span style="font-weight:400;font-size:0.72rem;color:var(--ink-soft);">(tap all that apply — the first you pick is your main category)</span></label>
+                        <div class="cat-chipgrid" id="mCatChips"></div>
+                    </div>
                     <div class="form-field" id="sOtherCatWrap" style="display:none;">
-                        <label>Specify Category</label>
-                        <input id="sOtherCat" placeholder="e.g. Antiques, Handmade crafts, Art..." maxlength="60" />
+                        <label>Other / add a custom category</label>
+                        <div style="display:flex;gap:0.5rem;">
+                            <input id="sOtherCat" placeholder="e.g. Antiques, Handmade crafts, Art..." maxlength="60" onkeydown="if(event.key==='Enter'){event.preventDefault();addOtherCat();}" />
+                            <button type="button" class="btn btn-primary btn-sm" style="white-space:nowrap;" onclick="addOtherCat()"><i class="fas fa-plus"></i> Add</button>
+                        </div>
+                        <p class="form-hint">Added categories become selectable chips shared with all sellers.</p>
                     </div>
                     <div class="form-row">
                         <div class="form-field"><label>City / Town</label><input id="sCity" /></div>
@@ -120,7 +142,17 @@
                     </div>
                     <div class="form-field"><label>Pickup / Shop Location</label><input id="sLocation" /><p class="form-hint" style="margin-top:0.2rem;">Not needed if your Main Category is Digital Products.</p></div>
                     <div class="form-field"><label>About your store</label><textarea id="sBio" rows="3"></textarea></div>
-                    <button class="btn btn-primary btn-block" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
+                    <div class="form-field">
+                        <label>Social Media <span style="font-weight:400;font-size:0.72rem;color:var(--ink-soft);">(optional — show on your store page)</span></label>
+                        <div class="social-form">
+                            <div class="social-field"><label><i class="fab fa-instagram"></i> Instagram</label><input id="sInstagram" placeholder="@username" maxlength="60"></div>
+                            <div class="social-field"><label><i class="fab fa-tiktok"></i> TikTok</label><input id="sTiktok" placeholder="@username" maxlength="60"></div>
+                            <div class="social-field"><label><i class="fab fa-x-twitter"></i> X / Twitter</label><input id="sTwitter" placeholder="@handle" maxlength="60"></div>
+                            <div class="social-field"><label><i class="fab fa-whatsapp"></i> WhatsApp</label><input id="sWhatsApp" placeholder="0244 000 000" maxlength="20"></div>
+                            <div class="social-field"><label><i class="fab fa-facebook"></i> Facebook</label><input id="sFacebook" placeholder="Page or profile URL" maxlength="200"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-block" id="saveSettingsBtn" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
                 </div>
 
                 <div class="form-card" style="margin-top:1.3rem;">
@@ -128,6 +160,52 @@
                     <p class="sub">Where your sales money settles.</p>
                     <div id="payoutCard" class="order-card" style="box-shadow:none;border:1px solid var(--line);">
                         <div class="spinner-wrap"><div class="spinner"></div></div>
+                    </div>
+                    <div id="payoutEditor" style="display:none;margin-top:1rem;">
+                        <div class="form-field">
+                            <label>Payout Type</label>
+                            <select id="peType" onchange="peToggle()">
+                                <option value="momo">Mobile Money</option>
+                                <option value="bank">Bank Account</option>
+                            </select>
+                        </div>
+                        <div id="pe-momo">
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label>Network</label>
+                                    <select id="peNetwork">
+                                        <option value="mtn">MTN</option>
+                                        <option value="vodafone">Telecel</option>
+                                        <option value="tigo">AT (AirtelTigo)</option>
+                                    </select>
+                                </div>
+                                <div class="form-field">
+                                    <label>MoMo Number</label>
+                                    <input id="pePhone" placeholder="0244 000 000" maxlength="15" />
+                                </div>
+                            </div>
+                        </div>
+                        <div id="pe-bank" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label>Bank</label>
+                                    <select id="peBank"></select>
+                                </div>
+                                <div class="form-field">
+                                    <label>Account Number</label>
+                                    <input id="peAcct" placeholder="Account number" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label>Account Holder Name</label>
+                            <input id="peHolder" placeholder="Name on the account" maxlength="60" />
+                        </div>
+                        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+                            <button class="btn btn-primary" onclick="savePayoutInline()"><i class="fas fa-save"></i> Save payout</button>
+                            <button class="btn btn-ghost" onclick="closePayoutEditor()">Cancel</button>
+                        </div>
+                        <p class="form-hint" style="margin-top:0.6rem;">Paystack 10% commission is deducted (bearer: account). Updated details apply to future sales.</p>
                     </div>
                     <p class="form-hint">Payouts are processed automatically by Paystack after each sale (bearer: account — Paystack 10% commission is deducted for the platform).</p>
                 </div>
@@ -207,7 +285,7 @@
     let editingCats = [];
 
     function onAppAuthChange(user) {
-        if (user) { document.getElementById('gate').style.display = 'none'; document.getElementById('dash').style.display = ''; loadDashboard(); }
+        if (user) { document.getElementById('gate').style.display = 'none'; document.getElementById('dash').style.display = ''; restoreTab(); loadDashboard(); }
         else { document.getElementById('gate').style.display = ''; document.getElementById('dash').style.display = 'none'; }
     }
 
@@ -228,35 +306,42 @@
                 if (bar) bar.style.display = admSnap.exists ? '' : 'none';
             }).catch(() => {});
 
-            const [prodSnap, ordSnap] = await Promise.all([
-                db.collection('mall-products').where('ownerId', '==', uid).orderBy('createdAt', 'desc').get(),
-                db.collection('mall-orders').where('sellerId', '==', uid).orderBy('purchasedAt', 'desc').limit(50).get()
-            ]);
+            sharedStoreCats = await loadSharedCustomCats();
 
-            myProducts = [];
-            prodSnap.forEach(doc => { const d = doc.data(); myProducts.push({ id: doc.id, ...d }); });
-            myOrders = [];
-            ordSnap.forEach(doc => { const d = doc.data(); myOrders.push({ id: doc.id, ...d }); });
+            db.collection('mall-products').where('ownerId', '==', uid).orderBy('createdAt', 'desc')
+                .onSnapshot(snap => {
+                    myProducts = [];
+                    snap.forEach(doc => { const d = doc.data(); myProducts.push({ id: doc.id, ...d }); });
+                    renderStats();
+                    renderProducts();
+                }, err => console.error('Products realtime error:', err));
 
-            renderStats();
-            renderProducts();
-            renderOrders();
+            db.collection('mall-orders').where('sellerId', '==', uid).orderBy('purchasedAt', 'desc').limit(50)
+                .onSnapshot(async snap => {
+                    myOrders = [];
+                    snap.forEach(doc => { const d = doc.data(); myOrders.push({ id: doc.id, ...d }); });
+                    await sweepAutoComplete();
+                    renderStats();
+                    renderOrders();
+                }, err => {
+                    console.error('Orders realtime error:', err);
+                    if (String(err.message || '').includes('requires an index') || String(err.message || '').includes('index')) {
+                        document.getElementById('dash').innerHTML = `<div class="empty-state"><p>Your Firestore needs an index for mall orders. Open Firebase Console → Firestore → Indexes and add it.</p></div>`;
+                    }
+                });
+
             fillSettings();
             renderPayout();
             buildCategorySelects();
         } catch (err) {
             console.error('Dashboard load error:', err);
-            if (String(err.message || '').includes('requires an index')) {
-                document.getElementById('dash').innerHTML = `<div class="empty-state"><p>Your Firestore needs an index for mall orders. Open Firebase Console → Firestore → Indexes and add it.</p></div>`;
-            } else {
-                document.getElementById('dash').innerHTML = `<div class="empty-state"><p>Could not load dashboard.</p></div>`;
-            }
+            document.getElementById('dash').innerHTML = `<div class="empty-state"><p>Could not load dashboard.</p></div>`;
         }
     }
 
     function renderStats() {
         const activeCount = myProducts.filter(p => p.status !== 'deleted').length;
-        const released = myOrders.filter(o => o.orderStatus === 'completed');
+        const released = myOrders.filter(o => o.orderStatus === 'completed' || o.orderStatus === 'received');
         const earnings = released.reduce((s, o) => s + (Number(o.amount) || 0), 0);
         const pending = myOrders.filter(o => o.orderStatus === 'processing').length;
         document.getElementById('statsRow').innerHTML = `
@@ -281,6 +366,7 @@
         }
         list.innerHTML = live.map(p => {
             const stockOut = p.status === 'stockout' || p.stock <= 0;
+            const lowStock = !stockOut && p.stock > 0 && p.stock <= 5;
             const pending = p.status === 'pending' || p.status === 'rejected';
             const statusBadge = pending
                 ? `<span class="status-badge ${p.status === 'rejected' ? 'cancelled' : 'processing'}">${p.status === 'rejected' ? 'Rejected' : 'Pending review'}</span>`
@@ -293,9 +379,9 @@
             <div class="mproduct">
                 <div class="md-img">${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;font-size:1.2rem;"></i>`}</div>
                 <div class="md-body">
-                    <div class="md-title">${escapeHtml(p.title)}</div>
+                    <div class="md-title">${escapeHtml(p.title)} ${lowStock ? `<span class="low-stock-flag" title="Only ${p.stock} left">Low stock</span>` : ''}</div>
                     <div class="md-sub">${escapeHtml(pCats)}${p.customCategory ? ' · ' + escapeHtml(p.customCategory) : ''} · ${formatGHS(p.price)} · ${p.stock} left · ${p.saleCount || 0} sold ${statusBadge}</div>
-                    <div class="md-sub">${p.delivery ? '<i class="fas fa-truck"></i> Delivery ' + formatGHS(p.deliveryFee) : ''}${p.delivery && p.pickup ? ' · ' : ''}${p.pickup ? '<i class="fas fa-walking"></i> Pickup' : ''}${pending ? '<br><span style="color:var(--ink-soft);font-size:0.78rem;">New listings are checked by moderators before going live.</span>' : ''}</div>
+                    <div class="md-sub">${p.views ? '<i class="fas fa-eye"></i> ' + p.views + ' views' : ''} ${p.delivery ? '<i class="fas fa-truck"></i> Delivery ' + formatGHS(p.deliveryFee) : ''}${p.delivery && p.pickup ? ' · ' : ''}${p.pickup ? '<i class="fas fa-walking"></i> Pickup' : ''}${pending ? '<br><span style="color:var(--ink-soft);font-size:0.78rem;">New listings are checked by moderators before going live.</span>' : ''}</div>
                 </div>
                 <div class="md-actions">
                     ${stockToggle}
@@ -385,7 +471,48 @@
     }
 
     const ALL_STATUSES = ['processing', 'ready', 'shipped', 'completed', 'cancelled'];
-    const STATUS_LABELS = { processing: 'Processing', ready: 'Ready for pickup', shipped: 'Shipped', completed: 'Delivered', cancelled: 'Cancelled' };
+    const STATUS_LABELS = { paid: 'Paid', payment: 'Paid', processing: 'Processing', ready: 'Ready for pickup', shipped: 'Shipped', completed: 'Delivered', received: 'Received', cancelled: 'Cancelled' };
+    const AUTO_COMPLETE_DAYS = 6;
+
+    async function sweepAutoComplete() {
+        const changed = [];
+        const cutoff = Date.now() - (AUTO_COMPLETE_DAYS * 24 * 60 * 60 * 1000);
+        myOrders.forEach(o => {
+            if (o.orderStatus !== 'completed') return;
+            const t = (o.deliveredAt && o.deliveredAt.toDate) ? o.deliveredAt.toDate().getTime() : 0;
+            const c = !t && o.trace ? o.trace.find(x => x.status === 'completed') : null;
+            const ctime = c && c.at && c.at.toDate ? c.at.toDate().getTime() : 0;
+            const dt = t || ctime;
+            if (dt && dt >= cutoff) return;
+            const trace = Array.isArray(o.trace) ? o.trace.slice() : [];
+            trace.push({ status: 'received', at: firebase.firestore.Timestamp.now(), note: 'Auto-completed (no response)' });
+            o.orderStatus = 'received';
+            o.trace = trace;
+            changed.push(o.id);
+        });
+        await Promise.all(changed.map(id => db.collection('mall-orders').doc(id).update({
+            orderStatus: 'received', trace: myOrders.find(x => x.id === id).trace, receivedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(e => console.warn('Auto-complete failed:', e))));
+    }
+
+    function phoneLinks(number) {
+        const clean = String(number || '').replace(/[^0-9+]/g, '');
+        if (!clean) return '<span class="muted">—</span>';
+        return `<a href="tel:${clean}" class="ph-link" title="Call ${escapeHtml(clean)}"><i class="fas fa-phone"></i></a>` +
+            `<a href="https://wa.me/${clean.replace(/^\+/, '')}" target="_blank" rel="noopener" class="ph-link" title="WhatsApp ${escapeHtml(clean)}"><i class="fab fa-whatsapp"></i></a>` +
+            ` <a class="ph-num" href="tel:${clean}">${escapeHtml(String(number))}</a>`;
+    }
+
+    function tidyTrace(trace) {
+        const out = [];
+        const seen = {};
+        trace.forEach(t => {
+            if (seen[t.status]) return;
+            seen[t.status] = true;
+            out.push(t);
+        });
+        return out;
+    }
 
     function renderOrders() {
         const list = document.getElementById('orderList');
@@ -400,9 +527,11 @@
                         <div class="order-ref">#${escapeHtml(String(o.ref || o.id).slice(0, 18))}</div>
                         <div class="order-date">${new Date(o.purchasedAt && o.purchasedAt.toDate ? o.purchasedAt.toDate() : Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                     </div>
+                    ${o.orderStatus === 'received' ? `
+                        <span class="status-badge received">Received</span>` : `
                     <select class="status-badge" onchange="setOrderStatus('${o.id}', this.value)" style="border:1px solid var(--line);padding:0.3rem 0.7rem;border-radius:30px;font-size:0.78rem;font-weight:600;">
                         ${ALL_STATUSES.map(s => `<option value="${s}" ${o.orderStatus === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}
-                    </select>
+                    </select>`}
                 </div>
                 ${o.items.map(it => `
                     <div class="order-item">
@@ -414,15 +543,32 @@
                         <strong>${formatGHS((it.price * it.qty) + (it.fulfillment === 'delivery' ? (it.deliveryFee || 0) : 0))}</strong>
                     </div>`).join('')}
                 <div class="order-meta">
-                    <span class="lab">Buyer contact</span><span>${escapeHtml(o.userPhone || '—')}</span>
-                    ${o.shipping ? `
-                        <span class="lab">Deliver to</span><span>${escapeHtml(o.shipping.name)} · ${escapeHtml(o.shipping.phone)}<br>${escapeHtml(o.shipping.address)}, ${escapeHtml(o.shipping.city)}, ${escapeHtml(o.shipping.region)}</span>` : ''}
-                    ${o.items && o.items.some(x => x.fulfillment === 'pickup') ? `<span class="lab">Pickup</span><span>${escapeHtml((o.items.find(x => x.fulfillment === 'pickup') || {}).pickupLocation || 'Arrange with buyer')}</span>` : ''}
-                    <span class="lab">Total</span><span><strong>${formatGHS(o.amount)}</strong></span>
+                    <div class="om-field">
+                        <span class="lab">Buyer contact</span>
+                        <span class="val">${phoneLinks(o.userPhone)}</span>
                     </div>
+                    ${o.shipping ? `
+                    <div class="om-field">
+                        <span class="lab">Deliver to</span>
+                        <span class="val"><span class="nm">${escapeHtml(o.shipping.name)}</span>${phoneLinks(o.shipping.phone)}<span class="addr">${escapeHtml(o.shipping.address)}, ${escapeHtml(o.shipping.city)}, ${escapeHtml(o.shipping.region)}</span></span>
+                    </div>` : ''}
+                    ${o.items && o.items.some(x => x.fulfillment === 'pickup') ? `
+                    <div class="om-field">
+                        <span class="lab">Pickup</span>
+                        <span class="val">${escapeHtml((o.items.find(x => x.fulfillment === 'pickup') || {}).pickupLocation || 'Arrange with buyer')}</span>
+                    </div>` : ''}
+                    <div class="om-field">
+                        <span class="lab">Total</span>
+                        <span class="val"><strong>${formatGHS(o.amount)}</strong></span>
+                    </div>
+                    <div class="om-field">
+                        <span class="lab">Tracking #</span>
+                        <span class="val">${o.trackingNumber ? `<span class="tracking-val">${escapeHtml(o.trackingNumber)}</span> ` : '<span style="color:var(--ink-soft);">Not set</span>'}${o.orderStatus === 'shipped' || o.orderStatus === 'completed' ? `<button class="mini-btn" title="Set tracking number" onclick="setTracking('${o.id}')"><i class="fas fa-box"></i></button>` : ''}</span>
+                    </div>
+                </div>
                     ${(o.trace && o.trace.length) ? `
                     <div class="order-trace">
-                        ${o.trace.map(t => `<div class="tr-step"><span class="tr-dot"></span><span class="tr-txt">${escapeHtml(STATUS_LABELS[t.status] || t.status)}</span><span class="tr-note">${escapeHtml(t.note || '')}</span></div>`).join('')}
+                        ${tidyTrace(o.trace).map(t => `<div class="tr-step tr-${escapeHtml(String(t.status))}"><span class="tr-dot"></span><span class="tr-txt">${escapeHtml(STATUS_LABELS[t.status] || t.status)}</span><span class="tr-note">${escapeHtml(t.note || '')}</span></div>`).join('')}
                     </div>` : ''}
                 </div>`).join('');
     }
@@ -433,7 +579,12 @@
         try {
             const trace = Array.isArray(o.trace) ? o.trace.slice() : [];
             trace.push({ status: status, at: firebase.firestore.Timestamp.now(), note: 'Updated by seller' });
-            await db.collection('mall-orders').doc(id).update({ orderStatus: status, trace: trace, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await db.collection('mall-orders').doc(id).update({
+                orderStatus: status,
+                trace: trace,
+                deliveredAt: status === 'completed' ? firebase.firestore.FieldValue.serverTimestamp() : firebase.firestore.FieldValue.delete(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
             o.orderStatus = status;
             o.trace = trace;
             renderStats();
@@ -453,26 +604,244 @@
         } catch (e) { console.error(e); showToast('Update failed.', 'error'); }
     }
 
+    let sellerReviews = [];
+
+    async function setTracking(id) {
+        const o = myOrders.find(x => x.id === id);
+        if (!o) return;
+        const val = prompt('Parcel tracking / reference number:', o.trackingNumber || '');
+        if (val === null) return;
+        const track = val.trim();
+        try {
+            await db.collection('mall-orders').doc(id).update({
+                trackingNumber: track,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            o.trackingNumber = track;
+            db.collection('notifications').add({
+                userId: o.userId || '_',
+                type: 'order_status',
+                title: track ? 'Your parcel is on the way 🚚' : 'Tracking updated',
+                body: track
+                    ? 'Tracking for order #' + String(o.ref || id).slice(0, 18) + ': ' + track
+                    : 'Your order #' + String(o.ref || id).slice(0, 18) + ' has an updated tracking status.',
+                orderId: id,
+                ref: o.paymentRef || o.ref || '',
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(e => console.warn('Tracking notify failed:', e));
+            showToast(track ? 'Tracking added — buyer notified.' : 'Tracking cleared.', 'success');
+            renderOrders();
+        } catch (e) { console.error(e); showToast('Could not save tracking.', 'error'); }
+    }
+
+    function exportOrdersCSV() {
+        if (!myOrders.length) { showToast('No orders to export.', 'info'); return; }
+        const esc = (v) => {
+            const s = String(v == null ? '' : v);
+            return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        };
+        const headers = ['Order ID', 'Ref', 'Date', 'Status', 'Buyer Phone', 'Name', 'City', 'Region', 'Items', 'Amount (GHS)', 'Tracking'];
+        const rows = myOrders.map(o => {
+            const when = o.purchasedAt && o.purchasedAt.toDate ? o.purchasedAt.toDate() : (o.createdAt && o.createdAt.toDate ? o.createdAt.toDate() : new Date());
+            const items = (o.items || []).map(it => (it.title || '') + ' x' + (it.qty || 1)).join('; ');
+            const ship = o.shipping || {};
+            return [o.id, (o.ref || ''), when.toISOString(), o.orderStatus || '', o.userPhone || ship.phone || '', ship.name || '', ship.city || '', ship.region || '', items, (Number(o.amount) || 0).toFixed(2), o.trackingNumber || ''];
+        });
+        const csv = '\uFEFF' + [headers, ...rows].map(r => r.map(esc).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'volant-mall-orders-' + new Date().toISOString().slice(0, 10) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+        showToast('Orders exported.', 'success');
+    }
+
+    async function renderReviewsTab() {
+        const list = document.getElementById('reviewsList');
+        const summary = document.getElementById('reviewsSummary');
+        if (!list) return;
+        if (!currentUser) { list.innerHTML = ''; return; }
+        try {
+            const snap = await db.collection('mall-reviews').where('sellerId', '==', currentUser.uid).get();
+            sellerReviews = [];
+            snap.forEach(doc => { const d = doc.data(); sellerReviews.push({ id: doc.id, ...d }); });
+            sellerReviews.sort((a, b) => tsFn(b.createdAt) - tsFn(a.createdAt));
+            const avg = sellerReviews.length ? sellerReviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / sellerReviews.length : 0;
+            summary.textContent = sellerReviews.length
+                ? avg.toFixed(1) + ' avg · ' + sellerReviews.length + (sellerReviews.length === 1 ? ' review' : ' reviews')
+                : '';
+            if (!sellerReviews.length) {
+                list.innerHTML = `<div class="empty-state"><i class="fas fa-star"></i><p>No reviews yet. Buyers can review after their order is delivered.</p></div>`;
+                return;
+            }
+            list.innerHTML = sellerReviews.map(r => {
+                const prod = myProducts.find(p => p.id === r.productId);
+                return `
+                <div class="mproduct" style="align-items:flex-start;">
+                    <div class="md-body" style="flex:1;">
+                        <div class="md-sub">${escapeHtml(prod ? prod.title : 'Product')}</div>
+                        <div class="md-title" style="font-weight:700;">${starsInline(r.rating)} <span style="font-size:0.82rem;color:var(--ink-soft);">${escapeHtml(r.userName || r.userEmail || 'Buyer')}${r.verified ? ' · <span style="color:#1f8a4c;"><i class="fas fa-check-circle"></i> verified buyer</span>' : ''}</span></div>
+                        ${r.comment ? `<div class="rc-comment" style="margin-top:0.3rem;font-size:0.85rem;">${escapeHtml(r.comment)}</div>` : ''}
+                        ${r.reply ? `<div class="seller-reply"><div class="sr-name"><i class="fas fa-store"></i> ${escapeHtml((r.replyAuthor || 'You'))}</div>${escapeHtml(r.reply)}</div>` : ''}
+                        <div style="margin-top:0.5rem;">
+                            <button class="btn btn-outline btn-sm" onclick="toggleReplyBox('${r.id}')"><i class="fas fa-reply"></i> ${r.reply ? 'Edit reply' : 'Reply'}</button>
+                            <div id="replyBox_${r.id}" style="display:none;margin-top:0.6rem;">
+                                <textarea id="replyTxt_${r.id}" rows="2" style="width:100%;padding:0.6rem 0.8rem;border:1.5px solid var(--line);border-radius:12px;resize:vertical;font-size:0.85rem;" placeholder="Thank them, address feedback, offer support...">${r.reply ? escapeHtml(r.reply) : ''}</textarea>
+                                <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="saveReviewReply('${r.id}')"><i class="fas fa-paper-plane"></i> Save reply</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md-sub" style="white-space:nowrap;">${new Date(tsFn(r.createdAt)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            console.error(err);
+            list.innerHTML = `<div class="empty-state"><p>Could not load reviews: ${escapeHtml(String(err.message || err))}</p></div>`;
+        }
+    }
+
+    function tsFn(t) {
+        return t ? (t.toMillis ? t.toMillis() : (t.seconds ? t.seconds * 1000 : 0)) : 0;
+    }
+
+    function starsInline(rating) {
+        const full = Math.round(Number(rating) || 0) || 0;
+        let s = '';
+        for (let i = 1; i <= 5; i++) s += `<span class="${i <= full ? '' : 'off'}">★</span>`;
+        return `<span class="stars">${s}</span>`;
+    }
+
+    function toggleReplyBox(id) {
+        const box = document.getElementById('replyBox_' + id);
+        if (box) box.style.display = box.style.display === 'none' ? '' : 'none';
+    }
+
+    async function saveReviewReply(id) {
+        const txtEl = document.getElementById('replyTxt_' + id);
+        const text = (txtEl ? txtEl.value : '').trim();
+        const rv = sellerReviews.find(x => x.id === id);
+        try {
+            await db.collection('mall-reviews').doc(id).update({
+                reply: text,
+                replyAuthor: (myStore && myStore.storeName) || 'Seller',
+                replyAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            if (rv) { rv.reply = text; rv.replyAuthor = (myStore && myStore.storeName) || 'Seller'; }
+            showToast('Reply saved ✓', 'success');
+            renderReviewsTab();
+        } catch (e) {
+            console.error(e);
+            showToast('Could not save reply.', 'error');
+        }
+    }
+
     function switchTab(tab) {
-        const idMap = { products: 'tProducts', orders: 'tOrders', settings: 'tStore' };
+        const idMap = { products: 'tProducts', orders: 'tOrders', reviews: 'tReviews', settings: 'tStore' };
         Object.keys(idMap).forEach(key => document.getElementById(idMap[key]).classList.toggle('active', key === tab));
         document.getElementById('tabProducts').style.display = tab === 'products' ? '' : 'none';
         document.getElementById('tabOrders').style.display = tab === 'orders' ? '' : 'none';
+        document.getElementById('tabReviews').style.display = tab === 'reviews' ? '' : 'none';
         document.getElementById('tabSettings').style.display = tab === 'settings' ? '' : 'none';
+        if (tab === 'reviews') renderReviewsTab();
+        try { localStorage.setItem('mallManageTab', tab); } catch (e) {}
+    }
+
+    const settingsFields = ['sName', 'sOtherCat', 'sCity', 'sPhone', 'sLocation', 'sBio', 'sInstagram', 'sTiktok', 'sTwitter', 'sWhatsApp', 'sFacebook'];
+
+    const selectedStoreCats = new Set();
+    let sharedStoreCats = [];
+
+    function renderStoreCats() {
+        const grid = document.getElementById('mCatChips');
+        if (!grid) return;
+        const sharedChips = sharedStoreCats.map(c => ({ key: 'custom:' + c, label: c, custom: true }));
+        const selectedCustoms = [...selectedStoreCats].filter(k => k.indexOf('custom:') === 0 && !sharedStoreCats.includes(k.slice(7)))
+            .map(k => ({ key: k, label: k.slice(7), custom: true }));
+        const allCats = [...MALL_CATEGORIES, ...sharedChips, ...selectedCustoms];
+        grid.innerHTML = allCats.map(c => `
+            <button type="button" class="cat-chip ${selectedStoreCats.has(c.key) ? 'active' : ''}" data-key="${c.key}" onclick="toggleStoreCat(this)">
+                ${c.label}${selectedStoreCats.has(c.key) && [...selectedStoreCats][0] === c.key ? '<small style="display:block;font-size:0.6rem;opacity:0.8;font-weight:400;">★ Main</small>' : ''}
+                ${c.custom ? '<small class="chip-shared">shared</small>' : ''}
+            </button>
+        `).join('');
+    }
+
+    function toggleStoreCat(btn) {
+        const key = btn.getAttribute('data-key');
+        if (selectedStoreCats.has(key)) selectedStoreCats.delete(key);
+        else selectedStoreCats.add(key);
+        renderStoreCats();
+        toggleMOtherCat();
+        setSettingsDirty(true);
+    }
+
+    async function addOtherCat() {
+        const input = document.getElementById('sOtherCat');
+        const raw = (input.value || '').trim();
+        if (!raw) { showToast('Type a category name first.', 'info'); return; }
+        const label = titleCaseCat(raw);
+        if (MALL_CATEGORIES.some(c => c.label.toLowerCase() === label.toLowerCase())) { showToast('That is already a built-in category.', 'info'); return; }
+        if (selectedStoreCats.has('custom:' + label)) { showToast('Already added.', 'info'); return; }
+        selectedStoreCats.add('custom:' + label);
+        if (!sharedStoreCats.includes(label)) {
+            sharedStoreCats.push(label);
+            await addSharedCustomCat(label);
+        }
+        input.value = '';
+        renderStoreCats();
+        toggleMOtherCat();
+        setSettingsDirty(true);
+        showToast(label + ' added and shared with all sellers.', 'success');
+    }
+
+    function setSettingsDirty(dirty) {
+        const btn = document.getElementById('saveSettingsBtn');
+        if (!btn) return;
+        btn.disabled = !dirty;
+    }
+
+    function bindSettingsDirty() {
+        settingsFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', () => setSettingsDirty(true));
+                el.addEventListener('change', () => setSettingsDirty(true));
+            }
+        });
+    }
+
+    function restoreTab() {
+        let tab = 'products';
+        try { const saved = localStorage.getItem('mallManageTab'); if (saved && ['products', 'orders', 'reviews', 'settings'].indexOf(saved) > -1) tab = saved; } catch (e) {}
+        switchTab(tab);
     }
 
     function fillSettings() {
         if (!myStore) return;
         const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
         set('sName', myStore.storeName);
-        set('sCategory', myStore.category || 'other');
-        set('sOtherCat', myStore.customCategory);
         set('sCity', myStore.city);
         set('sPhone', myStore.phone);
         set('sLocation', myStore.location);
         set('sBio', myStore.bio);
+        const s = myStore.socials || {};
+        set('sInstagram', s.instagram);
+        set('sTiktok', s.tiktok);
+        set('sTwitter', s.twitter);
+        set('sWhatsApp', s.whatsapp);
+        set('sFacebook', s.facebook);
+        selectedStoreCats.clear();
+        const cats = (Array.isArray(myStore.categories) && myStore.categories.length) ? myStore.categories : [myStore.category || 'other'];
+        cats.forEach(k => { if (MALL_CATEGORIES.find(c => c.key === k)) selectedStoreCats.add(k); });
+        (myStore.customCategory || '').split(',').map(s => s.trim()).filter(Boolean).forEach(c => selectedStoreCats.add('custom:' + c));
+        renderStoreCats();
         toggleMOtherCat();
         renderManageBranding();
+        bindSettingsDirty();
+        setSettingsDirty(false);
     }
 
     let pendingMImg = { logo: null, banner: null };
@@ -497,6 +866,7 @@
     function markRemoveImg(kind) {
         pendingMImg[kind] = { remove: true };
         renderManageBranding();
+        setSettingsDirty(true);
     }
 
     function pickManageImg(kind) {
@@ -511,10 +881,154 @@
             reader.onload = (e) => {
                 pendingMImg[kind] = { file: file, url: e.target.result };
                 renderManageBranding();
+                setSettingsDirty(true);
             };
             reader.readAsDataURL(file);
         };
         input.click();
+    }
+
+    function bankList() {
+        const list = [
+            ['gcb', 'GCB Bank'], ['ecobank', 'Ecobank Ghana'], ['standard chartered', 'Standard Chartered'],
+            ['absa', 'ABSA Bank'], ['republic', 'Republic Bank'], ['fidelity', 'Fidelity Bank'],
+            ['first atlantic', 'First Atlantic Bank'], ['access', 'Access Bank'], ['zenith', 'Zenith Bank'],
+            ['uba', 'UBA Ghana'], ['gtbank', 'GTBank'], ['stanbic', 'Stanbic Bank'],
+            ['prudential', 'Prudential Bank'], ['fbn', 'FBN Bank'], ['bank of africa', 'Bank of Africa']
+        ];
+        return '<option value="">Select your bank</option>' + list.map(([v, label]) => `<option value="${v}">${label}</option>`).join('');
+    }
+
+    function getBankCode(bankName) {
+        if (!bankName) return '';
+        const map = {
+            'GCB Bank': '000013', 'Ecobank Ghana': '000031', 'Standard Chartered': '000037',
+            'ABSA Bank': '030100', 'Republic Bank': '000068', 'Fidelity Bank': '000061',
+            'First Atlantic Bank': '000001', 'Access Bank': '032197', 'Zenith Bank': '000015',
+            'UBA Ghana': '000163', 'GTBank': '000026', 'Stanbic Bank': '000032',
+            'Prudential Bank': '000016', 'FBN Bank': '000038', 'Bank of Africa': '000060'
+        };
+        return map[bankName] || '';
+    }
+
+    function openPayoutEditor() {
+        if (!userData) { showToast('Loading your account...', 'info'); return; }
+        const pd = userData.payoutDetails || {};
+        const card = document.getElementById('payoutCard');
+        const ed = document.getElementById('payoutEditor');
+        if (card) card.style.display = 'none';
+        if (ed) ed.style.display = '';
+        const type = pd.type === 'bank' ? 'bank' : 'momo';
+        document.getElementById('peType').value = type;
+        document.getElementById('peNetwork').value = pd.network || 'mtn';
+        document.getElementById('pePhone').value = pd.phoneNumber || '';
+        document.getElementById('peBank').innerHTML = bankList();
+        document.getElementById('peBank').value = pd.bankName ? pd.bankName.toLowerCase() : (pd.bankCode || '');
+        document.getElementById('peAcct').value = pd.accountNumber || '';
+        document.getElementById('peHolder').value = pd.accountHolderName || '';
+        peToggle();
+    }
+
+    function closePayoutEditor() {
+        const card = document.getElementById('payoutCard');
+        const ed = document.getElementById('payoutEditor');
+        if (ed) ed.style.display = 'none';
+        if (card) { card.style.display = ''; renderPayout(); }
+    }
+
+    function peToggle() {
+        const t = document.getElementById('peType').value;
+        document.getElementById('pe-momo').style.display = t === 'momo' ? '' : 'none';
+        document.getElementById('pe-bank').style.display = t === 'bank' ? '' : 'none';
+    }
+
+    async function savePayoutInline() {
+        if (!currentUser) return;
+        const type = document.getElementById('peType').value;
+        let payoutData = null;
+        if (type === 'momo') {
+            const network = document.getElementById('peNetwork').value;
+            const phoneNumber = document.getElementById('pePhone').value.trim().replace(/\s/g, '');
+            const accountHolderName = document.getElementById('peHolder').value.trim();
+            if (!phoneNumber || !accountHolderName) { showToast('Fill in all mobile money details.', 'error'); return; }
+            payoutData = { type: 'momo', network: network, phoneNumber: phoneNumber, accountHolderName: accountHolderName };
+        } else {
+            const bankName = document.getElementById('peBank').value;
+            const bankCode = getBankCode(bankName ? (bankName.charAt(0).toUpperCase() + bankName.slice(1)) : '');
+            const accountNumber = document.getElementById('peAcct').value.trim();
+            const accountHolderName = document.getElementById('peHolder').value.trim();
+            if (!bankName || !accountNumber || !accountHolderName) { showToast('Fill in all bank details.', 'error'); return; }
+            if (!bankCode) { showToast('Please select a valid bank.', 'error'); return; }
+            payoutData = { type: 'bank', bankName: bankName.charAt(0).toUpperCase() + bankName.slice(1), bankCode: bankCode, accountNumber: accountNumber, accountHolderName: accountHolderName };
+        }
+
+        const btn = document.querySelector('#payoutEditor .btn-primary');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        try {
+            const prevPayout = (userData && userData.payoutDetails) || null;
+            const subaccountCode = (myStore && myStore.subaccountCode) || '';
+            const hadSubaccount = !!subaccountCode;
+            const payoutChanged = !prevPayout || (
+                prevPayout.type !== payoutData.type ||
+                prevPayout.phoneNumber !== payoutData.phoneNumber ||
+                prevPayout.accountNumber !== payoutData.accountNumber ||
+                prevPayout.network !== payoutData.network ||
+                prevPayout.bankCode !== payoutData.bankCode ||
+                prevPayout.accountHolderName !== payoutData.accountHolderName
+            );
+
+            let newSub = subaccountCode;
+            if (!subaccountCode || payoutChanged) {
+                let idToken = '';
+                try { idToken = await currentUser.getIdToken(); } catch (e) {}
+                const res = await fetch(PAYSTACK_API_BASE + '/mall-create-subaccount', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUser.uid,
+                        email: currentUser.email || '',
+                        payoutData: payoutData,
+                        username: (myStore && myStore.storeName) || 'Volant Seller',
+                        idToken: idToken
+                    })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    const reason = (result.details && result.details.message) || result.message || 'failed';
+                    throw new Error(reason);
+                }
+                newSub = result.subaccountCode;
+            }
+
+            await db.collection('users').doc(currentUser.uid).update({
+                mallSubaccountCode: newSub,
+                hasMallPayout: true,
+                payoutDetails: payoutData,
+                commissionRate: 10,
+                feeBearer: 'account',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (hadSubaccount && newSub) {
+                const prodSnap = await db.collection('mall-products').where('ownerId', '==', currentUser.uid).get();
+                const batch = db.batch();
+                prodSnap.forEach(dc => batch.update(dc.ref, { subaccountCode: newSub }));
+                await batch.commit().catch(() => {});
+            }
+
+            await db.collection('mall-sellers').doc(currentUser.uid).update({ subaccountCode: newSub, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            if (myStore) myStore.subaccountCode = newSub;
+            userData = { ...(userData || {}), payoutDetails: payoutData, mallSubaccountCode: newSub, hasMallPayout: true };
+            showToast('Payout details saved.', 'success');
+            closePayoutEditor();
+        } catch (err) {
+            console.error('Payout update error:', err);
+            showToast('Payout setup: ' + (err.message || 'failed'), 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Save payout';
+        }
     }
 
     function renderPayout() {
@@ -533,7 +1047,7 @@
                     <div style="flex:1;">
                         <div style="font-weight:600;">Payouts active</div>
                         <div style="font-size:0.82rem;color:var(--ink-soft);">${dest ? escapeHtml(dest) : 'Subaccount ' + escapeHtml(myStore.subaccountCode)} · sales settle to your MoMo/bank</div>
-                        <a class="btn btn-outline btn-sm" style="margin-top:0.4rem;" href="submit.html?setup=1"><i class="fas fa-edit"></i> Update payout details</a>
+                        <button class="btn btn-outline btn-sm" style="margin-top:0.4rem;" onclick="openPayoutEditor()"><i class="fas fa-edit"></i> Update payout details</button>
                     </div>
                 </div>`;
         } else {
@@ -551,15 +1065,14 @@
                     <div style="width:44px;height:44px;border-radius:50%;background:${found ? 'var(--accent-soft)' : 'var(--danger-bg)'};color:${found ? 'var(--accent)' : 'var(--danger)'};display:grid;place-items:center;"><i class="fas fa-${found ? 'info' : 'exclamation'}"></i></div>
                     <div>
                         ${inner}
-                        <a class="btn btn-primary btn-sm" style="margin-top:0.4rem;" href="submit.html?setup=1"><i class="fas fa-edit"></i> ${found ? 'Review & activate' : 'Set up payouts'}</a>
+                        <button class="btn btn-primary btn-sm" style="margin-top:0.4rem;" onclick="openPayoutEditor()"><i class="fas fa-edit"></i> ${found ? 'Review & activate' : 'Set up payouts'}</button>
                     </div>
                 </div>`;
         }
     }
 
     function buildCategorySelects() {
-        const opts = MALL_CATEGORIES.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
-        document.getElementById('sCategory').innerHTML = opts;
+        renderStoreCats();
     }
 
     function renderEditCatChips() {
@@ -579,19 +1092,20 @@
 
     function toggleMOtherCat() {
         const wrap = document.getElementById('sOtherCatWrap');
-        if (wrap) wrap.style.display = document.getElementById('sCategory').value === 'other' ? '' : 'none';
+        if (wrap) wrap.style.display = selectedStoreCats.has('other') ? '' : 'none';
     }
 
     async function saveSettings() {
-        const cat = document.getElementById('sCategory').value;
-        let customCategory = '';
-        if (cat === 'other') {
-            customCategory = document.getElementById('sOtherCat').value.trim();
-            if (!customCategory) { showToast('Specify your store category.', 'error'); return; }
-        }
+        const selectedKeys = [...selectedStoreCats];
+        const builtinKeys = selectedKeys.filter(k => k.indexOf('custom:') !== 0);
+        const customLabels = selectedKeys.filter(k => k.indexOf('custom:') === 0).map(k => k.slice(7));
+        const cat = builtinKeys[0] || 'other';
+        const categories = builtinKeys;
+        const customCategory = customLabels.join(', ');
         const data = {
             storeName: document.getElementById('sName').value.trim(),
             category: cat,
+            categories: categories,
             customCategory: customCategory,
             city: document.getElementById('sCity').value.trim(),
             location: document.getElementById('sLocation').value.trim(),
@@ -599,10 +1113,25 @@
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         if (!data.storeName) { showToast('Store name is required.', 'error'); return; }
+        if (!selectedStoreCats.size) { showToast('Choose at least one category.', 'error'); return; }
         if (!data.location && cat !== 'digital') { showToast('Pickup / shop location is required.', 'error'); return; }
         data.phone = document.getElementById('sPhone').value.trim();
+        const soc = {};
+        const sIg = document.getElementById('sInstagram').value.trim();
+        const sTk = document.getElementById('sTiktok').value.trim();
+        const sTw = document.getElementById('sTwitter').value.trim();
+        const sWa = document.getElementById('sWhatsApp').value.trim();
+        const sFb = document.getElementById('sFacebook').value.trim();
+        if (sIg) soc.instagram = sIg;
+        if (sTk) soc.tiktok = sTk;
+        if (sTw) soc.twitter = sTw;
+        if (sWa) soc.whatsapp = sWa;
+        if (sFb) soc.facebook = sFb;
+        data.socials = soc;
         const logoRemoved = pendingMImg.logo && pendingMImg.logo.remove;
         const bannerRemoved = pendingMImg.banner && pendingMImg.banner.remove;
+        const sBtn = document.getElementById('saveSettingsBtn');
+        if (sBtn) { sBtn.disabled = true; }
         try {
             if (pendingMImg.logo || pendingMImg.banner) {
                 const up = async (kind, wasRemoved) => {
@@ -621,8 +1150,9 @@
             document.getElementById('dashName').textContent = data.storeName;
             pendingMImg = { logo: null, banner: null };
             renderManageBranding();
+            setSettingsDirty(false);
             showToast('Store updated ✓', 'success');
-        } catch (e) { console.error(e); showToast('Save failed.', 'error'); }
+        } catch (e) { console.error(e); showToast('Save failed.', 'error'); if (sBtn) sBtn.disabled = false; }
     }
 
     </script>

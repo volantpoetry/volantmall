@@ -38,6 +38,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="orders.html"><i class="fas fa-box-open"></i> My Orders</a>
+                <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Sign in" onclick="accountClick()"></button>
                     <div class="account-menu" id="accountMenu"></div>
@@ -96,6 +97,16 @@
                 <h2>Shop All</h2>
             </div>
             <div class="category-chips" id="catChips"></div>
+            <div class="shop-toolbar">
+                <div class="toolbar-count" id="toolbarCount"></div>
+                <select class="sort-sel" id="sortSel" onchange="renderProducts()" aria-label="Sort products">
+                    <option value="featured">Sort: Featured</option>
+                    <option value="newest">Sort: Newest</option>
+                    <option value="price-asc">Sort: Price (low → high)</option>
+                    <option value="price-desc">Sort: Price (high → low)</option>
+                    <option value="rating">Sort: Top rated</option>
+                </select>
+            </div>
             <div class="grid" id="productGrid"><div class="spinner-wrap"><div class="spinner"></div></div></div>
         </section>
     </div>
@@ -213,74 +224,90 @@
 
     const regionOptions = ['Greater Accra', 'Ashanti', 'Western', 'Western North', 'Central', 'Eastern', 'Volta', 'Oti', 'Bono', 'Bono East', 'Ahafo', 'Northern', 'Savannah', 'North East', 'Upper East', 'Upper West'];
 
-    // ===== LOAD ALL =====
-    async function loadMall() {
+    // ===== LOAD ALL (real-time) =====
+    function mapProductDoc(id, d) {
+        const catKey = MALL_CATEGORIES.find(c => c.key === d.category) ? d.category : 'other';
+        return {
+            id, title: d.title,
+            price: Number(d.price) || 0,
+            category: catKey,
+            categories: (Array.isArray(d.categories) && d.categories.length) ? d.categories : [catKey],
+            customCategory: d.customCategory || '',
+            images: d.images || [],
+            ownerId: d.ownerId,
+            storeName: d.storeName || 'Store',
+            storeHandle: d.storeHandle || '',
+            stock: Number(d.stock) || 0,
+            status: d.status,
+            createdAt: d.createdAt,
+            saleCount: Number(d.saleCount) || 0,
+            ratingSum: Number(d.ratingSum) || 0,
+            ratingCount: Number(d.ratingCount) || 0,
+            delivery: !!d.delivery,
+            pickup: !!d.pickup,
+            deliveryFee: Number(d.deliveryFee) || 0,
+            deliveryRegions: (Array.isArray(d.deliveryRegions) && d.deliveryRegions.length) ? d.deliveryRegions : null,
+            description: d.description || '',
+            currency: d.currency || 'GHS'
+        };
+    }
+
+    function mapSellerDoc(id, d) {
+        if (!d.active) return null;
+        return {
+            id,
+            storeName: d.storeName || 'Store',
+            bio: d.bio || '',
+            location: d.location || '',
+            category: d.category || 'other',
+            categories: (Array.isArray(d.categories) && d.categories.length) ? d.categories : [d.category || 'other'],
+            customCategory: d.customCategory || '',
+            verified: !!d.verified,
+            bannerText: d.bannerText || '',
+            productCount: 0,
+            inStockCount: 0,
+            city: d.city || '',
+            logoUrl: d.logoUrl || ''
+        };
+    }
+
+    function recomputeSellers() {
+        allSellers.forEach(s => { s.productCount = 0; s.inStockCount = 0; });
+        allProducts.forEach(p => {
+            const s = allSellers.find(x => x.id === p.ownerId);
+            if (s) {
+                s.productCount++;
+                if (p.status === 'active' && p.stock > 0) s.inStockCount++;
+            }
+        });
+    }
+
+    function renderAllMall() {
+        recomputeSellers();
+        renderSellers();
+        renderChips();
+        renderProducts();
+    }
+
+    function loadMall() {
         try {
-            const [prodSnap, sellerSnap] = await Promise.all([
-                db.collection('mall-products').where('status', 'in', ['active', 'stockout']).get(),
-                db.collection('mall-sellers').where('active', '==', true).limit(50).get()
-            ]);
+            db.collection('mall-products').where('status', 'in', ['active', 'stockout'])
+                .onSnapshot(snap => {
+                    allProducts = [];
+                    snap.forEach(doc => { allProducts.push(mapProductDoc(doc.id, doc.data())); });
+                    allProducts.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
+                    renderAllMall();
+                }, err => console.error('Products realtime error:', err));
 
-            allProducts = [];
-            prodSnap.forEach(doc => {
-                const d = doc.data();
-                const catKey = MALL_CATEGORIES.find(c => c.key === d.category) ? d.category : 'other';
-                allProducts.push({
-                    id: doc.id,
-                    title: d.title,
-                    price: Number(d.price) || 0,
-                    category: catKey,
-                    categories: (Array.isArray(d.categories) && d.categories.length) ? d.categories : [catKey],
-                    customCategory: d.customCategory || '',
-                    images: d.images || [],
-                    ownerId: d.ownerId,
-                    storeName: d.storeName || 'Store',
-                    storeHandle: d.storeHandle || '',
-                    stock: Number(d.stock) || 0,
-                    status: d.status,
-                    createdAt: d.createdAt,
-                    saleCount: Number(d.saleCount) || 0,
-                    ratingSum: Number(d.ratingSum) || 0,
-                    ratingCount: Number(d.ratingCount) || 0,
-                    delivery: !!d.delivery,
-                    pickup: !!d.pickup,
-                    deliveryFee: Number(d.deliveryFee) || 0,
-                    description: d.description || '',
-                    currency: d.currency || 'GHS'
-                });
-            });
-            allProducts.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
-
-            allSellers = [];
-            sellerSnap.forEach(doc => {
-                const d = doc.data();
-                if (!d.active) return;
-                allSellers.push({
-                    id: doc.id,
-                    storeName: d.storeName || 'Store',
-                    bio: d.bio || '',
-                    location: d.location || '',
-                    category: d.category || 'other',
-                    customCategory: d.customCategory || '',
-                    productCount: 0,
-                    inStockCount: 0,
-                    city: d.city || '',
-                    logoUrl: d.logoUrl || ''
-                });
-            });
-
-            // count per seller (featured uses in-stock items shoppers can actually buy)
-            allProducts.forEach(p => {
-                const s = allSellers.find(x => x.id === p.ownerId);
-                if (s) {
-                    s.productCount++;
-                    if (p.status === 'active' && p.stock > 0) s.inStockCount++;
-                }
-            });
-
-            renderSellers();
-            renderChips();
-            renderProducts();
+            db.collection('mall-sellers').where('active', '==', true).limit(50)
+                .onSnapshot(snap => {
+                    allSellers = [];
+                    snap.forEach(doc => {
+                        const s = mapSellerDoc(doc.id, doc.data());
+                        if (s) allSellers.push(s);
+                    });
+                    renderAllMall();
+                }, err => console.error('Sellers realtime error:', err));
         } catch (err) {
             console.error('Load mall error:', err);
             document.getElementById('productGrid').innerHTML = `<div class="empty-state"><i class="fas fa-store-slash"></i><p>Could not load the mall. Please refresh.</p></div>`;
@@ -309,7 +336,7 @@
                 <div class="s-avatar">${s.logoUrl ? `<img src="${escapeHtml(s.logoUrl)}" alt="">` : escapeHtml(s.storeName.charAt(0).toUpperCase())}</div>
                 <div class="s-info">
                     <div class="s-name">${escapeHtml(s.storeName)}</div>
-                    <div class="s-cat"><i class="fas fa-tag"></i> ${escapeHtml(s.customCategory || catLabel(s.category))} · ${s.inStockCount} item${s.inStockCount === 1 ? '' : 's'}</div>
+                    <div class="s-cat"><i class="fas fa-tag"></i> ${escapeHtml(s.customCategory || (s.categories || []).map(catLabel).join(', '))} · ${s.inStockCount} item${s.inStockCount === 1 ? '' : 's'}</div>
                     ${s.city ? `<div class="s-cat"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s.city)}</div>` : ''}
                 </div>
             </a>
@@ -318,11 +345,26 @@
 
     function renderChips() {
         const chips = document.getElementById('catChips');
-        const items = [{ key: 'all', label: 'All' }, ...MALL_CATEGORIES];
+        const counts = {};
+        const customCounts = {};
+        allProducts.forEach(p => {
+            const list = (p.categories && p.categories.length) ? p.categories : [p.category || 'other'];
+            list.forEach(k => { if (k) counts[k] = (counts[k] || 0) + 1; });
+            const ck = (p.customCategory || '').trim();
+            if (ck) customCounts[ck] = (customCounts[ck] || 0) + 1;
+        });
+        if (activeCategory !== 'all') {
+            const stillValid = activeCategory.startsWith('custom:')
+                ? (customCounts[activeCategory.slice(7)] || 0) > 0
+                : (counts[activeCategory] || 0) > 0;
+            if (!stillValid) activeCategory = 'all';
+        }
+        const items = MALL_CATEGORIES.filter(c => (counts[c.key] || 0) > 0).map(c => ({ key: c.key, label: c.label, n: counts[c.key] }));
+        Object.keys(customCounts).sort().forEach(k => items.push({ key: 'custom:' + k, label: k, n: customCounts[k] }));
         chips.innerHTML = `
             <button class="chip wish-chip ${viewWishlist ? 'active' : ''}" onclick="toggleWishlistView()"><i class="fas fa-heart"></i> Wishlist</button>
-        ` + items.map(c => `
-            <button class="chip ${!viewWishlist && activeCategory === c.key ? 'active' : ''}" onclick="setCategory('${c.key}')">${c.label}</button>
+        ` + `<button class="chip ${!viewWishlist && activeCategory === 'all' ? 'active' : ''}" onclick="setCategory('all')">All</button>` + items.map(c => `
+            <button class="chip ${!viewWishlist && activeCategory === c.key ? 'active' : ''}" onclick="setCategory('${encodeURIComponent(c.key)}')">${escapeHtml(c.label)} <span class="chip-n">${c.n}</span></button>
         `).join('');
     }
 
@@ -333,7 +375,8 @@
     }
 
     function setCategory(key) {
-        activeCategory = key;
+        try { activeCategory = decodeURIComponent(key); }
+        catch (e) { activeCategory = key; }
         renderChips();
         renderProducts();
     }
@@ -343,7 +386,13 @@
         const wish = getWishlist();
         return allProducts.filter(p => {
             if (viewWishlist && !wish.includes(p.id)) return false;
-            if (activeCategory !== 'all' && p.category !== activeCategory && !(p.categories || []).includes(activeCategory)) return false;
+            if (activeCategory !== 'all') {
+                if (activeCategory.startsWith('custom:')) {
+                    if ((p.customCategory || '').trim() !== activeCategory.slice(7)) return false;
+                } else if (p.category !== activeCategory && !(p.categories || []).includes(activeCategory)) {
+                    return false;
+                }
+            }
             if (q && !(p.title.toLowerCase().includes(q) || p.storeName.toLowerCase().includes(q) || (p.customCategory ? p.customCategory : (p.categories || []).map(catLabel).join(' ')).toLowerCase().includes(q))) return false;
             return true;
         });
@@ -352,6 +401,14 @@
     function renderProducts() {
         const list = filteredProducts();
         const grid = document.getElementById('productGrid');
+        const sortEl = document.getElementById('sortSel');
+        const sortMode = sortEl ? sortEl.value : 'featured';
+        if (sortMode === 'newest') list.sort((a, b) => (b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : new Date(0)) - (a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : new Date(0)));
+        else if (sortMode === 'price-asc') list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+        else if (sortMode === 'price-desc') list.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+        else if (sortMode === 'rating') list.sort((a, b) => ((b.ratingCount > 0 ? b.ratingSum / b.ratingCount : 0)) - ((a.ratingCount > 0 ? a.ratingSum / a.ratingCount : 0)));
+        const countEl = document.getElementById('toolbarCount');
+        if (countEl) countEl.textContent = list.length + (list.length === 1 ? ' product' : ' products');
         if (list.length === 0) {
             grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>No products match your search yet.</p></div>`;
             return;
@@ -533,7 +590,22 @@
 
     function renderCart() {
         const body = document.getElementById('cartBody');
-        const items = getCartItems();
+        const items = getCartItems().map(it => {
+            const live = allProducts.find(p => p.id === it.id);
+            if (!live) return it;
+            const merged = Object.assign({}, it, {
+                price: Number(live.price) || it.price,
+                title: live.title || it.title,
+                image: (live.images && live.images[0]) || it.image,
+                sellerName: live.storeName || it.sellerName,
+                deliveryFee: live.delivery ? (Number(live.deliveryFee) || 0) : 0,
+                pickupLocation: live.pickupLocation || it.pickupLocation || '',
+                allowsPickup: !!live.pickup,
+                allowsDelivery: !!live.delivery,
+                cat: live.category || it.cat || 'other'
+            });
+            return merged;
+        });
         if (items.length === 0) {
             body.innerHTML = `<div class="empty-state"><i class="fas fa-shopping-bag"></i><p>Your cart is empty.</p><a class="btn btn-primary btn-sm" href="index.html">Start shopping</a></div>`;
             totals();
@@ -579,10 +651,20 @@
     }
 
     function cartTotals() {
-        const items = getCartItems();
+        const items = getCartItems().map(it => {
+            const live = allProducts.find(p => p.id === it.id);
+            if (!live) return it;
+            return Object.assign({}, it, {
+                price: Number(live.price) || it.price,
+                deliveryFee: live.delivery ? (Number(live.deliveryFee) || 0) : 0,
+                allowsPickup: !!live.pickup,
+                allowsDelivery: !!live.delivery,
+                pickupLocation: live.pickupLocation || it.pickupLocation || ''
+            });
+        });
         const subtotal = items.reduce((s, it) => s + (it.price * it.qty), 0);
         const delivery = items
-            .filter(it => it.fulfillment === 'delivery')
+            .filter(it => it.fulfillment === 'delivery' && it.allowsDelivery)
             .reduce((s, it) => s + ((Number(it.deliveryFee) || 0)), 0);
         return { subtotal, delivery, total: subtotal + delivery };
     }
@@ -596,8 +678,20 @@
 
     // ===== SHIPPING SECTION =====
     function renderShipping() {
-        const items = getCartItems();
-        const hasDelivery = items.some(it => it.fulfillment === 'delivery');
+        const items = getCartItems().map(it => {
+            const live = allProducts.find(p => p.id === it.id);
+            if (!live) return it;
+            return Object.assign({}, it, {
+                title: live.title || it.title,
+                price: Number(live.price) || it.price,
+                deliveryFee: live.delivery ? (Number(live.deliveryFee) || 0) : 0,
+                allowsPickup: !!live.pickup,
+                allowsDelivery: !!live.delivery,
+                pickupLocation: live.pickupLocation || it.pickupLocation || '',
+                cat: live.category || it.cat || 'other'
+            });
+        });
+        const hasDelivery = items.some(it => it.allowsDelivery && it.fulfillment === 'delivery');
         const body = document.getElementById('cartBody');
         const existing = document.getElementById('shipSection');
         if (existing) existing.remove();
@@ -608,15 +702,36 @@
         sec.className = 'ship-section';
         sec.innerHTML = `
             <h4><i class="fas fa-truck"></i> Delivery Details</h4>
+            <div class="ship-fee-note">${items.filter(it => it.fulfillment === 'delivery').map(it => `<div class="sfn-row"><span>${escapeHtml(it.title)}</span><span>fee ${formatGHS(it.deliveryFee)}</span></div>`).join('')}</div>
             <div class="form-field"><label>Full Name</label><input id="shipName" placeholder="Recipient name" /></div>
             <div class="form-field"><label>Phone (MTN/Telecel)</label><input id="shipPhone" placeholder="0244 000 000" /></div>
             <div class="form-row">
-                <div class="form-field"><label>Region</label><select id="shipRegion">${regionOptions.map(r => `<option>${r}</option>`).join('')}</select></div>
+                <div class="form-field"><label>Region</label><select id="shipRegion" onchange="regionChanged()">${regionOptions.map(r => `<option>${r}</option>`).join('')}</select></div>
                 <div class="form-field"><label>City / Town</label><input id="shipCity" placeholder="e.g. Kumasi" /></div>
             </div>
             <div class="form-field"><label>Delivery Address</label><textarea id="shipAddress" rows="2" placeholder="House number, street, landmark"></textarea></div>
+            <div id="regionCoverNote" class="region-cover-note"></div>
         `;
         body.appendChild(sec);
+        regionChanged();
+    }
+    function regionChanged() {
+        const region = (document.getElementById('shipRegion') || {}).value || '';
+        const note = document.getElementById('regionCoverNote');
+        if (!note) return;
+        const items = getCartItems();
+        const delivery = items.filter(it => it.fulfillment === 'delivery');
+        if (!delivery.length) { note.innerHTML = ''; return; }
+        const limited = delivery.filter(it => it.deliveryRegions && it.deliveryRegions.length);
+        if (!limited.length) { note.innerHTML = ''; return; }
+        const uncovered = limited.filter(it => !it.deliveryRegions.includes(region));
+        if (uncovered.length) {
+            note.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Some sellers don\'t deliver to ' + escapeHtml(region) + ' (e.g. ' + escapeHtml(uncovered[0].title) + '). Pick another region or use pickup.';
+            note.className = 'region-cover-note warn';
+        } else {
+            note.innerHTML = '<i class="fas fa-check-circle"></i> All selected sellers deliver to ' + escapeHtml(region) + '.';
+            note.className = 'region-cover-note ok';
+        }
     }
     function hideShipping() { }
 
@@ -640,6 +755,11 @@
             const address = (document.getElementById('shipAddress') || {}).value || '';
             if (!name || !phone || !address) {
                 showToast('Please complete the delivery details.', 'error');
+                return;
+            }
+            const uncovered = items.filter(it => it.fulfillment === 'delivery' && it.deliveryRegions && it.deliveryRegions.length && !it.deliveryRegions.includes(region));
+            if (uncovered.length) {
+                showToast('This seller does not deliver to ' + region + '. Pick a covered region or change to pickup.', 'error');
                 return;
             }
             window.__shipping = { name, phone, region, city, address };

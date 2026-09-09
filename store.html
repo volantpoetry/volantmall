@@ -34,6 +34,7 @@
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" id="sellNavBtn" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
+                <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
                     <div class="account-menu" id="accountMenu"></div>
@@ -59,9 +60,18 @@
     <div id="crossStrip" style="display:none;"></div>
 
     <div class="container">
+        <div class="store-stats" id="storeStats"></div>
         <section class="section" id="storeProducts">
             <div class="section-head"><h2>Store Products</h2></div>
             <div class="grid" id="productGrid"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+        </section>
+        <section class="section" id="storeAbout">
+            <div class="section-head"><h2>About this store</h2></div>
+            <div id="aboutCard"><p class="muted" style="padding:1rem 0;">Loading…</p></div>
+        </section>
+        <section class="section" id="storeReviews">
+            <div class="section-head"><h2>Shopper reviews</h2></div>
+            <div id="reviewListDiv" class="reviews-col"><div class="empty-state"><i class="fas fa-comment-dots"></i><p>No reviews yet.</p></div></div>
         </section>
     </div>
 
@@ -107,6 +117,7 @@
     let storeId = null;
     let storeData = null;
     let products = [];
+    let reviewsList = [];
     const VOLANT_LYRICS = 'https://volantlyrics.vercel.app/';
     const VOLANT_READS = 'https://volantreads.vercel.app/';
 
@@ -189,60 +200,142 @@
         if (!storeId) { showError('No store selected.'); return; }
 
         try {
-            const [sellerSnap, prodSnap, revSnap] = await Promise.all([
-                db.collection('mall-sellers').doc(storeId).get(),
-                db.collection('mall-products').where('ownerId', '==', storeId).where('status', 'in', ['active', 'stockout']).get(),
-                db.collection('mall-reviews').where('sellerId', '==', storeId).get()
-            ]);
-
+            const sellerSnap = await db.collection('mall-sellers').doc(storeId).get();
             if (!sellerSnap.exists) { showError('This store does not exist.'); return; }
             const s = sellerSnap.data();
 
-            let revCount = 0, revAvg = 0;
-            revSnap.forEach(doc => { const r = doc.data(); revCount++; revAvg += (Number(r.rating) || 0); });
-            if (revCount > 0) revAvg = Math.round(revAvg / revCount * 10) / 10;
-
             document.title = (s.storeName || 'Store') + ' — Volant Mall';
             storeData = s;
-            document.getElementById('storeBanner').innerHTML = `
-                <div class="store-banner ${s.bannerUrl ? 'has-banner' : ''}" ${s.bannerUrl ? `style="--banner-bg:url('${escapeHtml(s.bannerUrl)}');"` : ''}>
-                    <div class="store-banner-inner">
-                        <div class="s-avatar">${s.logoUrl ? `<img src="${escapeHtml(s.logoUrl)}" alt="">` : escapeHtml((s.storeName || 'S').charAt(0).toUpperCase())}</div>
-                        <div>
-                            <h1>${escapeHtml(s.storeName || 'Store')}</h1>
-                            ${s.bio ? `<div class="s-bio">${escapeHtml(s.bio)}</div>` : ''}
-                            <div class="s-meta">
-                                ${revCount ? `<span class="stars">${starsHTML(revAvg)} <b>${revAvg.toFixed(1)}</b> (${revCount})</span>` : `<span class="stars off">★★★★★ <span style="color:#e8dfff;">No reviews yet</span></span>`}
-                                ${s.city ? `<span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s.city)}${s.location ? ' — ' + escapeHtml(s.location) : ''}</span>` : ''}
-                                <span><i class="fas fa-tag"></i> ${escapeHtml(s.customCategory || catLabel(s.category))}</span>
-                                <span><i class="fas fa-box-open"></i> ${prodSnap.size} product${prodSnap.size === 1 ? '' : 's'}</span>
+
+            db.collection('mall-sellers').doc(storeId).onSnapshot(doc => {
+                if (doc.exists) { storeData = doc.data(); renderBanner(); }
+            });
+
+            let revCount = 0, revAvg = 0;
+            function renderBanner() {
+                const s2 = storeData;
+                let rc = 0, ra = 0;
+                reviewsList.forEach(r => { rc++; ra += (Number(r.rating) || 0); });
+                if (rc > 0) ra = Math.round(ra / rc * 10) / 10;
+                const prodCount = products.length;
+                document.getElementById('storeBanner').innerHTML = `
+                    <div class="store-banner ${s2.bannerUrl ? 'has-banner' : ''}" ${s2.bannerUrl ? `style="--banner-bg:url('${escapeHtml(s2.bannerUrl)}');"` : ''}>
+                        <div class="store-banner-inner">
+                            <div class="s-avatar">${s2.logoUrl ? `<img src="${escapeHtml(s2.logoUrl)}" alt="">` : escapeHtml((s2.storeName || 'S').charAt(0).toUpperCase())}</div>
+                            <div>
+                                <h1>${escapeHtml(s2.storeName || 'Store')} ${s2.verified ? `<span class="verified-seller" title="Identity verified by Volant Mall"><i class="fas fa-check-circle"></i> Verified</span>` : ''}</h1>
+                                ${s2.bio ? `<div class="s-bio">${escapeHtml(s2.bio)}</div>` : ''}
+                                <div class="s-meta">
+                                    ${rc ? `<span class="stars">${starsHTML(ra)} <b>${ra.toFixed(1)}</b> (${rc})</span>` : `<span class="stars off">★★★★★ <span style="color:#e8dfff;">No reviews yet</span></span>`}
+                                    ${s2.city ? `<span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s2.city)}${s2.location ? ' — ' + escapeHtml(s2.location) : ''}</span>` : ''}
+                                    <span><i class="fas fa-tag"></i> ${escapeHtml(s2.customCategory || ((Array.isArray(s2.categories) && s2.categories.length) ? s2.categories.map(catLabel).join(', ') : catLabel(s2.category)))}</span>
+                                    <span><i class="fas fa-box-open"></i> ${prodCount} product${prodCount === 1 ? '' : 's'}</span>
+                                </div>
+                                ${renderSellerSocials(s2) ? `<div class="social-links">${renderSellerSocials(s2)}</div>` : ''}
                             </div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`;
+            }
+
+            reviewsList = [];
+            storeData = s;
+            products = [];
+
+            db.collection('mall-products').where('ownerId', '==', storeId).where('status', 'in', ['active', 'stockout'])
+                .onSnapshot(snap => {
+                    products = [];
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        products.push({
+                            id: doc.id,
+                            title: d.title,
+                            price: Number(d.price) || 0,
+                            images: d.images || [],
+                            status: d.status,
+                            stock: Number(d.stock) || 0,
+                            ratingSum: Number(d.ratingSum) || 0,
+                            ratingCount: Number(d.ratingCount) || 0,
+                            saleCount: Number(d.saleCount) || 0
+                        });
+                    });
+                    renderBanner();
+                    renderProducts();
+                    renderStoreStats();
+                }, err => console.error('Store products realtime error:', err));
+
+            db.collection('mall-reviews').where('sellerId', '==', storeId)
+                .onSnapshot(snap => {
+                    reviewsList = [];
+                    snap.forEach(doc => { reviewsList.push({ id: doc.id, ...doc.data() }); });
+                    reviewsList.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
+                    renderBanner();
+                    renderStoreReviews();
+                    renderStoreStats();
+                }, err => console.error('Store reviews realtime error:', err));
 
             renderOwnerStrip();
             loadCrossVolant();
-
-            products = [];
-            prodSnap.forEach(doc => {
-                const d = doc.data();
-                products.push({
-                    id: doc.id,
-                    title: d.title,
-                    price: Number(d.price) || 0,
-                    images: d.images || [],
-                    status: d.status,
-                    stock: Number(d.stock) || 0,
-                    ratingSum: Number(d.ratingSum) || 0,
-                    ratingCount: Number(d.ratingCount) || 0
-                });
-            });
-            renderProducts();
+            renderStoreStats();
+            renderStoreAbout();
         } catch (err) {
             console.error(err);
             showError('Error loading store.');
         }
+    }
+
+    function renderStoreStats() {
+        const el = document.getElementById('storeStats');
+        if (!el) return;
+        const sold = products.reduce((s, p) => s + (Number(p.saleCount) || 0), 0);
+        const inStock = products.filter(p => p.status === 'active' && p.stock > 0).length;
+        const avg = (() => {
+            if (!reviewsList.length) return 0;
+            return Math.round(reviewsList.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviewsList.length * 10) / 10;
+        })();
+        el.innerHTML = `
+            <div class="stat"><div class="n">${products.length}</div><div class="l">Products</div></div>
+            <div class="stat"><div class="n">${sold}</div><div class="l">Sold</div></div>
+            <div class="stat"><div class="n">${inStock}</div><div class="l">In stock</div></div>
+            <div class="stat"><div class="n">${reviewsList.length}</div><div class="l">Reviews</div></div>
+            <div class="stat"><div class="n">${avg ? avg.toFixed(1) : '<span style="color:var(--ink-soft);">—</span>'}</div><div class="l">Avg rating</div></div>`;
+    }
+
+    function renderStoreAbout() {
+        const el = document.getElementById('aboutCard');
+        if (!el) return;
+        const s = storeData || {};
+        const socialChips = renderSellerSocials(s);
+        const contact = [];
+        if (s.phone) contact.push(`<span><i class="fas fa-phone"></i> ${escapeHtml(s.phone)}</span>`);
+        if (s.city) contact.push(`<span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s.city)}</span>`);
+        el.innerHTML = `
+            <div class="about-card">
+                ${contact.length ? `<div class="ac-row">${contact.join('')}</div>` : ''}
+                ${socialChips ? `<div class="social-links" style="margin-top:${contact.length ? '0.6rem' : '0'};">${socialChips}</div>` : ''}
+                <div class="ac-cta">
+                    <p>Looking for something specific? ${escapeHtml(s.storeName || 'This seller')}'s products are listed above — message via their socials, or keep browsing the mall.</p>
+                    <a class="btn btn-outline btn-sm" href="index.html"><i class="fas fa-store"></i> Browse the whole mall</a>
+                </div>
+            </div>`;
+    }
+
+    function renderStoreReviews() {
+        const el = document.getElementById('reviewListDiv');
+        if (!el) return;
+        if (!reviewsList.length) {
+            el.innerHTML = `<div class="empty-state"><i class="fas fa-comment-dots"></i><p>No reviews yet.</p></div>`;
+            return;
+        }
+        el.innerHTML = reviewsList.map(r => `
+            <div class="review-card">
+                <div class="rc-head">
+                    <div class="rc-name">${escapeHtml(r.userName || r.userEmail || 'Buyer')}</div>
+                    <div class="rc-date">${new Date(ts(r.createdAt)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                </div>
+                ${starsHTML(r.rating)}
+                ${r.comment ? `<div class="rc-comment" style="margin-top:0.4rem;">${escapeHtml(r.comment)}</div>` : ''}
+                ${r.reply ? `<div class="seller-reply"><div class="sr-name"><i class="fas fa-store"></i> ${escapeHtml(r.replyAuthor || 'Seller')}</div>${escapeHtml(r.reply)}</div>` : ''}
+            </div>`).join('');
     }
 
     function catLabel(key) {

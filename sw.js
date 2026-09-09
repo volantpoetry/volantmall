@@ -1,4 +1,4 @@
-const CACHE = 'volant-mall-v1'
+const CACHE = 'volant-mall-v2'
 
 const CORE = [
     '/',

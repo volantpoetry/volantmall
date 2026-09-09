@@ -3,6 +3,9 @@
 // Paystack config + currency helpers used by every mall page)
 // ============================================================
 
+try { if (history.scrollRestoration) history.scrollRestoration = 'manual'; } catch (e) {}
+window.scrollTo(0, 0);
+
 const firebaseConfig = {
     apiKey: "AIzaSyC4DHI8aBVY4JjTvJ-r-TGIDPsewtEWxzU",
     authDomain: "silent-depth.firebaseapp.com",
@@ -55,6 +58,26 @@ function isDevMode() {
 
 // ===== SELL ENTRY =====
 // Signed-in sellers go straight to their public store; new sellers go to setup.
+function renderSellerSocials(seller) {
+    const socials = (seller && seller.socials) || {};
+    const hrefs = {
+        instagram: v => 'https://instagram.com/' + v.replace(/^@/, ''),
+        tiktok: v => 'https://tiktok.com/@' + v.replace(/^@/, ''),
+        twitter: v => 'https://x.com/' + v.replace(/^@/, ''),
+        whatsapp: v => 'https://wa.me/' + v.replace(/[^0-9]/g, ''),
+        facebook: v => /^https?:\/\//i.test(v) ? v : 'https://facebook.com/' + v.replace(/^@/, '')
+    };
+    const icons = { instagram: 'fa-instagram', tiktok: 'fa-tiktok', twitter: 'fa-x-twitter', whatsapp: 'fa-whatsapp', facebook: 'fa-facebook' };
+    const labels = { instagram: 'Instagram', tiktok: 'TikTok', twitter: 'X', whatsapp: 'WhatsApp', facebook: 'Facebook' };
+    const items = [];
+    Object.keys(hrefs).forEach(k => {
+        if (socials[k]) {
+            items.push(`<a class="social-link sl-${escapeHtml(k)}" href="${escapeHtml(hrefs[k](socials[k]))}" target="_blank" rel="noopener" aria-label="${labels[k]}"><i class="fab ${icons[k]}"></i> <span>${labels[k]}</span></a>`);
+        }
+    });
+    return items.join('');
+}
+
 function goSell(event) {
     if (!currentUser) return true;
     if (event) event.preventDefault();
@@ -66,6 +89,37 @@ function goSell(event) {
         })
         .catch(() => { location.href = 'submit.html'; });
     return false;
+}
+
+let _isSeller = false;
+function isSeller() { return _isSeller; }
+
+function updateNavSellLinks() {
+    const links = document.querySelectorAll('.nav-selllink');
+    links.forEach(a => {
+        if (_isSeller) {
+            a.innerHTML = '<i class="fas fa-chart-line"></i> My Store';
+        }
+    });
+    const heroBtn = document.querySelector('.hero-cta .btn-accent');
+    if (heroBtn && _isSeller) {
+        heroBtn.innerHTML = '<i class="fas fa-chart-line"></i> Go to My Store';
+    }
+    const footSell = document.getElementById('footSellLink');
+    if (footSell && _isSeller) {
+        footSell.textContent = 'My Store';
+    }
+    const topSellBtn = document.querySelector('.topbar-right .btn-ghost[href="submit.html"]');
+    if (topSellBtn && _isSeller) {
+        topSellBtn.innerHTML = '<i class="fas fa-chart-line"></i> My Store';
+        topSellBtn.href = 'manage.html';
+        topSellBtn.onclick = null;
+    }
+    const heroStoresEmpty = document.querySelector('.empty-state a[href="submit.html"]');
+    if (heroStoresEmpty && _isSeller) {
+        heroStoresEmpty.href = 'manage.html';
+        heroStoresEmpty.textContent = 'Manage your store';
+    }
 }
 
 async function loadPaystackConfig() {
@@ -87,17 +141,25 @@ auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     if (user) {
         try {
-            const snap = await db.collection('users').doc(user.uid).get();
-            userData = snap.exists ? snap.data() : null;
+            const [userSnap, sellerSnap] = await Promise.all([
+                db.collection('users').doc(user.uid).get(),
+                db.collection('mall-sellers').doc(user.uid).get()
+            ]);
+            userData = userSnap.exists ? userSnap.data() : null;
+            _isSeller = sellerSnap.exists;
         } catch (e) {
-            console.warn('Error loading user doc:', e);
+            console.warn('Error loading user data:', e);
             userData = null;
+            _isSeller = false;
         }
     } else {
         userData = null;
+        _isSeller = false;
     }
     renderAvatar();
     updateMobileNavAuth();
+    renderNotifBadge();
+    updateNavSellLinks();
     if (typeof onAppAuthChange === 'function') onAppAuthChange(user);
 });
 
@@ -106,15 +168,16 @@ function renderAvatar() {
     const menu = document.getElementById('accountMenu');
     if (!currentUser) {
         if (el) {
-            el.style.background = 'var(--primary-soft)';
-            el.innerHTML = '<i class="fas fa-user" style="font-size:0.95rem;color:var(--primary);"></i>';
+            el.classList.add('user-signin');
             el.title = 'Sign in';
+            el.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign in';
         }
         if (menu) menu.innerHTML = '';
         return;
     }
     const photoURL = (userData && (userData.cachedAvatarURL || userData.photoURL)) || currentUser.photoURL || null;
     if (el) {
+        el.classList.remove('user-signin');
         const displayName = (userData && (userData.username || userData.displayName)) || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '') || 'User';
         el.title = currentUser.email || 'Account';
         if (photoURL) {
@@ -139,6 +202,31 @@ function renderAvatar() {
         <hr>
         <button class="acct-item" onclick="toggleAccountMenu(); signOutUser();"><i class="fas fa-sign-out-alt"></i> Sign out</button>
         <small class="acct-foot">Signed in on Volant Mall</small>`;
+}
+
+function renderNotifBadge() {
+    const bell = document.querySelector('.btn-notif');
+    const badge = document.getElementById('notifCount');
+    if (!badge) return;
+    if (!currentUser) {
+        badge.classList.remove('show');
+        badge.textContent = '0';
+        if (bell) bell.style.display = 'none';
+        return;
+    }
+    if (bell) bell.style.display = '';
+    try {
+        db.collection('notifications').where('userId', '==', currentUser.uid).where('read', '==', false).onSnapshot((snap) => {
+            const count = snap.size;
+            badge.textContent = count;
+            if (count > 0) badge.classList.add('show');
+            else badge.classList.remove('show');
+        }, (err) => {
+            console.warn('Notif badge error:', err);
+        });
+    } catch (e) {
+        console.warn('Notif badge setup error:', e);
+    }
 }
 
 function avatarImgError(img) {
@@ -204,12 +292,14 @@ function updateMobileNavAuth() {
     const signInLink = document.getElementById('mobileSignInBtn');
     const signOutLink = document.getElementById('mobileSignOutBtn');
     if (signInLink) {
-        signInLink.style.display = currentUser ? 'none' : '';
-        if (!currentUser) {
-            signInLink.href = 'login.html?platform=mall&redirect=' + encodeURIComponent(location.pathname.split('/').pop() || 'index.html');
+        signInLink.style.display = 'none';
+    }
+    if (signOutLink) {
+        signOutLink.style.display = currentUser ? '' : 'none';
+        if (currentUser) {
+            signOutLink.innerHTML = '<i class="fas fa-sign-out-alt"></i> Log Out';
         }
     }
-    if (signOutLink) signOutLink.style.display = currentUser ? '' : 'none';
     const sellLink = document.querySelector('.nav-selllink');
     const myStoreLink = document.querySelector('.nav-mystore');
     if (sellLink && myStoreLink) {
@@ -294,6 +384,7 @@ function addToCart(product, qty, fulfillment) {
             fulfillment: fulfillment,
             pickupLocation: product.pickupLocation || '',
             deliveryFee: product.delivery ? (Number(product.deliveryFee) || 0) : 0,
+            deliveryRegions: (Array.isArray(product.deliveryRegions) && product.deliveryRegions.length) ? product.deliveryRegions : null,
             allowsPickup: !!product.pickup,
             allowsDelivery: !!product.delivery
         });
@@ -314,6 +405,17 @@ function removeCartItem(id) {
 }
 
 // ===== HELPERS =====
+function ts(t) {
+    if (!t) return 0;
+    if (t.toMillis) return t.toMillis();
+    if (t.seconds) return t.seconds * 1000;
+    return 0;
+}
+
+function isMobileScreen() {
+    return typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches;
+}
+
 function escapeHtml(str) {
     return String(str == null ? '' : str)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -383,6 +485,39 @@ function refreshWishButtons() {
         btn.classList.toggle('on', on);
         btn.title = on ? 'Remove from wishlist' : 'Save to wishlist';
     });
+}
+
+// ===== SHARED CUSTOM CATEGORIES =====
+const MALL_CUSTOM_CATS_KEY = 'mall-categories';
+const MALL_CUSTOM_CATS_DOC = 'store';
+
+async function loadSharedCustomCats() {
+    try {
+        const snap = await db.collection(MALL_CUSTOM_CATS_KEY).doc(MALL_CUSTOM_CATS_DOC).get();
+        const list = (snap.exists && Array.isArray(snap.data().customs)) ? snap.data().customs : [];
+        return list.filter(v => typeof v === 'string' && v.trim());
+    } catch (e) {
+        console.warn('loadSharedCustomCats:', e);
+        return [];
+    }
+}
+
+async function addSharedCustomCat(label) {
+    try {
+        const ref = db.collection(MALL_CUSTOM_CATS_KEY).doc(MALL_CUSTOM_CATS_DOC);
+        await ref.set({ customs: firebase.firestore.FieldValue.arrayUnion(label) }, { merge: true });
+        return true;
+    } catch (e) {
+        console.warn('addSharedCustomCat:', e);
+        return false;
+    }
+}
+
+function titleCaseCat(s) {
+    return String(s || '').trim()
+        .split(/\s+/)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
 }
 
 // ===== SERVICE WORKER (offline shell) =====

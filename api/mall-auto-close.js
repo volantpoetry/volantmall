@@ -3,8 +3,8 @@
 // ============================================================
 // Volant Mall - scheduled maintenance cron.
 //
-// Vercel Cron (`{ "path": "/api/mall-auto-close", "schedule": "0 */6 * * *" }`)
-// runs this every 6 hours. It:
+// Vercel Cron (`{ "path": "/api/mall-auto-close", "schedule": "0 3 * * *" }`)
+// runs this once a day at 3:00 AM (Hobby plans are limited to daily crons). It:
 //   1. auto-closes stale 'completed' orders -> 'received'
 //      (AUTO_COMPLETE_DAYS after they were delivered)
 //   2. nudges sellers whose orders sit in 'processing' for too long

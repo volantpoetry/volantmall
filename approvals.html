@@ -6,7 +6,7 @@
     <title>Moderation — Volant Mall</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="manifest" href="manifest.json">
-    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="icon" type="image/png" href="images/mall-favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -190,6 +190,7 @@
             });
             await db.collection('notifications').add({
                 userId: p.ownerId || '_',
+                platform: 'mall',
                 type: action === 'approve' ? 'product_approved' : 'product_rejected',
                 title: action === 'approve' ? 'Product approved ✅' : 'Product not approved',
                 body: '"' + (p.title || 'Your listing') + '" was ' + (action === 'approve' ? 'approved and is now live on your store.' : 'not approved by a moderator. Please check and fix it.'),

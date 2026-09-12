@@ -5,7 +5,7 @@
 // Serves ONLY the PUBLIC key (+ safe config) for the Volant
 // Mall Paystack business. The secret key never leaves the server.
 // (Volant Reads uses api/paystack-config.js, Volant Lyrics uses
-// api/lyrics-paystack-config.js - each platform runs its own
+// lyrics/api/lyrics-paystack-config.js - each platform runs its own
 // Paystack business so subaccounts are kept separate.)
 // ============================================================
 

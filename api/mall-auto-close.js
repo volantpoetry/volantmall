@@ -88,6 +88,7 @@ async function nudgeProcessing() {
             if (!prev.empty) continue;
             await db().collection('notifications').add({
                 userId: o.sellerId || '_',
+                platform: 'mall',
                 type: 'nudge',
                 title: 'Order awaiting fulfilment ⏰',
                 body: 'Order #' + String(o.ref || doc.id).slice(0, 18) + ' has been processing for over ' + PROCESSING_NUDGE_DAYS + ' days. Please update it so the buyer knows the status.',

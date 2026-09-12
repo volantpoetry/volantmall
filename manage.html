@@ -7,7 +7,7 @@
     <meta name="description" content="Manage your store, products and orders on Volant Mall">
     <meta name="robots" content="noindex, nofollow">
     <link rel="manifest" href="manifest.json">
-    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="icon" type="image/png" href="images/mall-favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -210,6 +210,28 @@
                     </div>
                     <p class="form-hint">Payouts are processed automatically by Paystack after each sale (bearer: account — Paystack 10% commission is deducted for the platform).</p>
                 </div>
+
+                <div class="form-card" style="margin-top:1.3rem;">
+                    <h2><i class="fas fa-crown" style="color:#f59e0b;"></i> Grow your store</h2>
+                    <p class="sub">One-time unlocks — pay once, enjoy the benefit. No subscription, no renewals.</p>
+                    <div id="proCard" style="display:flex;align-items:center;gap:1rem;border:1px solid var(--line);border-radius:14px;padding:1rem;margin-bottom:0.9rem;flex-wrap:wrap;">
+                        <div style="font-size:1.8rem;"><i class="fas fa-store-alt" style="color:#f59e0b;"></i></div>
+                        <div style="flex:1;min-width:220px;">
+                            <div style="font-weight:800;font-size:1.15rem;">Pro Store <span style="font-weight:500;font-size:0.82rem;color:var(--ink-soft);">· GHS 50 one-time</span></div>
+                            <div style="font-size:0.82rem;color:var(--ink-soft);">A gold <i class="fas fa-crown"></i> Pro badge on your storefront and in search results for 30 days — standing out is how small sellers get found.</div>
+                            <div id="proStatus" style="font-size:0.82rem;margin-top:0.3rem;"></div>
+                        </div>
+                        <button class="btn btn-primary" id="proPayBtn" onclick="payProUnlock()"><i class="fas fa-lock-open"></i> Unlock Pro Store</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:1rem;border:1px solid var(--line);border-radius:14px;padding:1rem;flex-wrap:wrap;">
+                        <div style="font-size:1.8rem;"><i class="fas fa-gem" style="color:#f59e0b;"></i></div>
+                        <div style="flex:1;min-width:220px;">
+                            <div style="font-weight:800;font-size:1.15rem;">Featured listing <span style="font-weight:500;font-size:0.82rem;color:var(--ink-soft);">· GHS 15 one-time</span></div>
+                            <div style="font-size:0.82rem;color:var(--ink-soft);">Put one product in the homepage Featured carousel for 30 days. Tap the <i class="fas fa-star"></i> on any product in the Products tab.</div>
+                        </div>
+                        <a class="btn btn-outline" href="#tProducts" onclick="switchTab('products');return false;"><i class="fas fa-star"></i> Choose a product</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -236,7 +258,36 @@
             <div class="form-field"><label>Pickup Location</label><input id="ePickupLoc" /></div>
             <label class="check-row"><input type="checkbox" id="eDelivery" /><div><div class="c-title">Offer delivery</div><div class="c-sub">Deliver for a fee.</div></div></label>
             <div class="form-field"><label>Delivery Fee (GHS)</label><input id="eDelFee" type="number" step="0.01" /></div>
+
+            <label class="check-row"><input type="checkbox" id="eFlash" /><div><div class="c-title"><i class="fas fa-bolt" style="color:#ff5a1f;"></i> Flash sale</div><div class="c-sub">Urgency deal with a live countdown on product pages until it ends.</div></div></label>
+            <div class="form-field" id="eFlashFields" style="display:none;">
+                <label>Flash Price (GHS) + Ends at</label>
+                <div class="form-row-3">
+                    <input id="eFlashPrice" type="number" step="0.01" placeholder="Flash price" />
+                    <input id="eFlashUntil" type="datetime-local" />
+                </div>
+            </div>
             <button class="btn btn-primary btn-block" onclick="saveEdit()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+
+    <!-- FEATURE LISTING MODAL (one-time unlock) -->
+    <div class="modal-backdrop" id="featureModal" onclick="if(event.target===this)closeFeatureModal()">
+        <div class="modal">
+            <h3><i class="fas fa-star" style="color:#f59e0b;"></i> Feature this listing</h3>
+            <div class="form-field">
+                <label>Product</label>
+                <div id="fmTitle" style="font-weight:700;">—</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.9rem;background:var(--surface-soft,#faf7f2);border:1px solid var(--line);border-radius:14px;padding:1rem;margin:0.6rem 0 1.1rem;">
+                <div style="font-size:1.7rem;"><i class="fas fa-gem" style="color:#f59e0b;"></i></div>
+                <div style="flex:1;">
+                    <div style="font-weight:800;font-size:1.4rem;">GHS 15 <span style="font-weight:500;font-size:0.8rem;color:var(--ink-soft);">one-time</span></div>
+                    <div style="font-size:0.82rem;color:var(--ink-soft);">Featured spot in the homepage carousel for 30 days. No subscription, no renewal.</div>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-block" id="fmPayBtn" onclick="payFeatureUnlock()"><i class="fas fa-lock-open"></i> Pay with Paystack</button>
+            <button class="btn btn-ghost btn-block" style="margin-top:0.5rem;" onclick="closeFeatureModal()">Cancel</button>
         </div>
     </div>
 
@@ -284,6 +335,8 @@
     let myOrders = [];
     let editingId = null;
     let editingCats = [];
+    let featureProductId = null;
+    let _reviewStats = { avg: 0, count: 0 };
 
     function onAppAuthChange(user) {
         if (user) { document.getElementById('gate').style.display = 'none'; document.getElementById('dash').style.display = ''; restoreTab(); loadDashboard(); }
@@ -309,6 +362,14 @@
 
             sharedStoreCats = await loadSharedCustomCats();
 
+            try {
+                const revSnap = await db.collection('mall-reviews').where('sellerId', '==', uid).get();
+                const rs = [];
+                revSnap.forEach(d => rs.push(Number((d.data() || {}).rating) || 0));
+                _reviewStats = { avg: rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 0, count: rs.length };
+            } catch (e) { _reviewStats = { avg: 0, count: 0 }; }
+            if (myProducts.length) renderStats();
+
             db.collection('mall-products').where('ownerId', '==', uid).orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     myProducts = [];
@@ -333,6 +394,7 @@
 
             fillSettings();
             renderPayout();
+            renderProStatus();
             buildCategorySelects();
         } catch (err) {
             console.error('Dashboard load error:', err);
@@ -340,17 +402,165 @@
         }
     }
 
+    function sellerTier(sold) {
+        if (sold >= 10) return { key: 'gold', label: 'Gold Seller', cls: 'tf-gold' };
+        if (sold >= 3) return { key: 'silver', label: 'Silver Seller', cls: 'tf-silver' };
+        if (sold >= 1) return { key: 'bronze', label: 'Bronze Seller', cls: 'tf-bronze' };
+        return null;
+    }
+    function tierBadgeHTML(sold) {
+        const t = sellerTier(sold);
+        return t ? `<span class="tier-badge ${t.cls}" title="Sells ${sold}+ on Volant Mall"><i class="fas fa-medal"></i> ${t.label}</span>` : '<span style="color:var(--ink-soft);font-weight:500;">New seller</span>';
+    }
+
     function renderStats() {
         const activeCount = myProducts.filter(p => p.status !== 'deleted').length;
         const released = myOrders.filter(o => o.orderStatus === 'completed' || o.orderStatus === 'received');
         const earnings = released.reduce((s, o) => s + (Number(o.amount) || 0), 0);
         const pending = myOrders.filter(o => o.orderStatus === 'processing').length;
+        const soldUnits = myProducts.reduce((s, p) => s + (Number(p.saleCount) || 0), 0);
+
+        // Performance score: quality (review avg) up to 60 + volume (sales) up to 40.
+        const revAvg = Number(_reviewStats.avg) || 0;
+        const revCnt = Number(_reviewStats.count) || 0;
+        let perfScore;
+        if (revCnt > 0 || soldUnits > 0) {
+            perfScore = Math.round(Math.min(revAvg / 5, 1) * 60 + Math.min(soldUnits / 40, 1) * 40);
+        } else {
+            perfScore = activeCount ? Math.min(24, activeCount * 2) : 0;
+        }
+        const grade = perfScore >= 90 ? 'Elite' : perfScore >= 75 ? 'Pro' : perfScore >= 50 ? 'Rising' : perfScore >= 25 ? 'Developing' : 'New';
+        const proActive = myStore && myStore.proStore === true;
+        const proUntil = proActive && myStore.proStoreUntil
+            ? (myStore.proStoreUntil.toDate ? myStore.proStoreUntil.toDate().toLocaleDateString() : new Date(myStore.proStoreUntil).toLocaleDateString()) : '';
+        const proBadge = proActive ? `<span class="tier-badge tf-pro" title="Pro store${proUntil ? ' until ' + proUntil : ''}"><i class="fas fa-crown"></i> Pro store</span>` : '';
+
         document.getElementById('statsRow').innerHTML = `
             <div class="stat"><div class="n">${activeCount}</div><div class="l">Products</div></div>
             <div class="stat"><div class="n">${myOrders.length}</div><div class="l">Total Orders</div></div>
             <div class="stat"><div class="n">${pending}</div><div class="l">Pending</div></div>
+            <div class="stat"><div class="n">${soldUnits}</div><div class="l">Units sold</div></div>
             <div class="stat"><div class="n" style="color:var(--success);">${formatGHS(earnings)}</div><div class="l">Earned</div></div>
+            <div class="stat"><div class="n" style="display:inline-block;padding-top:4px;">${proBadge} ${tierBadgeHTML(soldUnits)}</div><div class="l">Seller tier</div></div>
+            <div class="stat"><div class="n" style="color:${perfScore >= 75 ? 'var(--primary)' : 'inherit'};">${perfScore}<span style="font-size:0.75rem;color:var(--ink-soft);">/100</span></div><div class="l">Performance · ${grade}</div></div>
         `;
+    }
+
+    function featureProd(id) {
+        const p = myProducts.find(x => x.id === id);
+        if (!p) return;
+        if (p.status === 'pending' || p.status === 'rejected') { showToast('This listing is still under moderation.', 'info'); return; }
+        featureProductId = id;
+        document.getElementById('fmTitle').textContent = p.title || 'Product';
+        document.getElementById('featureModal').classList.add('active');
+    }
+    function closeFeatureModal() { document.getElementById('featureModal').classList.remove('active'); featureProductId = null; }
+
+    function renderProStatus() {
+        const el = document.getElementById('proStatus');
+        if (!el || !myStore) return;
+        if (myStore.proStore === true) {
+            const until = myStore.proStoreUntil ? (myStore.proStoreUntil.toDate ? myStore.proStoreUntil.toDate() : new Date(myStore.proStoreUntil)) : null;
+            const txt = until && !isNaN(until.getTime()) ? 'Active until ' + until.toLocaleDateString() : 'Active';
+            el.innerHTML = '<span style="color:#1f8a4c;font-weight:700;"><i class="fas fa-check-circle"></i> Pro Store is ' + txt + '.</span>';
+            const btn = document.getElementById('proPayBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-check"></i> Pro Store active'; }
+        } else {
+            el.innerHTML = '<span style="color:var(--ink-soft);">Not active yet.</span>';
+        }
+    }
+
+    function buildUnlockConfig(type, productId, onSuccess, onClose) {
+        const plan = type === 'pro' ? { amount: 5000, label: 'Pro Store' } : { amount: 1500, label: 'Featured listing' };
+        return {
+            key: PAYSTACK_PUBLIC_KEY,
+            email: (userData && userData.email) || (currentUser && currentUser.email) || '',
+            amount: plan.amount,
+            currency: 'GHS',
+            metadata: { custom_fields: [
+                { display_name: 'Unlock', variable_name: 'unlock', value: type },
+                { display_name: 'Platform', variable_name: 'platform', value: 'volant-mall' },
+                { display_name: 'Seller', variable_name: 'seller_id', value: currentUser ? currentUser.uid : '' }
+            ]},
+            callback: onSuccess,
+            onClose: onClose
+        };
+    }
+
+    function payFeatureUnlock() {
+        if (!featureProductId || !currentUser) return;
+        if (typeof PaystackPop === 'undefined') { showToast('Payment system is loading…', 'info'); return; }
+        if (!PAYSTACK_PUBLIC_KEY || PAYSTACK_PUBLIC_KEY.includes('xxxxxxxx')) { showToast('Paystack is not configured. Contact support.', 'error'); return; }
+        const btn = document.getElementById('fmPayBtn');
+        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting payment…';
+        const ref = 'VOL' + Date.now() + Math.random().toString(36).slice(2, 8);
+        const config = buildUnlockConfig('feature', featureProductId,
+            function (response) {
+                applyUnlock('feature', (response && response.reference) || ref, featureProductId);
+            },
+            function () {
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock-open"></i> Pay with Paystack';
+                showToast('Payment cancelled.', 'info');
+            });
+        try {
+            const handler = PaystackPop.setup(config);
+            handler.openIframe();
+        } catch (e) {
+            console.error(e);
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock-open"></i> Pay with Paystack';
+            showToast('Payment could not start.', 'error');
+        }
+    }
+
+    function payProUnlock() {
+        if (!currentUser) return;
+        if (typeof PaystackPop === 'undefined') { showToast('Payment system is loading…', 'info'); return; }
+        if (!PAYSTACK_PUBLIC_KEY || PAYSTACK_PUBLIC_KEY.includes('xxxxxxxx')) { showToast('Paystack is not configured. Contact support.', 'error'); return; }
+        const btn = document.getElementById('proPayBtn');
+        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting payment…';
+        const ref = 'VOL' + Date.now() + Math.random().toString(36).slice(2, 8);
+        const config = buildUnlockConfig('pro', '',
+            function (response) {
+                applyUnlock('pro', (response && response.reference) || ref);
+            },
+            function () {
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock-open"></i> Unlock Pro Store';
+                showToast('Payment cancelled.', 'info');
+            });
+        try {
+            const handler = PaystackPop.setup(config);
+            handler.openIframe();
+        } catch (e) {
+            console.error(e);
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock-open"></i> Unlock Pro Store';
+            showToast('Payment could not start.', 'error');
+        }
+    }
+
+    async function applyUnlock(type, reference, productId) {
+        try {
+            const idToken = await currentUser.getIdToken();
+            const res = await fetch(PAYSTACK_API_BASE + '/mall-unlock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reference: reference, idToken: idToken, type: type, productId: productId || undefined })
+            });
+            const body = await res.json().catch(() => null);
+            if (!body) { showToast('Could not confirm unlock. Keep your reference: ' + reference, 'error'); return; }
+            if (body.success) {
+                showToast(body.message || (type === 'pro' ? 'Pro Store unlocked! 🎉' : 'Listing featured 🎉'), 'success');
+                closeFeatureModal();
+                myStore = null;
+                await loadDashboard();
+            } else {
+                showToast(body.message || 'Unlock could not be applied.', 'error');
+                closeFeatureModal();
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error confirming unlock.', 'error');
+            closeFeatureModal();
+        }
     }
 
     function catLabel(key) {
@@ -380,12 +590,13 @@
             <div class="mproduct">
                 <div class="md-img">${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" alt="">` : `<i class="fas fa-box-open" style="color:#b7aad9;font-size:1.2rem;"></i>`}</div>
                 <div class="md-body">
-                    <div class="md-title">${escapeHtml(p.title)} ${lowStock ? `<span class="low-stock-flag" title="Only ${p.stock} left">Low stock</span>` : ''}</div>
+                    <div class="md-title">${escapeHtml(p.title)} ${lowStock ? `<span class="low-stock-flag" title="Only ${p.stock} left">Low stock</span>` : ''} ${p.featured === true ? '<span class="low-stock-flag" style="background:#f59e0b;color:#fff;" title="Featured on the homepage">Featured</span>' : ''}</div>
                     <div class="md-sub">${escapeHtml(pCats)}${p.customCategory ? ' · ' + escapeHtml(p.customCategory) : ''} · ${formatGHS(p.price)} · ${p.stock} left · ${p.saleCount || 0} sold ${statusBadge}</div>
                     <div class="md-sub">${p.views ? '<i class="fas fa-eye"></i> ' + p.views + ' views' : ''} ${p.delivery ? '<i class="fas fa-truck"></i> Delivery ' + formatGHS(p.deliveryFee) : ''}${p.delivery && p.pickup ? ' · ' : ''}${p.pickup ? '<i class="fas fa-walking"></i> Pickup' : ''}${pending ? '<br><span style="color:var(--ink-soft);font-size:0.78rem;">New listings are checked by moderators before going live.</span>' : ''}</div>
                 </div>
                 <div class="md-actions">
                     ${stockToggle}
+                    <button class="mini-btn" title="${p.featured === true ? 'Featured listing' : 'Feature this listing'}" onclick="featureProd('${p.id}')"><i class="fas fa-star" style="color:${p.featured === true ? '#f59e0b' : 'inherit'};"></i></button>
                     <button class="mini-btn" title="Edit" onclick="openEditor('${p.id}')"><i class="fas fa-pen"></i></button>
                     <button class="mini-btn danger" title="Delete" onclick="deleteProduct('${p.id}')"><i class="fas fa-trash-alt"></i></button>
                 </div>
@@ -428,6 +639,15 @@
         document.getElementById('ePickupLoc').value = p.pickupLocation || '';
         document.getElementById('eDelivery').checked = !!p.delivery;
         document.getElementById('eDelFee').value = p.deliveryFee || '';
+        const eFlash = document.getElementById('eFlash');
+        const eFlashFields = document.getElementById('eFlashFields');
+        eFlash.checked = p.flashSell === true;
+        eFlashFields.style.display = eFlash.checked ? '' : 'none';
+        document.getElementById('eFlashPrice').value = p.flashPrice || p.salePrice || '';
+        const fu = p.flashUntil ? (p.flashUntil && p.flashUntil.toDate ? p.flashUntil.toDate() : new Date(p.flashUntil)) : null;
+        document.getElementById('eFlashUntil').value = fu && !isNaN(fu.getTime()) && fu.getTime() > 0
+            ? new Date(fu.getTime() - fu.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+        eFlash.onchange = function() { eFlashFields.style.display = this.checked ? '' : 'none'; };
         editingCats = (Array.isArray(p.categories) && p.categories.length) ? [...p.categories] : [p.category || 'other'];
         if (editingCats.indexOf('other') === -1 && !editingCats.length) editingCats = ['other'];
         document.getElementById('eOtherCat').value = p.customCategory || '';
@@ -448,6 +668,21 @@
             delivery: document.getElementById('eDelivery').checked,
             deliveryFee: parseFloat(document.getElementById('eDelFee').value) || 0
         };
+        const eFlash = document.getElementById('eFlash').checked;
+        const flashPrice = parseFloat(document.getElementById('eFlashPrice').value) || 0;
+        const flashUntilStr = document.getElementById('eFlashUntil').value;
+        const flashUntilMs = flashUntilStr ? new Date(flashUntilStr).getTime() : 0;
+        if (eFlash && flashPrice > 0 && flashPrice < data.price && flashUntilMs > Date.now()) {
+            data.flashSell = true;
+            data.flashPrice = flashPrice;
+            data.flashUntil = new Date(flashUntilMs).toISOString();
+            data.salePrice = flashPrice;
+        } else {
+            data.flashSell = false;
+            data.flashPrice = 0;
+            data.flashUntil = null;
+            data.salePrice = 0;
+        }
         const wasPending = (myProducts.find(x => x.id === editingId) || {}).status === 'pending'
             || (myProducts.find(x => x.id === editingId) || {}).status === 'rejected';
         data.status = (parseInt(document.getElementById('eStock').value, 10) || 0) > 0
@@ -618,6 +853,7 @@
             // notify the buyer of the update
             db.collection('notifications').add({
                 userId: o.userId || '_',
+                platform: 'mall',
                 type: 'order_status',
                 title: 'Order update: ' + (STATUS_LABELS[status] || status),
                 body: 'Your order #' + String(o.ref || id).slice(0, 18) + ' from ' + (o.sellerName || 'the store') + ' is now ' + (STATUS_LABELS[status] || status) + '.',
@@ -647,6 +883,7 @@
             o.trackingNumber = track;
             db.collection('notifications').add({
                 userId: o.userId || '_',
+                platform: 'mall',
                 type: 'order_status',
                 title: track ? 'Your parcel is on the way 🚚' : 'Tracking updated',
                 body: track

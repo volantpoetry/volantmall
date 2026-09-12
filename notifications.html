@@ -6,7 +6,7 @@
     <title>Notifications — Volant Mall</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="manifest" href="manifest.json">
-    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="icon" type="image/png" href="images/mall-favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -128,8 +128,33 @@
     }
 
     const notifIcons = {
-        new_order: 'fas fa-store', order_status: 'fas fa-shipping-fast', product_approved: 'fas fa-check-circle', product_rejected: 'fas fa-ban', review: 'fas fa-star', message: 'fas fa-comment-dots', referral: 'fas fa-gift', nudge: 'fas fa-clock', info: 'fas fa-info-circle'
+        new_order: 'fas fa-store', order_status: 'fas fa-shipping-fast', product_approved: 'fas fa-check-circle', product_rejected: 'fas fa-ban', review: 'fas fa-star', message: 'fas fa-comment-dots', referral: 'fas fa-gift', nudge: 'fas fa-clock', info: 'fas fa-info-circle',
+        like: 'fas fa-heart', comment: 'fas fa-comment', reply: 'fas fa-reply', follow: 'fas fa-user-plus', follow_back: 'fas fa-handshake', friends: 'fas fa-handshake', collaboration: 'fas fa-handshake', collaboration_request: 'fas fa-handshake',
+        book_approved: 'fas fa-check-circle', book_rejected: 'fas fa-ban', book_removed: 'fas fa-book', deletion: 'fas fa-trash', preorder_reminder: 'fas fa-clock', preorder_released: 'fas fa-gift', preorder_sale: 'fas fa-tags', release: 'fas fa-bullhorn',
+        pow: 'fas fa-trophy', pow_wo: 'fas fa-crown', quot: 'fas fa-quote-left', welcome: 'fas fa-star', announcement: 'fas fa-bullhorn'
     };
+
+    function inferNotifPlatform(type) {
+        if (type === 'book_approved' || type === 'book_rejected' || type === 'preorder_reminder' || type === 'preorder_released' || type === 'preorder_sale' || type === 'release' || type === 'book_removed') return 'reads';
+        if (type === 'like' || type === 'comment' || type === 'reply' || type === 'follow' || type === 'follow_back' || type === 'friends' || type === 'collaboration' || type === 'collaboration_request' || type === 'pow' || type === 'pow_wo' || type === 'quot' || type === 'welcome' || type === 'announcement' || type === 'deletion') return 'poetry';
+        if (type === 'commission' || type === 'commission_accepted' || type === 'commission_declined' || type === 'custom_lyrics' || type === 'collab_request' || type === 'play') return 'lyrics';
+        return '';
+    }
+
+    function platformLabel(p) {
+        if (p === 'reads') return 'Volant Reads';
+        if (p === 'lyrics') return 'Volant Lyrics';
+        if (p === 'mall') return 'Volant Mall';
+        if (p === 'poetry') return 'Volant Poetry';
+        return '';
+    }
+
+    function notifBadge(n) {
+        const p = n.platform || inferNotifPlatform(n.type);
+        const label = platformLabel(p);
+        if (!label) return '';
+        return `<span class="notif-badge notif-badge-${p}">${label}</span>`;
+    }
 
     function ts(t) {
         return t ? (t.toMillis ? t.toMillis() : (t.seconds ? t.seconds * 1000 : 0)) : 0;
@@ -137,14 +162,24 @@
 
     async function loadNotifications() {
         try {
-            const snap = await db.collection('notifications')
+            const qa = await db.collection('notifications')
                 .where('userId', '==', currentUser.uid)
                 .orderBy('createdAt', 'desc')
                 .limit(40)
                 .get();
+            const qb = await db.collection('notifications')
+                .where('forUser', '==', currentUser.uid)
+                .orderBy('createdAt', 'desc')
+                .limit(40)
+                .get();
+            const byId = new Map();
+            qa.forEach(doc => { if (!byId.has(doc.id)) byId.set(doc.id, doc); });
+            qb.forEach(doc => { if (!byId.has(doc.id)) byId.set(doc.id, doc); });
+            const docs = Array.from(byId.values());
+            docs.sort((a, b) => ts(b.data().createdAt || b.data().timestamp) - ts(a.data().createdAt || a.data().timestamp));
             myNotifs = [];
             const unread = [];
-            snap.forEach(doc => {
+            docs.slice(0, 40).forEach(doc => {
                 const d = doc.data();
                 myNotifs.push({ id: doc.id, ...d });
                 if (!d.read) unread.push(doc.id);
@@ -171,9 +206,9 @@
             <div class="notif-card ${n.read ? 'read' : ''}">
                 <div class="notif-icon"><i class="${notifIcons[n.type] || notifIcons.info}"></i></div>
                 <div class="notif-body">
-                    <div class="notif-title">${escapeHtml(n.title || 'Update')}</div>
-                    <div class="notif-text">${escapeHtml(n.body || '')}</div>
-                    <div class="notif-date">${new Date(ts(n.createdAt)).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="notif-title">${notifBadge(n)}${escapeHtml(n.title || n.subject || 'Update')}</div>
+                    <div class="notif-text">${escapeHtml(n.body || n.message || '')}</div>
+                    <div class="notif-date">${new Date(ts(n.createdAt || n.timestamp || n.time)).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
                 ${n.orderId ? `<a class="btn btn-ghost btn-sm" href="orders.html"><i class="fas fa-arrow-right"></i></a>` : ''}
             </div>`).join('');

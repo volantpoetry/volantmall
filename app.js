@@ -222,7 +222,7 @@ function renderAvatar() {
         if (menu) menu.innerHTML = '';
         return;
     }
-    const photoURL = (userData && (userData.cachedAvatarURL || userData.photoURL)) || currentUser.photoURL || null;
+    const photoURL = (userData && (userData.photoURL || userData.cachedAvatarURL)) || currentUser.photoURL || null;
     if (el) {
         el.classList.remove('user-signin');
         const displayName = (userData && (userData.username || userData.displayName)) || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '') || 'User';
@@ -376,10 +376,17 @@ function updateMobileNavAuth() {
 
 initMobileNav();
 
+function currentPageForRedirect() {
+    const page = location.pathname.split('/').pop();
+    return './' + (page || 'index.html') + location.search;
+}
 function requireAuth(redirect) {
-    const target = redirect || location.pathname.split('/').pop() || 'index.html';
+    const target = redirect || currentPageForRedirect() || 'index.html';
     window.location.href = 'login.html?platform=mall&redirect=' + encodeURIComponent(target);
 }
+window.signInHere = function () {
+    requireAuth(currentPageForRedirect());
+};
 
 function signOutUser() {
     if (auth && auth.signOut) {
@@ -408,6 +415,7 @@ function showToast(message, type = 'info') {
 // ===== CART (shared across pages) =====
 const MALL_CART_KEY = 'volant_mall_cart';
 const MALL_CART_COUNT_KEY = 'volant_mall_cart_count';
+const MALL_CART_SAVED_AT_KEY = 'volant_mall_cart_saved_at';
 
 function getCartItems() {
     try { return JSON.parse(localStorage.getItem(MALL_CART_KEY)) || []; } catch (e) { return []; }
@@ -415,6 +423,7 @@ function getCartItems() {
 function saveCartItems(items) {
     localStorage.setItem(MALL_CART_KEY, JSON.stringify(items));
     localStorage.setItem(MALL_CART_COUNT_KEY, String(items.reduce((s, it) => s + (it.qty || 1), 0)));
+    try { localStorage.setItem(MALL_CART_SAVED_AT_KEY, String(Date.now())); } catch (e) {}
     updateCartBadge();
 }
 function getCartCount() {
@@ -547,6 +556,9 @@ function refreshWishButtons() {
         btn.classList.toggle('on', on);
         btn.title = on ? 'Remove from wishlist' : 'Save to wishlist';
     });
+    if (typeof onWishChanged === 'function') {
+        try { onWishChanged(); } catch (e) { /* hook is optional */ }
+    }
 }
 
 // ===== SHARED CUSTOM CATEGORIES =====
@@ -615,9 +627,70 @@ function injectDrawerTheme() {
     applyTheme();
 }
 
+// Preserve the current page (and its query string) when a guest taps the
+// static top-bar / footer "Sign in" links, so after login they land back on
+// the same product / store page instead of the home page.
+function rewriteSignInLinks() {
+    const cur = location.pathname.split('/').pop();
+    const skipPages = ['login.html', 'signup.html', 'verify-email.html', 'users-reset.html'];
+    if (skipPages.indexOf(cur) >= 0) return;
+    const target = encodeURIComponent(currentPageForRedirect());
+    document.querySelectorAll('a[href*="login.html?platform=mall"]').forEach(a => {
+        if (a.getAttribute('onclick')) return;
+        a.href = 'login.html?platform=mall&redirect=' + target;
+    });
+}
+
+// ===== ABANDONED CART RECOVERY =====
+// If a buyer leaves items in the cart for more than ~3 hours, nudge them:
+// pop a dismissable banner and (when signed in) file a notifications doc so
+// it lands in the bell too. Rate-limited to once every 12 hours per cart.
+const MALL_CART_REMIND_KEY = 'volant_mall_cart_reminded_at';
+function checkAbandonedCart() {
+    try {
+        const items = getCartItems();
+        if (!items.length) return;
+        const savedAt = parseInt(localStorage.getItem(MALL_CART_SAVED_AT_KEY) || '0', 10) || 0;
+        if (!savedAt) return;
+        const ageMs = Date.now() - savedAt;
+        if (ageMs < 3 * 60 * 60 * 1000) return;
+
+        const last = parseInt(localStorage.getItem(MALL_CART_REMIND_KEY) || '0', 10) || 0;
+        if (Date.now() - last < 12 * 60 * 60 * 1000) return;
+        try { localStorage.setItem(MALL_CART_REMIND_KEY, String(Date.now())); } catch (e) {}
+
+        const qty = items.reduce((s, it) => s + (it.qty || 1), 0);
+        const titles = items.slice(0, 2).map(it => it.title || 'item').join(', ');
+        const pending = currentUser
+            ? db.collection('notifications').add({
+                userId: currentUser.uid,
+                platform: 'mall',
+                type: 'cart_reminder',
+                title: 'Your cart is waiting 🛍️',
+                body: qty + ' item' + (qty === 1 ? '' : 's') + ' (' + titles + (items.length > 2 ? '…' : '') + ') are still in your bag on Volant Mall.',
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(e => console.warn('Cart reminder notif failed:', e))
+            : Promise.resolve();
+
+        pending.then(() => {
+            if (document.getElementById('cartReminder')) return;
+            const div = document.createElement('div');
+            div.id = 'cartReminder';
+            div.style.cssText = 'position:fixed;bottom:1rem;left:1rem;right:1rem;max-width:430px;z-index:9999;background:#2a2138;color:#fff;border-radius:16px;padding:0.85rem 1rem;display:flex;align-items:center;gap:0.8rem;box-shadow:0 10px 30px rgba(0,0,0,0.35);font-size:0.85rem;';
+            div.innerHTML = '<i class="fas fa-shopping-bag" style="font-size:1.2rem;flex-shrink:0;"></i><div style="flex:1;">' + qty + ' item' + (qty === 1 ? '' : 's') + ' still in your cart. <a href="#" style="color:#ffd35c;font-weight:700;text-decoration:underline;" onclick="event.preventDefault();if(window.openCart){openCart();}else{location.href=\'index.html\';}">Finish your order &rarr;</a></div><button onclick="this.parentNode.remove()" style="background:none;border:none;color:#aaa;font-size:1.1rem;cursor:pointer;line-height:1;" aria-label="Dismiss">&times;</button>';
+            document.body.appendChild(div);
+        }).catch(e => console.warn('Cart reminder banner error:', e));
+    } catch (e) {
+        console.warn('Abandoned cart check error:', e);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateCartBadge();
     loadPaystackConfig();
+    checkAbandonedCart();
     renderAvatar();
     injectDrawerTheme();
+    rewriteSignInLinks();
 });

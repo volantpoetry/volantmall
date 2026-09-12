@@ -6,7 +6,7 @@
 // Uses the Volant Mall Paystack business secret key ONLY, so
 // seller payouts settle under the Volant Mall business.
 // (Volant Reads uses api/create-subaccount.js, Volant Lyrics uses
-// api/lyrics-create-subaccount.js - each platform keeps its own.)
+// lyrics/api/lyrics-create-subaccount.js - each platform keeps its own.)
 // ============================================================
 
 const { verifyToken } = require('../lib/mall-admin');

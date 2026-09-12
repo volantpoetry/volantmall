@@ -16,7 +16,7 @@
     <link rel="canonical" href="https://volantmall.vercel.app/">
     <link rel="manifest" href="manifest.json">
     <link rel="sitemap" type="application/xml" href="sitemap.xml">
-    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="icon" type="image/png" href="images/mall-favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -94,6 +94,13 @@
 
         <!-- ===== SHOP ===== -->
         <section class="section" id="shop">
+            <div id="featuredBand" style="display:none;margin-bottom:1.6rem;">
+                <div style="display:flex;align-items:baseline;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.7rem;">
+                    <h2 style="margin:0;"><i class="fas fa-star" style="color:#f59e0b;"></i> Featured</h2>
+                    <span style="font-size:0.82rem;color:var(--ink-soft);">Sellers who unlocked the spotlight</span>
+                </div>
+                <div class="feat-track" id="featuredTrack"></div>
+            </div>
             <div class="section-head">
                 <h2>Shop All</h2>
             </div>
@@ -109,6 +116,8 @@
                 </select>
             </div>
             <div class="grid" id="productGrid"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+            <div id="alertBand" style="position:fixed;right:1rem;bottom:1rem;z-index:400;display:flex;flex-direction:column;gap:0.55rem;max-width:320px;"></div>
+            <style>.watch-alert{background:#fff;border:1px solid #ffd9c0;border-left:4px solid #ff5a1f;border-radius:10px;padding:0.7rem 0.9rem;font-size:0.82rem;color:var(--ink);box-shadow:0 8px 24px rgba(0,0,0,0.14);display:flex;align-items:flex-start;gap:0.6rem;animation:waIn .3s ease;}@keyframes waIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.wa-msg{flex:1;line-height:1.35}.wa-close{background:none;border:none;font-size:1.1rem;color:var(--ink-soft);cursor:pointer;padding:0;line-height:1}.feat-track{display:flex;gap:0.9rem;overflow-x:auto;scroll-snap-type:x mandatory;padding:0.2rem 0.15rem 0.8rem;scrollbar-width:thin;}.feat-track::-webkit-scrollbar{height:6px}.feat-track::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px}.feat-card{flex:0 0 150px;scroll-snap-align:start;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card,#fff);transition:transform .18s ease,box-shadow .18s ease;}.feat-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,0.12)}.feat-card a{text-decoration:none;color:inherit}.feat-thumb{height:130px;background:#f4efe7;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}.feat-thumb img{width:100%;height:100%;object-fit:cover}.feat-thumb i{color:#c9b8e2;font-size:1.6rem}.feat-thumb .feat-flag{position:absolute;top:0.45rem;right:0.45rem;background:linear-gradient(135deg,#f59e0b,#f7b733);color:#fff;font-size:0.62rem;font-weight:800;padding:0.18rem 0.45rem;border-radius:20px}.feat-card .feat-title{font-weight:700;font-size:0.84rem;padding:0.5rem 0.55rem 0.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.feat-card .feat-price{font-weight:800;color:var(--primary);font-size:0.86rem;padding:0 0.55rem}.feat-card .feat-price .price-strike{color:var(--ink-soft);text-decoration:line-through;font-weight:600;font-size:0.74rem;margin-left:0.25rem}.feat-card .feat-seller{font-size:0.72rem;color:var(--ink-soft);padding:0.15rem 0.55rem 0.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}</style>
         </section>
     </div>
 
@@ -241,6 +250,9 @@
             id, title: d.title,
             price: Number(d.price) || 0,
             salePrice: Number(d.salePrice) || 0,
+            flashSell: d.flashSell === true,
+            flashPrice: Number(d.flashPrice) || 0,
+            flashUntil: d.flashUntil || null,
             category: catKey,
             categories: (Array.isArray(d.categories) && d.categories.length) ? d.categories : [catKey],
             customCategory: d.customCategory || '',
@@ -261,6 +273,7 @@
             deliveryRegions: (Array.isArray(d.deliveryRegions) && d.deliveryRegions.length) ? d.deliveryRegions : null,
             description: d.description || '',
             currency: d.currency || 'GHS',
+            featured: d.featured === true,
             verifiedSeller: false
         };
     }
@@ -280,7 +293,8 @@
             productCount: 0,
             inStockCount: 0,
             city: d.city || '',
-            logoUrl: d.logoUrl || ''
+            logoUrl: d.logoUrl || '',
+            proStore: d.proStore === true
         };
     }
 
@@ -299,9 +313,69 @@
     function renderAllMall() {
         recomputeSellers();
         renderSellers();
+        renderFeatured();
         renderChips();
         renderProducts();
+        runPriceWatch();
     }
+
+    // ===== PRICE-WATCH / BACK-IN-STOCK ALERTS (wishlist) =====
+    const MALL_WATCH_KEY = 'volant_mall_watch';
+    function watchMap() { try { return JSON.parse(localStorage.getItem(MALL_WATCH_KEY)) || {}; } catch (e) { return {}; } }
+    function effectiveWatchPrice(p) {
+        const sale = Number(p.salePrice);
+        return (sale > 0 && sale < Number(p.price)) ? sale : Number(p.price);
+    }
+    function pushAlert(msg) {
+        if (!msg) return;
+        const band = document.getElementById('alertBand');
+        if (band) {
+            const el = document.createElement('div');
+            el.className = 'watch-alert';
+            el.innerHTML = `<span class="wa-msg">${msg}</span><button class="wa-close" onclick="this.parentElement.remove()">×</button>`;
+            band.appendChild(el);
+            setTimeout(() => { if (el.parentElement) el.remove(); }, 12000);
+        }
+        if (currentUser && currentUser.uid) {
+            db.collection('notifications').add({
+                userId: currentUser.uid,
+                platform: 'mall',
+                type: 'wishlist',
+                title: '💰 Wishlist price alert',
+                body: msg.replace(/<[^>]+>/g, ''),
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(() => {});
+        }
+    }
+    let lastWatchIds = [];
+    function runPriceWatch() {
+        const wished = getWishlist();
+        const map = watchMap();
+        const updates = {};
+        const alerts = [];
+        wished.forEach(id => {
+            const p = allProducts.find(x => x.id === id);
+            if (!p) return;
+            const prev = map[id];
+            const nowPrice = effectiveWatchPrice(p);
+            const nowOut = p.status === 'stockout' || p.stock <= 0;
+            updates[id] = { price: nowPrice, out: nowOut };
+            if (!prev) return;
+            const prevPrice = (typeof prev.price === 'number') ? prev.price : nowPrice;
+            const wasOut = !!prev.out;
+            if (!nowOut && nowPrice > 0 && nowPrice < prevPrice) {
+                alerts.push(`📉 <b>${escapeHtml(p.title)}</b> just dropped to <b>${formatGHS(nowPrice)}</b> — on sale now!`);
+            } else if (wasOut && !nowOut && JSON.stringify(lastWatchIds) !== JSON.stringify(wished)) {
+                alerts.push(`🔄 <b>${escapeHtml(p.title)}</b> is back in stock!`);
+            }
+        });
+        Object.keys(map).forEach(id => { if (!wished.includes(id)) delete updates[id]; });
+        localStorage.setItem(MALL_WATCH_KEY, JSON.stringify(updates));
+        lastWatchIds = wished;
+        alerts.forEach(pushAlert);
+    }
+    window.onWishChanged = function () { setTimeout(runPriceWatch, 0); };
 
     function loadMall() {
         try {
@@ -334,6 +408,30 @@
         return c ? c.label : 'Other';
     }
 
+    function renderFeatured() {
+        const band = document.getElementById('featuredBand');
+        const track = document.getElementById('featuredTrack');
+        if (!band || !track) return;
+        const feat = allProducts.filter(p => p.featured === true && p.status === 'active' && p.stock > 0);
+        if (!feat.length) { band.style.display = 'none'; return; }
+        band.style.display = '';
+        track.innerHTML = feat.map(p => {
+            const onSale = p.salePrice > 0 && p.salePrice < p.price;
+            return `
+            <div class="feat-card">
+                <a href="details.html?id=${encodeURIComponent(p.id)}">
+                    <div class="feat-thumb">
+                        ${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.title)}" loading="lazy">` : `<i class="fas fa-box-open"></i>`}
+                        <span class="feat-flag"><i class="fas fa-star"></i></span>
+                    </div>
+                    <div class="feat-title">${escapeHtml(p.title)}</div>
+                    <div class="feat-price">${onSale ? `${formatGHS(p.salePrice)} <span class="price-strike">${formatGHS(p.price)}</span>` : formatGHS(p.price)}</div>
+                    <div class="feat-seller">by ${escapeHtml(p.storeName)}</div>
+                </a>
+            </div>`;
+        }).join('');
+    }
+
     function renderSellers() {
         const grid = document.getElementById('storeGrid');
         // Genuinely featured: top stores by in-stock listings, up to 8
@@ -349,7 +447,7 @@
             <a class="scard" href="store.html?store=${encodeURIComponent(s.id)}">
                 <div class="s-avatar">${s.logoUrl ? `<img src="${escapeHtml(s.logoUrl)}" alt="">` : escapeHtml(s.storeName.charAt(0).toUpperCase())}</div>
                 <div class="s-info">
-                    <div class="s-name">${escapeHtml(s.storeName)}</div>
+                    <div class="s-name">${escapeHtml(s.storeName)} ${s.proStore ? `<span class="tier-badge tf-pro" title="Pro store"><i class="fas fa-crown"></i> Pro</span>` : ''}</div>
                     <div class="s-cat"><i class="fas fa-tag"></i> ${escapeHtml(s.customCategory || (s.categories || []).map(catLabel).join(', '))} · ${s.inStockCount} item${s.inStockCount === 1 ? '' : 's'}</div>
                     ${s.city ? `<div class="s-cat"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(s.city)}</div>` : ''}
                 </div>
@@ -421,6 +519,17 @@
         });
     }
 
+    function sellerTier(sold) {
+        if (sold >= 10) return { key: 'gold', label: 'Gold Seller', cls: 'tf-gold' };
+        if (sold >= 3) return { key: 'silver', label: 'Silver Seller', cls: 'tf-silver' };
+        if (sold >= 1) return { key: 'bronze', label: 'Bronze Seller', cls: 'tf-bronze' };
+        return null;
+    }
+    function tierBadgeHTML(sold) {
+        const t = sellerTier(sold);
+        return t ? `<span class="tier-badge ${t.cls}" title="Sells ${sold}+ on Volant Mall"><i class="fas fa-medal"></i> ${t.label}</span>` : '';
+    }
+
     function renderProducts() {
         const list = filteredProducts();
         const grid = document.getElementById('productGrid');
@@ -430,18 +539,23 @@
         else if (sortMode === 'price-asc') list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
         else if (sortMode === 'price-desc') list.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
         else if (sortMode === 'rating') list.sort((a, b) => ((b.ratingCount > 0 ? b.ratingSum / b.ratingCount : 0)) - ((a.ratingCount > 0 ? a.ratingSum / a.ratingCount : 0)));
+        else list.sort((a, b) => (b.featured === true) - (a.featured === true));
         const countEl = document.getElementById('toolbarCount');
         if (countEl) countEl.textContent = list.length + (list.length === 1 ? ' product' : ' products');
         if (list.length === 0) {
             grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>No products match your search yet.</p></div>`;
             return;
         }
+        const tierSold = {};
+        allProducts.forEach(p => { tierSold[p.ownerId] = (tierSold[p.ownerId] || 0) + (Number(p.saleCount) || 0); });
         grid.innerHTML = list.map(p => {
             const out = p.status === 'stockout' || p.stock <= 0;
             const wished = getWishlist().includes(p.id);
             const rating = p.ratingCount > 0 ? (p.ratingSum / p.ratingCount) : 0;
             const onSale = p.salePrice > 0 && p.salePrice < p.price;
             const pct = onSale ? Math.round(((p.price - p.salePrice) / p.price) * 100) : 0;
+            const flashEnd = flashEndsAt(p);
+            const flashOn = flashEnd > 0;
             const stockLabel = out ? 'Out of stock' : (p.saleCount > 0 ? `In stock · ${p.saleCount} sold` : 'In stock');
             const fastNote = p.delivery ? `<span class="trust-badge trust-delivery" title="Fast delivery"><i class="fas fa-truck-fast"></i></span>` : '';
             return `
@@ -450,7 +564,7 @@
                     ${p.images && p.images[0]
                         ? `<img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.title)}" loading="lazy">`
                         : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
-                    ${onSale ? `<span class="sale-tag">-${pct}%</span>` : ''}
+                    ${flashOn ? `<span class="flash-tag"><i class="fas fa-bolt"></i> FLASH SALE</span>` : (onSale ? `<span class="sale-tag">-${pct}%</span>` : '')}
                 </a>
                 ${p.verifiedSeller ? `<span class="trust-verified" title="Verified seller"><i class="fas fa-check-circle"></i> Verified</span>` : ''}
                 <button class="wish-btn ${wished ? 'on' : ''}" data-wish-id="${p.id}" onclick="toggleWish('${p.id}');return false;" title="${wished ? 'Remove from wishlist' : 'Save to wishlist'}"><i class="fas fa-heart"></i></button>
@@ -459,11 +573,12 @@
                         ? `<div class="p-cats"><span class="cat">${escapeHtml(p.customCategory)}</span></div>`
                         : `<div class="p-cats">${(p.categories || []).map(c => `<span class="cat">${escapeHtml(catLabel(c))}</span>`).join('')}</div>`}
                     <a class="ptitle" href="details.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a>
-                    <div class="seller">by <a href="store.html?store=${encodeURIComponent(p.ownerId)}">${escapeHtml(p.storeName)}</a></div>
+                    <div class="seller">by <a href="store.html?store=${encodeURIComponent(p.ownerId)}">${escapeHtml(p.storeName)}</a> ${tierBadgeHTML(tierSold[p.ownerId])}</div>
                     ${rating > 0 ? `<div class="p-rating"><span class="stars">${starsForCard(rating)}</span> <span class="r-num">${rating.toFixed(1)}</span></div>` : ''}
                     <div class="price-row">
                         <span class="price">${onSale ? `${formatGHS(p.salePrice)} <span class="price-strike">${formatGHS(p.price)}</span>` : formatGHS(p.price)}</span>
                     </div>
+                    ${flashOn ? `<div class="flash-count" data-flash-until="${flashEnd}">${flashCountdownText(flashEnd)}</div>` : ''}
                     <div class="meta-row">
                         <span class="stock-tag ${out ? 'out' : ''}">${stockLabel}</span>
                         ${fastNote}
@@ -472,7 +587,32 @@
                 <button class="share-mini" onclick="shareProduct(event, '${encodeURIComponent(p.id)}', '${escapeHtml(p.title).replace(/'/g, "\\'")}')" title="Share"><i class="fas fa-share-alt"></i></button>
             </div>`;
         }).join('');
+        renderFlashTickers();
     }
+
+    function flashEndsAt(p) {
+        if (!p || p.flashSell !== true) return 0;
+        const f = p.flashUntil;
+        if (!f) return 0;
+        const t = f.toDate ? f.toDate().getTime() : Date.parse(String(f));
+        return Number.isFinite(t) && t > 0 ? t : 0;
+    }
+    function flashCountdownText(end) {
+        const diff = end - Date.now();
+        if (diff <= 0) return '⚡ Flash sale ended';
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        return h > 0 ? `⚡ Ends in ${h}h ${m}m` : `⚡ Ends in ${Math.max(1, Math.ceil(diff / 60000))}m`;
+    }
+    function renderFlashTickers() { }
+    setInterval(function () {
+        document.querySelectorAll('[data-flash-until]').forEach(el => {
+            const end = Number(el.getAttribute('data-flash-until')) || 0;
+            const txt = flashCountdownText(end);
+            if (txt === '⚡ Flash sale ended') el.classList.add('ended');
+            el.textContent = txt;
+        });
+    }, 30000);
 
     function starsForCard(rating) {
         const full = Math.round(rating) || 0;
@@ -773,7 +913,7 @@
         if (isProcessingPayment) return;
         if (!currentUser) {
             showToast('Please sign in to checkout.', 'error');
-            requireAuth('index.html');
+            requireAuth('index.html?buy=1');
             return;
         }
         const items = getCartItems();

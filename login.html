@@ -30,8 +30,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-<link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+<link rel="icon" type="image/png" href="images/mall-favicon.png">
+<link rel="apple-touch-icon" href="images/mall-favicon.png">
 
  <style>
     * {
@@ -621,7 +621,7 @@
       try {
         returnUrl = decodeURIComponent(returnUrl);
         // Validate it's a valid relative path
-        if (returnUrl.startsWith('/') || returnUrl.startsWith('../')) {
+        if (returnUrl.startsWith('/') || returnUrl.startsWith('../') || returnUrl.startsWith('./')) {
           // Make sure it's not a login/signup page
           const excludePages = ['login', 'signup', 'verify', 'reset', 'check-verification'];
           if (!excludePages.some(page => returnUrl.includes(page))) {
@@ -1014,7 +1014,7 @@
 (function() {
     function getReturnUrl() {
         const urlParams = new URLSearchParams(window.location.search);
-        let returnUrl = urlParams.get('returnUrl');
+        let returnUrl = urlParams.get('returnUrl') || urlParams.get('redirect');
         
         if (!returnUrl) {
             returnUrl = sessionStorage.getItem('returnUrl');
@@ -1034,9 +1034,8 @@
         }
         
         if (returnUrl && returnUrl !== 'null' && returnUrl !== 'undefined') {
-            returnUrl = returnUrl.split('?')[0];
             returnUrl = returnUrl.split('#')[0];
-            if (!returnUrl.startsWith('/') && !returnUrl.startsWith('http')) {
+            if (!returnUrl.startsWith('/') && !returnUrl.startsWith('./') && !returnUrl.startsWith('http')) {
                 returnUrl = '/' + returnUrl;
             }
         }

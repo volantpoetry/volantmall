@@ -7,7 +7,7 @@
     <meta name="description" content="Track your orders and delivery status on Volant Mall.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="manifest" href="manifest.json">
-    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="icon" type="image/png" href="images/mall-favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -213,6 +213,7 @@
             await db.collection('mall-orders').doc(id).update({ orderStatus: 'received', trace: trace, receivedAt: firebase.firestore.FieldValue.serverTimestamp() });
             db.collection('notifications').add({
                 userId: o.sellerId || '_',
+                platform: 'mall',
                 type: 'order_received',
                 title: 'Order received 🎉',
                 body: (currentUser.displayName || 'The buyer') + ' confirmed receipt of order #' + String(o.ref || id).slice(0, 18) + '. Well done!',

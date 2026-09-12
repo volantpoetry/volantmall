@@ -14,7 +14,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <link rel="canonical" href="https://volantmall.vercel.app/details.html">
     <link rel="manifest" href="manifest.json">
-    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
+    <link rel="icon" type="image/png" href="images/mall-favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -111,6 +111,26 @@
     <script>
     let product = null;
     let currentStock = 0;
+
+    function flashDetailEnds() {
+        if (!product || product.flashSell !== true || !product.flashUntil) return 0;
+        const t = product.flashUntil.toDate ? product.flashUntil.toDate().getTime() : Date.parse(String(product.flashUntil));
+        return Number.isFinite(t) && t > 0 ? t : 0;
+    }
+    function flashDetailText() {
+        const end = flashDetailEnds();
+        if (!end) return '';
+        const diff = end - Date.now();
+        if (diff <= 0) return '⚡ Flash sale ended';
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        return h > 0 ? `⚡ FLASH SALE · Ends in ${h}h ${m}m` : `⚡ FLASH SALE · Ends in ${Math.max(1, Math.ceil(diff / 60000))}m`;
+    }
+    setInterval(function () {
+        document.querySelectorAll('[data-flash-until]').forEach(el => {
+            el.textContent = flashDetailText();
+        });
+    }, 30000);
     let qty = 1;
 
     async function loadProduct() {
@@ -145,6 +165,14 @@
             startRealtime();
             updateProductMeta();
             loadRelated();
+
+            if (new URLSearchParams(location.search).get('buy') === '1') {
+                if (typeof currentUser !== 'undefined' && currentUser) {
+                    setTimeout(() => { window.location.href = 'index.html?buy=1'; }, 600);
+                } else {
+                    requireAuth(currentPageForRedirect());
+                }
+            }
         } catch (err) {
             console.error(err);
             document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>Error loading product.</p></div>`;
@@ -205,6 +233,7 @@
                             ? `${formatGHS(product.salePrice)} <span class="price-strike d-price-strike">${formatGHS(product.price)}</span> <span class="save-chip">Save ${formatGHS((product.price - product.salePrice) * Math.max(qty,1))}</span>`
                             : formatGHS(product.price)}
                     </div>
+                    ${flashDetailText() ? `<div class="flash-count" data-flash-until="${flashDetailEnds()}">${flashDetailText()}</div>` : ''}
                     <div class="d-rating" id="dRating"></div>
                     ${(product.saleCount || 0) > 0 ? `<div class="trust-row d-trust"><span class="trust-badge"><i class="fas fa-fire"></i> ${product.saleCount} sold</span>${deliveryEligible ? '<span class="trust-badge trust-delivery"><i class="fas fa-truck-fast"></i> Fast delivery</span>' : ''}</div>` : (deliveryEligible ? `<div class="trust-row d-trust"><span class="trust-badge trust-delivery"><i class="fas fa-truck-fast"></i> Fast delivery</span></div>` : '')}
                     ${product.description ? `<p class="d-desc">${escapeHtml(product.description)}</p>` : ''}
@@ -285,7 +314,11 @@
         const f = currentFulfillment();
         addToCart(product, qty, f);
         if (mode === 'buy') {
-            window.location.href = 'index.html?buy=1';
+            if (typeof currentUser !== 'undefined' && currentUser) {
+                window.location.href = 'index.html?buy=1';
+            } else {
+                requireAuth('details.html?id=' + encodeURIComponent(product.id) + '&buy=1');
+            }
         } else {
             showToast('Added to cart ✓', 'success');
         }
@@ -438,6 +471,7 @@
             }).catch(e => console.warn('Could not update product rating:', e));
             db.collection('notifications').add({
                 userId: product.ownerId || '_',
+                platform: 'mall',
                 type: 'review',
                 title: 'New rating ⭐',
                 body: (userData && (userData.displayName || userData.name)) || (currentUser.displayName || 'A buyer') + ' rated "' + (product.title || '').slice(0, 40) + '" ' + myRating + (myRating > 1 ? ' stars' : ' star') + (comment.trim() ? ' with a comment.' : '.'),

@@ -1,10 +1,28 @@
 {
+  "cleanUrls": true,
+  "trailingSlash": false,
   "functions": {
     "api/*.js": {
       "memory": 1024,
       "maxDuration": 60
     }
   },
+  "headers": [
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/xml; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ],
   "crons": [
     { "path": "/api/mall-auto-close", "schedule": "0 3 * * *" }
   ]

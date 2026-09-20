@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Volant Mall with Paystack Integration",
   "main": "index.html",
+  "scripts": {
+    "generate-sitemap": "node .github/scripts/generate-sitemap.js"
+  },
   "dependencies": {
     "firebase-admin": "^11.11.1"
   }

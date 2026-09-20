@@ -96,6 +96,29 @@ button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; font-size: 0.95rem; }
 
 /* ===== TOP BAR ===== */
+.soon-strip {
+    background: linear-gradient(90deg, #4b2aad, #7a3af5, #4b2aad);
+    color: #fff;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 101;
+    flex: 0 0 auto;
+    min-height: 38px;
+}
+.soon-strip i { color: var(--accent); }
+html[data-theme="dark"] .soon-strip { background: linear-gradient(90deg, #201640, #4b2aad, #201640); }
+
 .topbar {
     height: 70px;
     background: rgba(255,255,255,0.92);

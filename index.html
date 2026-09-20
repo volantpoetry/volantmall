@@ -4,6 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Volant Mall — Shop Ghana</title>
+     <script>
+    // Simple console blocker - production only
+    (function() {
+        if (window.location.hostname.includes('localhost') || 
+            window.location.hostname.includes('127.0.0.1')) {
+            return; // Allow in development
+        }
+        
+        // Block all console methods
+        var methods = ['log', 'info', 'warn', 'error', 'debug', 'trace', 'table', 'group', 'groupEnd', 'dir'];
+        methods.forEach(function(m) {
+            console[m] = function() {};
+            try {
+                Object.defineProperty(console, m, { configurable: false, writable: false });
+            } catch(e) {}
+        });
+        
+        window.onerror = function() { return true; };
+        window.onunhandledrejection = function() { return true; };
+    })();
+</script>
     <meta name="description" content="Shop beauty, fashion, electronics and more from real sellers across Ghana. Pay with Mobile Money or card via Paystack.">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Volant Mall">
@@ -27,6 +48,12 @@
     <script src="https://js.paystack.co/v1/inline.js"></script>
 </head>
 <body>
+
+    <!-- ===== COMING SOON STRIP ===== -->
+    <div class="soon-strip">
+        <i class="fas fa-hourglass-half"></i>
+        <span>Volant Mall — Coming Soon</span>
+    </div>
 
     <!-- ===== TOP BAR ===== -->
     <header class="topbar">
@@ -53,7 +80,8 @@
                     <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
                     <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
                     <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
-                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>
+                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
                     <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
                 </nav>
             </div>
@@ -199,6 +227,7 @@
                 <a href="https://volantlyrics.vercel.app/">Volant Lyrics</a>
                 <a href="https://volantreads.vercel.app/">Volant Reads</a>
                 <a href="https://volantcodes.vercel.app/">Volant Codes</a>
+                <a href="https://volantpoetry.vercel.app/personal/">Creator's Site</a>
             </div>
         </div>
         <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>

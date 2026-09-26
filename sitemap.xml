@@ -5,72 +5,30 @@
 
   <url>
     <loc>https://volantmall.vercel.app</loc>
-    <lastmod>2026-09-25T06:57:27.057Z</lastmod>
+    <lastmod>2026-09-26T06:56:34.821Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
     <loc>https://volantmall.vercel.app/submit.html</loc>
-    <lastmod>2026-09-25T06:57:27.059Z</lastmod>
+    <lastmod>2026-09-26T06:56:34.823Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://volantmall.vercel.app/faq.html</loc>
-    <lastmod>2026-09-25T06:57:27.053Z</lastmod>
+    <lastmod>2026-09-26T06:56:34.818Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://volantmall.vercel.app/refund.html</loc>
-    <lastmod>2026-09-25T06:57:27.058Z</lastmod>
+    <lastmod>2026-09-26T06:56:34.822Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>
-
-  <url>
-    <loc>https://volantmall.vercel.app/details.html?id=M3rmX1gc0VpayD6fgFkv</loc>
-    <lastmod>2026-09-07T01:06:07.632Z</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <url>
-    <loc>https://volantmall.vercel.app/details.html?id=m1QVhJFVfyd7qIuef19s</loc>
-    <lastmod>2026-09-07T17:51:02.228Z</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <url>
-    <loc>https://volantmall.vercel.app/store.html?store=1Ou084CsNaf115Jw4NcTomVyPOZ2</loc>
-    <lastmod>2026-09-09T01:35:11.373Z</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
-    <loc>https://volantmall.vercel.app/store.html?store=lEN0QlV4GbTIMvLD15eMisqhGMW2</loc>
-    <lastmod>2026-09-12T14:15:47.787Z</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
-    <loc>https://volantmall.vercel.app/store.html?store=oHaHYyd7LJYTgoJECsV9bHEFbQ32</loc>
-    <lastmod>2026-09-09T02:15:05.942Z</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
-    <loc>https://volantmall.vercel.app/store.html?store=vCKNMHmAexMZolGkIeNyn5S7ygA2</loc>
-    <lastmod>2026-09-07T17:59:48.988Z</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
   </url>
 
 

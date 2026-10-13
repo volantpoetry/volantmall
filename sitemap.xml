@@ -5,28 +5,28 @@
 
   <url>
     <loc>https://volantmall.vercel.app</loc>
-    <lastmod>2026-10-12T08:23:52.535Z</lastmod>
+    <lastmod>2026-10-13T08:48:40.752Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
     <loc>https://volantmall.vercel.app/submit.html</loc>
-    <lastmod>2026-10-12T08:23:52.537Z</lastmod>
+    <lastmod>2026-10-13T08:48:40.754Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://volantmall.vercel.app/faq.html</loc>
-    <lastmod>2026-10-12T08:23:52.530Z</lastmod>
+    <lastmod>2026-10-13T08:48:40.747Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://volantmall.vercel.app/refund.html</loc>
-    <lastmod>2026-10-12T08:23:52.536Z</lastmod>
+    <lastmod>2026-10-13T08:48:40.753Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -55,6 +55,13 @@
   <url>
     <loc>https://volantmall.vercel.app/store.html?store=lEN0QlV4GbTIMvLD15eMisqhGMW2</loc>
     <lastmod>2026-09-12T14:15:47.787Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://volantmall.vercel.app/store.html?store=nkTkXPtioyPeZcm3sGKUOSUOMEp1</loc>
+    <lastmod>2026-10-13T00:39:36.464Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

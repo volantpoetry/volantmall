@@ -1,25 +1,25 @@
 /**
- * 🔥 Auto Sitemap Generator for Volant Mall
- * ONLY includes URLs from the volantmall.vercel.app domain
+ * 🔥 Auto Sitemap Generator for Volant Plaza
+ * ONLY includes URLs from the volantplaza.vercel.app domain
  * Uses Firebase Admin SDK with Service Account from GitHub Secrets
- * Runs on GitHub Actions (inside the mall repo)
+ * Runs on GitHub Actions (inside the plaza repo)
  */
 
 const fs = require('fs');
 const path = require('path');
 
 // ---- CONFIG ----
-const domain = 'https://volantmall.vercel.app';
+const domain = 'https://volantplaza.vercel.app';
 const publicFolder = './';
 const MAX_PRODUCTS = 5000;
 const MAX_SELLERS = 5000;
 
-// ✅ STATIC PAGES TO INDEX (all under volantmall.vercel.app)
+// ✅ STATIC PAGES TO INDEX (all under volantplaza.vercel.app)
 const allowedPages = [
-  // Mall root
+  // Plaza root
   'index.html',
 
-  // Public mall pages
+  // Public plaza pages
   'submit.html',
   'faq.html',
   'refund.html',
@@ -326,7 +326,7 @@ ${urls.map(u => `
 
 // ---- Generate robots.txt ----
 function generateRobotsTxt() {
-  const robots = `# Robots.txt for Volant Mall
+  const robots = `# Robots.txt for Volant Plaza
 User-agent: *
 Allow: /
 
@@ -334,7 +334,7 @@ Allow: /
 Allow: /$
 Allow: /index.html
 
-# Mall pages
+# Plaza pages
 Allow: /submit.html
 Allow: /faq.html
 Allow: /refund.html
@@ -374,7 +374,7 @@ Sitemap: ${domain}/sitemap.xml`;
 // ---- MAIN ----
 async function generateSitemap() {
   try {
-    console.log("🧠 Generating SEO sitemap for Volant Mall...");
+    console.log("🧠 Generating SEO sitemap for Volant Plaza...");
     console.log(`📁 Domain: ${domain}`);
     console.log(`📄 Targeting ${allowedPages.length} static pages...`);
     console.log(`🚫 ${blockedPaths.length} blocked paths excluded`);

@@ -1,4 +1,4 @@
-# Robots.txt for Volant Plaza
+# Robots.txt for Volant Mall
 User-agent: *
 Allow: /
 
@@ -6,7 +6,7 @@ Allow: /
 Allow: /$
 Allow: /index.html
 
-# Plaza pages
+# Mall pages
 Allow: /submit.html
 Allow: /faq.html
 Allow: /refund.html
@@ -53,4 +53,4 @@ Disallow: /images/
 # Block 404
 Disallow: /404.html
 
-Sitemap: https://volantplaza.vercel.app/sitemap.xml
+Sitemap: https://volantmall.vercel.app/sitemap.xml

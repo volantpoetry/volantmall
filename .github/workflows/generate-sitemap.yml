@@ -72,7 +72,7 @@ jobs:
           # Ensure NO cross-domain URLs slipped in
           EXTERNAL_COUNT=$(grep -c "volantpoetry.vercel.app\|volantreads.vercel.app" sitemap.xml || echo "0")
           if [ "$EXTERNAL_COUNT" -gt 0 ]; then
-            echo "❌ Found $EXTERNAL_COUNT cross-domain URLs — sitemap must only contain volantmall URLs!"
+            echo "❌ Found $EXTERNAL_COUNT cross-domain URLs — sitemap must only contain volantplaza URLs!"
             exit 1
           else
             echo "   ✅ No cross-domain URLs"
@@ -119,13 +119,13 @@ jobs:
           echo "   - robots.txt"
           echo ""
           echo "🌐 Sitemap URL:"
-          echo "   https://volantmall.vercel.app/sitemap.xml"
+          echo "   https://volantplaza.vercel.app/sitemap.xml"
           echo ""
           echo "📋 robots.txt URL:"
-          echo "   https://volantmall.vercel.app/robots.txt"
+          echo "   https://volantplaza.vercel.app/robots.txt"
           echo ""
           echo "🛒 Indexed content:"
-          echo "   - Mall homepage"
+          echo "   - Plaza homepage"
           echo "   - Product detail pages"
           echo "   - Seller store pages"
           echo "   - Submit / FAQ / Refund pages"

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Mall Admin — Volant Mall</title>
+    <title>Plaza Admin — Volant Plaza</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="manifest" href="../manifest.json">
     <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>">
@@ -20,7 +20,7 @@
     <header class="topbar">
         <div class="topbar-inner">
             <a class="logo" href="../index.html">
-                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Plaza Logo">
                 <span class="logo-text"><span class="logo-highlight">Volant</span> Admin</span>
             </a>
             <div class="topbar-right">
@@ -39,7 +39,7 @@
         <section class="section" id="gate" style="display:none;">
             <div class="empty-state">
                 <i class="fas fa-shield-alt"></i>
-                <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Mall Admin</h2>
+                <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Plaza Admin</h2>
                 <p style="color:var(--ink-soft);margin-bottom:1.2rem;">Sign in with your moderator credentials to view the dashboard.</p>
                 <a class="btn btn-primary" href="admin-login.html?redirect=../admin/index.html"><i class="fas fa-sign-in-alt"></i> Moderator sign in</a>
             </div>
@@ -49,7 +49,7 @@
             <div class="empty-state">
                 <i class="fas fa-lock"></i>
                 <h2 style="font-size:1.4rem;margin-bottom:0.4rem;">Moderators only</h2>
-                <p style="color:var(--ink-soft);">This area is reserved for Volant Mall moderators.</p>
+                <p style="color:var(--ink-soft);">This area is reserved for Volant Plaza moderators.</p>
                 <a class="btn btn-primary" href="admin-login.html?redirect=../admin/index.html"><i class="fas fa-sign-in-alt"></i> Moderator sign in</a>
                 <a class="btn btn-ghost" href="../index.html">Back to shop</a>
             </div>
@@ -57,7 +57,7 @@
 
         <section class="section" id="adminSec" style="display:none;">
             <div class="section-head">
-                <h2>Mall overview</h2>
+                <h2>Plaza overview</h2>
                 <div style="display:flex;gap:0.5rem;">
                     <a class="btn btn-outline btn-sm" href="../approvals.html"><i class="fas fa-clipboard-check"></i> Review listings</a>
                 </div>
@@ -79,6 +79,14 @@
                 <div id="pendingList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
             </div>
 
+            <div class="order-card" style="box-shadow:none;border:1px solid var(--line);margin-bottom:1.2rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;flex-wrap:wrap;gap:0.5rem;">
+                    <div style="font-weight:700;">Shadow queue &amp; buyer reports</div>
+                    <button class="btn btn-outline btn-sm" onclick="loadModerationQueue()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+                <div id="moderationQueue"><div class="spinner-wrap"><div class="spinner"></div></div></div>
+            </div>
+
             <div class="order-card" style="box-shadow:none;border:1px solid var(--line);">
                 <div style="font-weight:700;margin-bottom:0.6rem;">Recent orders</div>
                 <div id="ordersList"><div class="spinner-wrap"><div class="spinner"></div></div></div>
@@ -95,7 +103,7 @@
     </div>
 
     <footer class="site-footer">
-        <div class="foot-copy">© 2026 Volant Foundry · Mall Admin</div>
+        <div class="foot-copy">© 2026 Volant Apex Digital · Plaza Admin</div>
     </footer>
 
     <div id="toast"></div>
@@ -122,6 +130,7 @@
                 document.getElementById('denied').style.display = 'none';
                 loadStats();
                 loadPending();
+                loadModerationQueue();
                 loadOrders();
                 loadStores();
             } else {
@@ -190,6 +199,97 @@
         } catch (err) {
             console.error(err);
             list.innerHTML = `<div class="empty-state"><p style="color:var(--ink-soft);font-size:0.85rem;">Could not load: ${escapeHtml(String(err.message || err))}</p></div>`;
+        }
+    }
+
+    async function loadModerationQueue() {
+        const box = document.getElementById('moderationQueue');
+        if (!box) return;
+        try {
+            const [shadowSnap, reportsSnap] = await Promise.all([
+                db.collection('mall-products').where('shadowReview', '==', true).limit(8).get().catch(() => null),
+                db.collection('mall-reports').where('status', '==', 'open').limit(20).get().catch(() => null)
+            ]);
+
+            const shadowRows = [];
+            if (shadowSnap) shadowSnap.forEach(d => shadowRows.push({ id: d.id, ...d.data() }));
+            const reportRows = [];
+            if (reportsSnap) reportsSnap.forEach(d => reportRows.push({ id: d.id, ...d.data() }));
+
+            if (!shadowRows.length && !reportRows.length) {
+                box.innerHTML = `<div class="empty-state" style="padding:1rem;"><i class="fas fa-shield-halved"></i><p style="color:var(--ink-soft);font-size:0.85rem;">No shadow listings or open reports.</p></div>`;
+                return;
+            }
+
+            const shadowHtml = shadowRows.map(p => `
+                <div class="mproduct" style="align-items:flex-start;">
+                    <div class="md-body" style="flex:1;">
+                        <div class="md-title">${escapeHtml(p.title || 'Untitled')}</div>
+                        <div class="md-sub">${formatGHS(p.price || 0)} · by ${escapeHtml(p.storeName || 'unknown store')} · spotted for review</div>
+                    </div>
+                    <div class="md-actions">
+                        <a class="btn btn-outline btn-sm" href="../details.html?id=${encodeURIComponent(p.id)}" target="_blank"><i class="fas fa-eye"></i></a>
+                        <button class="btn btn-primary btn-sm" onclick="clearShadow('${p.id}', true)"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="clearShadow('${p.id}', false)"><i class="fas fa-ban"></i></button>
+                    </div>
+                </div>`).join('');
+
+            const reportHtml = reportRows.map(r => `
+                <div class="mproduct" style="align-items:flex-start;">
+                    <div class="md-body" style="flex:1;">
+                        <div class="md-title">${escapeHtml(r.productTitle || 'Listing')} <span style="font-size:0.72rem;color:var(--danger);">· ${escapeHtml(r.reason || 'report')}</span></div>
+                        <div class="md-sub">${escapeHtml((r.details || 'No details').slice(0, 120))} · by ${escapeHtml(r.storeName || 'unknown store')}</div>
+                    </div>
+                    <div class="md-actions">
+                        <a class="btn btn-outline btn-sm" href="../details.html?id=${encodeURIComponent(r.productId)}" target="_blank"><i class="fas fa-eye"></i></a>
+                        <button class="btn btn-primary btn-sm" onclick="resolveReport('${r.id}', '${encodeURIComponent(r.productId || '')}', false)">Keep</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="resolveReport('${r.id}', '${encodeURIComponent(r.productId || '')}', true)">Hide</button>
+                    </div>
+                </div>`).join('');
+
+            box.innerHTML =
+                (shadowRows.length ? `<div style="font-weight:700;font-size:0.85rem;margin:0.3rem 0 0.5rem;">Shadow queue (${shadowRows.length})</div>${shadowHtml}` : '') +
+                (reportRows.length ? `<div style="font-weight:700;font-size:0.85rem;margin:0.8rem 0 0.5rem;">Open reports (${reportRows.length})</div>${reportHtml}` : '');
+        } catch (err) {
+            console.error(err);
+            box.innerHTML = `<div class="empty-state"><p style="color:var(--ink-soft);font-size:0.85rem;">Could not load moderation queue.</p></div>`;
+        }
+    }
+
+    async function clearShadow(id, approve) {
+        try {
+            await db.collection('mall-products').doc(id).update({
+                shadowReview: false,
+                moderationStatus: approve ? 'approved' : 'held',
+                hidden: approve ? false : true,
+                status: approve ? 'active' : 'pending',
+                reviewedBy: currentUser.uid,
+                reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showToast(approve ? 'Cleared for the spotlight.' : 'Hidden pending fixes.', 'success');
+            loadModerationQueue();
+        } catch (err) {
+            showToast('Could not update: ' + String(err.message || err), 'error');
+        }
+    }
+
+    async function resolveReport(reportId, productIdEncoded, hide) {
+        const productId = decodeURIComponent(productIdEncoded || '');
+        try {
+            await db.collection('mall-reports').doc(reportId).update({
+                status: hide ? 'actioned' : 'dismissed',
+                reviewedBy: currentUser.uid,
+                reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            if (productId) {
+                await db.collection('mall-products').doc(productId).update(hide
+                    ? { hidden: true, status: 'pending', moderationStatus: 'reported_actioned' }
+                    : { hidden: false, status: 'active' });
+            }
+            showToast(hide ? 'Listing hidden.' : 'Report dismissed.', 'success');
+            loadModerationQueue();
+        } catch (err) {
+            showToast('Could not update: ' + String(err.message || err), 'error');
         }
     }
 
@@ -326,7 +426,7 @@
                 title: nextActive ? 'Your store was delisted' : 'Your store is live again ✅',
                 body: nextActive
                     ? 'A moderator delisted your store. Review your listings and contact support if this seems wrong.'
-                    : 'Your store is back and visible to shoppers on Volant Mall.',
+                    : 'Your store is back and visible to shoppers on Volant Plaza.',
                 read: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             }).catch(e => console.warn('Notify error:', e));

@@ -1,7 +1,7 @@
 // ============================================================
 // FILE: api/mall-unlock.js
 // ============================================================
-// Volant Mall - one-time payment unlocks ("as pros do").
+// Volant Plaza - one-time payment unlocks ("as pros do").
 //
 // Sellers can make a single one-time Paystack charge to unlock a
 // lasting benefit instead of a recurring subscription:
@@ -29,7 +29,7 @@ function firebaseNow(admin) {
 async function verifyPaystack(reference, email, expectedAmountPaise) {
     const MALL_PAYSTACK_SECRET_KEY = process.env.MALL_PAYSTACK_SECRET_KEY;
     if (!MALL_PAYSTACK_SECRET_KEY) {
-        return { ok: false, message: 'Payment service is not configured for Volant Mall.' };
+        return { ok: false, message: 'Payment service is not configured for Volant Plaza.' };
     }
     let res;
     try {

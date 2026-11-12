@@ -1,7 +1,7 @@
 // ============================================================
 // FILE: api/mall-auto-close.js
 // ============================================================
-// Volant Mall - scheduled maintenance cron.
+// Volant Plaza - scheduled maintenance cron.
 //
 // Vercel Cron (`{ "path": "/api/mall-auto-close", "schedule": "0 3 * * *" }`)
 // runs this once a day at 3:00 AM (Hobby plans are limited to daily crons). It:
@@ -14,6 +14,7 @@
 // ============================================================
 
 const { db } = require('../lib/mall-admin');
+const { retryPendingEvents } = require('../lib/mall-bridge');
 
 const AUTO_COMPLETE_DAYS = 6;
 const PROCESSING_NUDGE_DAYS = 2;
@@ -113,7 +114,8 @@ module.exports = async (req, res) => {
     try {
         const closed = await autoCloseStale();
         const nudged = await nudgeProcessing();
-        return res.status(200).json({ ok: true, closed, nudged });
+        const forwarded = await retryPendingEvents();
+        return res.status(200).json({ ok: true, closed, nudged, forwarded });
     } catch (e) {
         console.error('[auto-close] cron error:', e);
         return res.status(500).json({ ok: false, message: String(e.message || e) });

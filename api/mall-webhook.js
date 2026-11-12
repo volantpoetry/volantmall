@@ -1,9 +1,9 @@
 // ============================================================
 // FILE: api/mall-webhook.js
 // ============================================================
-// Vercel Serverless Function - Paystack webhook for Volant Mall.
-// Verifies signatures with the Volant Mall Paystack secret key,
-// so events from the Mall business never collide with Volant
+// Vercel Serverless Function - Paystack webhook for Volant Plaza.
+// Verifies signatures with the Volant Plaza Paystack secret key,
+// so events from the Plaza business never collide with Volant
 // Reads or Volant Lyrics.
 //
 // On charge.success it replays order finalisation (same core as
@@ -15,6 +15,7 @@
 const crypto = require('crypto');
 const { db } = require('../lib/mall-admin');
 const { finaliseOrder } = require('./mall-finalize-order');
+const { forwardPaidOrders } = require('../lib/mall-bridge');
 
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
@@ -39,7 +40,7 @@ module.exports = async (req, res) => {
         }
 
         const event = req.body;
-        console.log('Mall webhook: ' + event.event);
+        console.log('Plaza webhook: ' + event.event);
 
         if (event.event === 'charge.success') {
             const txn = event.data;
@@ -64,14 +65,25 @@ module.exports = async (req, res) => {
                     });
                     console.log('Webhook finalise: ' + JSON.stringify({ ok: result.ok, already: result.alreadyFinalized, orderIds: (result.orderIds || []).length }));
                 } else {
-                    console.warn('Mall webhook: no checkout session found for ' + reference + ' (may be pre-rollout payment)');
+                    console.warn('Plaza webhook: no checkout session found for ' + reference + ' (may be pre-rollout payment)');
+                }
+
+                // Mirror paid bridge orders into the Aerofindex ledger. This is
+                // idempotent on the Aerofindex side, so webhook retries are safe.
+                try {
+                    const mirrored = await forwardPaidOrders(reference, txn);
+                    if (mirrored.forwarded || mirrored.queued) {
+                        console.log('Plaza -> Aerofindex bridge: ' + JSON.stringify(mirrored));
+                    }
+                } catch (bridgeError) {
+                    console.error('Plaza -> Aerofindex bridge error:', bridgeError);
                 }
             }
         }
 
         return res.status(200).json({ status: 'success' });
     } catch (error) {
-        console.error('Mall webhook error:', error);
+        console.error('Plaza webhook error:', error);
         return res.status(200).json({ status: 'error' });
     }
 };

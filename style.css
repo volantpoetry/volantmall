@@ -1,5 +1,5 @@
 /* ============================================================
-   VOLANT MALL — shared stylesheet
+   VOLANT PLAZA — shared stylesheet
    A multi-seller physical goods marketplace (Ghana)
    ============================================================ */
 
@@ -1839,6 +1839,14 @@ html[data-theme="dark"] .theme-btn { background: #241a47; border-color: #332a55;
 .stepper .step-conn { flex: 1; height: 2px; background: #dcd4ea; min-width: 12px; margin: 0 0.35rem; }
 .stepper.cancelled { justify-content: center; }
 .stepper.cancelled .step.done i { background: var(--danger); }
+
+@media (max-width: 680px) {
+    .stepper { flex-direction: column; align-items: stretch; gap: 0; padding: 0.75rem 0.85rem; }
+    .stepper .step { width: 100%; white-space: normal; padding: 0.15rem 0; }
+    .stepper .step-conn { flex: 0 0 auto; width: 2px; height: 14px; min-width: 0; margin: 0.15rem 0 0.15rem 11px; }
+    .stepper.cancelled { align-items: center; }
+    .stepper.cancelled .step { width: auto; }
+}
 
 /* ===== ADMIN BAR ===== */
 .admin-bar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.7rem 0.9rem; background: linear-gradient(90deg, var(--danger-bg), #fff0f0); border: 1px solid rgba(183, 110, 75, 0.35); border-radius: 14px; }

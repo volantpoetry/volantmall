@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Sell on Volant Mall</title>
-    <meta name="description" content="Open your store and start selling on Volant Mall">
+    <title>Sell on Volant Plaza</title>
+    <meta name="description" content="Open your store and start selling on Volant Plaza">
     <meta name="robots" content="noindex, nofollow">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="images/mall-favicon.png">
@@ -23,8 +23,8 @@
     <header class="topbar">
         <div class="topbar-inner">
             <a class="logo" href="index.html">
-                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
-                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Plaza Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Plaza</span>
             </a>
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
@@ -37,11 +37,12 @@
                 </div>
                 <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
                 <nav class="nav-links" id="navLinks">
-                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Plaza</a>
                     <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
                     <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
                     <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
-                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>
+                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
                     <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
                 </nav>
             </div>
@@ -52,7 +53,7 @@
         <section class="section" id="gate">
             <div class="empty-state">
                 <i class="fas fa-store"></i>
-                <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Start selling on Volant Mall</h2>
+                <h2 style="font-size:1.5rem;margin-bottom:0.6rem;">Start selling on Volant Plaza</h2>
                 <p style="color:var(--ink-soft);max-width:520px;margin:0 auto 1.2rem;">Sign in to open your store, and start listing pomade, clothes, shoes, gadgets and more.</p>
                 <button class="btn btn-primary" onclick="requireAuth('submit.html')"><i class="fas fa-sign-in-alt"></i> Sign in to continue</button>
             </div>
@@ -260,13 +261,13 @@
         <div class="foot-inner">
             <div class="foot-col foot-brand">
                 <div class="fb-logo">
-                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
-                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Plaza">
+                    <span><span class="logo-highlight">Volant</span> Plaza</span>
                 </div>
                 <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
             </div>
             <div class="foot-col">
-                <h4>Volant Mall</h4>
+                <h4>Volant Plaza</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
@@ -288,7 +289,7 @@
                 <a href="https://volantcodes.vercel.app/">Volant Codes</a>
             </div>
         </div>
-        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+        <div class="foot-copy">© 2026 Volant Apex Digital · Made for Ghana 🇬🇭</div>
     </footer>
 
     <div id="toast"></div>
@@ -515,7 +516,7 @@
         const hasMallSub = !!(myStore && myStore.subaccountCode);
         if (!hasMallSub && sources.length && note) {
             const text = document.getElementById('payoutNoteText');
-            if (text) text.textContent = `We found your payout details from ${sources.join(' & ')} — review them below. On save, your Mall store gets its account.`;
+            if (text) text.textContent = `We found your payout details from ${sources.join(' & ')} — review them below. On save, your Plaza store gets its account.`;
             note.style.display = '';
         }
     }
@@ -894,12 +895,38 @@
                 delivery: delivery,
                 deliveryFee: delivery ? (parseFloat(document.getElementById('pDelFee').value) || 0) : 0,
                 deliveryRegions: delivery ? Array.from(selectedRegions) : [],
-                status: 'pending',
+                status: stock > 0 ? 'active' : 'stockout',
+                moderationStatus: 'pending',
+                shadowReview: false,
+                hidden: false,
                 saleCount: 0,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            showToast('Product submitted for review ✅', 'success');
+            // Server-side moderation decides publish / shadow / hold.
+            let verdict = null;
+            try {
+                const idToken = await currentUser.getIdToken();
+                const res = await fetch(PAYSTACK_API_BASE + '/mall-moderate', {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json',
+                        'authorization': 'Bearer ' + idToken
+                    },
+                    body: JSON.stringify({ productId })
+                });
+                verdict = await res.json().catch(() => null);
+            } catch (e) {
+                console.warn('Moderation check failed:', e);
+            }
+
+            if (verdict && verdict.action === 'hold') {
+                showToast('Product submitted for review: ' + ((verdict.reasons && verdict.reasons[0]) || 'needs an admin check.'), 'info');
+            } else if (verdict && verdict.action === 'shadow') {
+                showToast('Product is live. It will be spot-checked by our team.', 'success');
+            } else {
+                showToast('Product is live ✅', 'success');
+            }
             setTimeout(() => location.href = 'manage.html', 1300);
         } catch (err) {
             console.error('Save product error:', err);

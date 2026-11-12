@@ -1,7 +1,7 @@
 // ============================================================
 // FILE: api/mall-finalize-order.js
 // ============================================================
-// Volant Mall - server-side order finalisation.
+// Volant Plaza - server-side order finalisation.
 //
 // The client creates a mall-checkouts/{reference} document before
 // opening Paystack. After a successful charge this endpoint:
@@ -44,7 +44,7 @@ function appliedPrice(p) {
 async function verifyPaystack(reference, email, expectedAmountPaise) {
     const MALL_PAYSTACK_SECRET_KEY = process.env.MALL_PAYSTACK_SECRET_KEY;
     if (!MALL_PAYSTACK_SECRET_KEY) {
-        return { ok: false, message: 'Payment service is not configured for Volant Mall.' };
+        return { ok: false, message: 'Payment service is not configured for Volant Plaza.' };
     }
     let res;
     try {
@@ -135,7 +135,9 @@ async function finaliseOrder(adminDb, { reference, checkout }) {
             deliveryFee: fulfillment === 'delivery' ? (Number(p.deliveryFee) || 0) : 0,
             pickupLocation: (p.pickupLocation || '').trim(),
             ownerId: p.ownerId,
-            sellerSub: p.subaccountCode || ''
+            sellerSub: p.subaccountCode || '',
+            bridgeWorkspaceId: p.bridgeWorkspaceId || '',
+            bridgeProductId: p.bridgeProductId || ''
         });
     }
 
@@ -208,7 +210,9 @@ async function finaliseOrder(adminDb, { reference, checkout }) {
                 image: it.image,
                 fulfillment: it.fulfillment,
                 deliveryFee: it.deliveryFee,
-                pickupLocation: it.pickupLocation || ''
+                pickupLocation: it.pickupLocation || '',
+                bridgeWorkspaceId: it.bridgeWorkspaceId || '',
+                bridgeProductId: it.bridgeProductId || ''
             }));
             transaction.set(orderRef, {
                 userId: userId,
@@ -296,7 +300,7 @@ async function rewardReferrer(adminDb, userId, reference, amountPaise) {
         userId: refUid,
         type: 'referral',
         title: 'Your referral made a purchase 🎁',
-        body: 'Someone you invited placed their first order on Volant Mall (' + (Number(amountPaise) || 0) / 100 + ' GHS). Rewards are on the way!',
+        body: 'Someone you invited placed their first order on Volant Plaza (' + (Number(amountPaise) || 0) / 100 + ' GHS). Rewards are on the way!',
         ref: reference,
         read: false,
         createdAt: firebaseNow(require('firebase-admin'))

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Volant Mall — Shop Ghana</title>
+    <title>Volant Plaza — Shop Ghana</title>
      <script>
     // Simple console blocker - production only
     (function() {
@@ -27,14 +27,14 @@
 </script>
     <meta name="description" content="Shop beauty, fashion, electronics and more from real sellers across Ghana. Pay with Mobile Money or card via Paystack.">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Volant Mall">
-    <meta property="og:title" content="Volant Mall — Shop Ghana">
+    <meta property="og:site_name" content="Volant Plaza">
+    <meta property="og:title" content="Volant Plaza — Shop Ghana">
     <meta property="og:description" content="Shop beauty, fashion, electronics and more from real sellers across Ghana. Pay with Mobile Money or card via Paystack.">
-    <meta property="og:image" content="https://volantpoetry.vercel.app/images/logokk.png">
-    <meta property="og:url" content="https://volantmall.vercel.app/">
+    <meta property="og:image" content="https://volantplaza.vercel.app/images/volant-plaza-logo.png">
+    <meta property="og:url" content="https://volantplaza.vercel.app/">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://volantmall.vercel.app/">
+    <link rel="canonical" href="https://volantplaza.vercel.app/">
     <link rel="manifest" href="manifest.json">
     <link rel="sitemap" type="application/xml" href="sitemap.xml">
     <link rel="icon" type="image/png" href="images/mall-favicon.png">
@@ -52,18 +52,18 @@
     <!-- ===== COMING SOON STRIP ===== -->
     <div class="soon-strip">
         <i class="fas fa-hourglass-half"></i>
-        <span>Volant Mall — Coming Soon</span>
+        <span>Volant Plaza — Coming Soon</span>
     </div>
 
     <!-- ===== TOP BAR ===== -->
     <header class="topbar">
         <div class="topbar-inner">
             <a class="logo" href="index.html">
-                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
-                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+                <img src="images/volant-plaza-logo.png" alt="Volant Plaza Logo" style="height:40px;width:auto">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Plaza</span>
             </a>
             <div class="topbar-right">
-                <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
+                <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)" id="topSellBtn"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="orders.html"><i class="fas fa-box-open"></i> My Orders</a>
                 <button class="icon-btn theme-btn" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i></button>
                 <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
@@ -76,7 +76,7 @@
                 </button>
                 <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
                 <nav class="nav-links" id="navLinks">
-                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Plaza</a>
                     <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
                     <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
                     <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
@@ -93,7 +93,7 @@
         <h1>Shop from <span>Ghana's sellers</span></h1>
         <p>Beauty, fashion, electronics and more — buy directly from real sellers across Ghana, delivered to your door or collected in person.</p>
         <div class="hero-cta">
-            <a class="btn btn-accent btn-lg" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Become a Seller</a>
+            <a class="btn btn-accent btn-lg" href="submit.html" onclick="return goSell(event)" id="heroSellBtn"><i class="fas fa-store"></i> Become a Seller</a>
             <a class="btn btn-outline btn-lg" style="background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.35);" href="#shop"><i class="fas fa-caret-down"></i> Start Shopping</a>
         </div>
     </section>
@@ -106,7 +106,7 @@
         </form>
 
         <div class="how-strip">
-            <div class="hw"><i class="fas fa-store"></i><div><div class="t">Shop from real sellers</div><div class="s">Every store on Volant Mall is run by a seller in Ghana.</div></div></div>
+            <div class="hw"><i class="fas fa-store"></i><div><div class="t">Shop from real sellers</div><div class="s">Every store on Volant Plaza is run by a seller in Ghana.</div></div></div>
             <div class="hw"><i class="fas fa-truck"></i><div><div class="t">Pickup or delivery</div><div class="s">Collect in person for free, or pay the seller's delivery fee.</div></div></div>
             <div class="hw"><i class="fas fa-mobile-alt"></i><div><div class="t">Pay with MoMo or card</div><div class="s">Secure Paystack checkout in Ghana cedis.</div></div></div>
             <div class="hw"><i class="fas fa-box-open"></i><div><div class="t">Track your order</div><div class="s">Follow it in My Orders until it's delivered.</div></div></div>
@@ -115,7 +115,7 @@
         <!-- ===== FEATURED STORES ===== -->
         <section class="section" id="stores">
             <div class="section-head">
-                <h2>Featured Stores</h2>
+                <h2>Featured Products</h2>
             </div>
             <div class="store-grid" id="storeGrid"><div class="spinner-wrap"><div class="spinner"></div></div></div>
         </section>
@@ -124,8 +124,8 @@
         <section class="section" id="shop">
             <div id="featuredBand" style="display:none;margin-bottom:1.6rem;">
                 <div style="display:flex;align-items:baseline;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.7rem;">
-                    <h2 style="margin:0;"><i class="fas fa-star" style="color:#f59e0b;"></i> Featured</h2>
-                    <span style="font-size:0.82rem;color:var(--ink-soft);">Sellers who unlocked the spotlight</span>
+                    <h2 style="margin:0;"><i class="fas fa-star" style="color:#f59e0b;"></i> Featured Products</h2>
+                    <span style="font-size:0.82rem;color:var(--ink-soft);">Hand-picked picks from our sellers</span>
                 </div>
                 <div class="feat-track" id="featuredTrack"></div>
             </div>
@@ -201,13 +201,13 @@
         <div class="foot-inner">
             <div class="foot-col foot-brand">
                 <div class="fb-logo">
-                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
-                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                    <img src="images/volant-plaza-logo.png" alt="Volant Plaza" style="height:40px;width:auto">
+                    <span><span class="logo-highlight">Volant</span> Plaza</span>
                 </div>
                 <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
             </div>
             <div class="foot-col">
-                <h4>Volant Mall</h4>
+                <h4>Volant Plaza</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
@@ -230,7 +230,7 @@
                 <a href="https://volantpoetry.vercel.app/personal/">Creator's Site</a>
             </div>
         </div>
-        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+        <div class="foot-copy">© 2026 Volant Apex Digital · Made for Ghana 🇬🇭</div>
     </footer>
 
     <!-- ===== CART DRAWER ===== -->
@@ -411,7 +411,11 @@
             db.collection('mall-products').where('status', 'in', ['active', 'stockout'])
                 .onSnapshot(snap => {
                     allProducts = [];
-                    snap.forEach(doc => { allProducts.push(mapProductDoc(doc.id, doc.data())); });
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        if (d.hidden === true) return;
+                        allProducts.push(mapProductDoc(doc.id, d));
+                    });
                     allProducts.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
                     renderAllMall();
                 }, err => console.error('Products realtime error:', err));
@@ -556,7 +560,7 @@
     }
     function tierBadgeHTML(sold) {
         const t = sellerTier(sold);
-        return t ? `<span class="tier-badge ${t.cls}" title="Sells ${sold}+ on Volant Mall"><i class="fas fa-medal"></i> ${t.label}</span>` : '';
+        return t ? `<span class="tier-badge ${t.cls}" title="Sells ${sold}+ on Volant Plaza"><i class="fas fa-medal"></i> ${t.label}</span>` : '';
     }
 
     function renderProducts() {
@@ -1187,8 +1191,8 @@
     // ===== SHARE / REFERRAL =====
     function shareProduct(event, encId, title) {
         if (event) event.preventDefault();
-        const url = 'https://volantmall.vercel.app/details.html?id=' + encId.split('%3D').join('=');
-        const text = 'Check out "' + (title || 'this product') + '" on Volant Mall!';
+        const url = 'https://volantplaza.vercel.app/details.html?id=' + encId.split('%3D').join('=');
+        const text = 'Check out "' + (title || 'this product') + '" on Volant Plaza!';
         try {
             if (navigator.share) { navigator.share({ title: text, url: url }).catch(() => {}); return; }
         } catch (e) { /* unshareable */ }
@@ -1200,7 +1204,7 @@
         const uid = currentUser ? currentUser.uid : '';
         const base = location.origin;
         const url = base + '/index.html' + (uid ? '?ref=' + encodeURIComponent(uid) : '');
-        const text = 'Shop Volant Mall — discover local sellers, fresh products & trusted stores. ' + url;
+        const text = 'Shop Volant Plaza — discover local sellers, fresh products & trusted stores. ' + url;
         (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.resolve()).then(() => {
             showToast('Referral link copied — share it to earn from first-time orders 🎁', 'success');
         }).catch(() => { prompt('Your referral link:', url); });

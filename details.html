@@ -3,16 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Product — Volant Mall</title>
-    <meta name="description" content="Shop products from real Ghanaian sellers on Volant Mall. Pay with Mobile Money or card.">
-    <meta property="og:type" content="product">
-    <meta property="og:site_name" content="Volant Mall">
-    <meta property="og:title" content="Product — Volant Mall">
-    <meta property="og:description" content="Shop products from real Ghanaian sellers on Volant Mall.">
-    <meta property="og:image" content="https://volantpoetry.vercel.app/images/logokk.png">
-    <meta property="og:url" content="https://volantmall.vercel.app/details.html">
-    <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="https://volantmall.vercel.app/details.html">
+    <title>How it Works & FAQ — Volant Plaza</title>
+    <meta name="description" content="How buying and selling works on Volant Plaza, plus answers to common questions.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://volantplaza.vercel.app/faq.html">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="images/mall-favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,64 +17,128 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://js.paystack.co/v1/inline.js"></script>
+    <style>
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.3rem; margin: 2rem 0; }
+        .step { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.6rem; text-align: center; }
+        .step .num { width: 52px; height: 52px; margin: 0 auto 0.9rem; border-radius: 50%; background: var(--primary); color: #fff; font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; display: grid; place-items: center; }
+        .step.gold .num { background: var(--accent); }
+        .step h3 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+        .step p { font-size: 0.88rem; color: var(--ink-soft); }
+        .role-tabs { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; margin: 1.5rem 0; }
+        .faq-item { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 0.8rem; overflow: hidden; }
+        .faq-q { padding: 1rem 1.3rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .faq-q i { transition: transform 0.2s ease; color: var(--primary); }
+        .faq-item.open .faq-q i { transform: rotate(180deg); }
+        .faq-a { display: none; padding: 0 1.3rem 1.1rem; font-size: 0.9rem; color: var(--ink-soft); line-height: 1.65; }
+        .faq-item.open .faq-a { display: block; }
+        .notice { background: var(--accent-soft); color: #8a5b06; border-radius: 12px; padding: 0.9rem 1.1rem; font-size: 0.88rem; margin: 1.5rem 0; }
+    </style>
 </head>
 <body>
 
     <header class="topbar">
         <div class="topbar-inner">
             <a class="logo" href="index.html">
-                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
-                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Plaza Logo">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Plaza</span>
             </a>
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
                 <a class="btn btn-ghost btn-sm" href="index.html"><i class="fas fa-arrow-left"></i> Shop</a>
-                <button class="icon-btn theme-btn" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i></button>
                 <a class="btn-notif" href="notifications.html" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge" id="notifCount">0</span></a>
                 <div class="user-wrap" id="userBtnWrap">
                     <button class="icon-btn" id="userBtn" title="Account" onclick="accountClick()"></button>
                     <div class="account-menu" id="accountMenu"></div>
                 </div>
-                <button class="btn-cart" id="cartOpenBtn" title="Cart" onclick="goCart()">
-                    <i class="fas fa-shopping-bag"></i><span class="cart-badge" id="cartCount">0</span>
-                </button>
                 <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
                 <nav class="nav-links" id="navLinks">
-                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Plaza</a>
                     <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
                     <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
                     <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
-                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>
+                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
                     <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
                 </nav>
             </div>
         </div>
     </header>
 
-    <div class="container" id="detailWrap">
-        <div class="spinner-wrap" style="min-height:50vh;"><div class="spinner"></div></div>
-    </div>
+    <div class="container">
+        <section class="section" style="text-align:center;padding-top:3rem;">
+            <h1 style="font-size:clamp(2rem,4vw,2.8rem);margin-bottom:0.5rem;">How Volant Plaza Works</h1>
+            <p style="color:var(--ink-soft);max-width:620px;margin:0 auto;">A marketplace where Ghanaian sellers open their own stores, and buyers shop from all of them in one place.</p>
 
-    <nav class="mobile-nav" id="mobileNav" aria-label="Mobile">
-        <a href="index.html" class="mnav-item"><i class="fas fa-store"></i><span>Shop</span></a>
-        <a href="orders.html" class="mnav-item"><i class="fas fa-receipt"></i><span>Orders</span></a>
-        <button class="mnav-item mnav-cart" onclick="goCart()" title="Cart"><i class="fas fa-shopping-bag"></i><span>Bag</span><span class="mnav-badge" id="mnavCartCount">0</span></button>
-        <a href="notifications.html" class="mnav-item"><i class="fas fa-bell"></i><span>Alerts</span></a>
-        <button class="mnav-item mnav-theme" data-theme-btn onclick="toggleTheme()" title="Dark mode"><i class="fas fa-moon"></i><span>Theme</span></button>
-        <a href="submit.html" class="mnav-item" onclick="return goSell(event)"><i class="fas fa-store-alt"></i><span>Sell</span></a>
-    </nav>
+            <div class="role-tabs">
+                <button class="tab-btn active" onclick="showRole('buyer', this)"><i class="fas fa-shopping-bag"></i> For Buyers</button>
+                <button class="tab-btn" onclick="showRole('seller', this)"><i class="fas fa-store"></i> For Sellers</button>
+            </div>
+
+            <!-- BUYER STEPS -->
+            <div id="role-buyer">
+                <div class="steps">
+                    <div class="step"><div class="num">1</div><h3>Browse the mall</h3><p>Shop across all sellers, or visit a seller's own store. Filter by category — beauty, fashion, electronics and more.</p></div>
+                    <div class="step"><div class="num">2</div><h3>Choose pickup or delivery</h3><p>Pick up at the seller's location (free) or have it delivered to your address for the seller's delivery fee.</p></div>
+                    <div class="step"><div class="num">3</div><h3>Pay with MoMo or card</h3><p>Checkout securely with Paystack — MTN MoMo, Telecel Cash or debit card, in Ghana cedis.</p></div>
+                    <div class="step gold"><div class="num">4</div><h3>Track your order</h3><p>See your order status in My Orders. The seller marks it delivered once it reaches you.</p></div>
+                </div>
+            </div>
+
+            <!-- SELLER STEPS -->
+            <div id="role-seller" style="display:none;">
+                <div class="steps">
+                    <div class="step"><div class="num">1</div><h3>Open your store</h3><p>Sign in, name your store, add your city and bio. Attach your own logo and banner to make it yours.</p></div>
+                    <div class="step"><div class="num">2</div><h3>Set up payouts</h3><p>Add your MTN MoMo number or bank account. Paystack settles your sales straight to you.</p></div>
+                    <div class="step"><div class="num">3</div><h3>List your products</h3><p>Add up to 4 photos, price in GHS, stock, and choose pickup and/or delivery per item.</p></div>
+                    <div class="step gold"><div class="num">4</div><h3>Fulfil and earn</h3><p>Get notified of orders in your dashboard, pack & ship (or meet buyers), and watch earnings grow.</p></div>
+                </div>
+            </div>
+
+            <div class="notice">
+                <i class="fas fa-percentage"></i> <strong>Seller commission:</strong> 10% of each sale goes to Volant to keep the platform running — Paystack payout fees are covered from that share. Buyers pay no extra fees.
+            </div>
+        </section>
+
+        <section class="section" style="max-width:820px;margin:0 auto;">
+            <div class="section-head"><h2>Frequently Asked Questions</h2></div>
+
+            <div class="faq-item"><div class="faq-q">How do I pay?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Checkout happens inside the cart with Paystack. You can pay with MTN Mobile Money, Telecel Cash, or any bank card (Visa/Mastercard). All prices are in Ghana cedis (GHS).</div></div>
+
+            <div class="faq-item"><div class="faq-q">Can I get delivery anywhere in Ghana?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Every product shows its delivery options. Sellers choose whether they offer delivery, which regions they cover, and the delivery fee. If a seller offers pickup, you can also collect the item in person at their location — pickup is free.</div></div>
+
+            <div class="faq-item"><div class="faq-q">When will my order arrive?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Delivery times depend on the seller and distance. Once you order, the seller prepares your item and updates the order to "Delivered / Completed". You can track it anytime under My Orders.</div></div>
+
+            <div class="faq-item"><div class="faq-q">How do sellers get paid?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">After a sale, Paystack automatically puts 90% of the money into the seller's registered MTN MoMo or bank account (settlement usually within a few business days). Volant keeps a 10% commission.</div></div>
+
+            <div class="faq-item"><div class="faq-q">What if I have a problem with an order?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Contact the seller first — their phone number is on your order. If you can't resolve it, reach Volant support through the Contact page and include your order reference.</div></div>
+
+            <div class="faq-item"><div class="faq-q">Can I review a product?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Yes! After you've bought a product, you can leave a 1–5 star rating and a short review on its product page. Reviews appear on the product and the seller's storefront.</div></div>
+
+            <div class="faq-item"><div class="faq-q">How do I become a seller?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Click "Sell" at the top, sign in, set up your store and payout details, then list your first product. It takes about 5 minutes and is free to start.</div></div>
+
+            <div class="faq-item"><div class="faq-q">What can I sell on Volant Plaza?<span><i class="fas fa-chevron-down"></i></span></div>
+                <div class="faq-a">Physical goods you can fulfil in Ghana — pomade and beauty products, clothes, shoes, electronics, home items, food products and more. Counterfeit or prohibited items are not allowed.</div></div>
+        </section>
+    </div>
 
     <footer class="site-footer">
         <div class="foot-inner">
             <div class="foot-col foot-brand">
                 <div class="fb-logo">
-                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
-                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Plaza">
+                    <span><span class="logo-highlight">Volant</span> Plaza</span>
                 </div>
                 <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
             </div>
             <div class="foot-col">
-                <h4>Volant Mall</h4>
+                <h4>Volant Plaza</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
@@ -102,562 +160,22 @@
                 <a href="https://volantcodes.vercel.app/">Volant Codes</a>
             </div>
         </div>
-        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+        <div class="foot-copy">© 2026 Volant Apex Digital · Made for Ghana 🇬🇭</div>
     </footer>
 
     <div id="toast"></div>
 
     <script src="app.js"></script>
     <script>
-    let product = null;
-    let currentStock = 0;
-
-    function flashDetailEnds() {
-        if (!product || product.flashSell !== true || !product.flashUntil) return 0;
-        const t = product.flashUntil.toDate ? product.flashUntil.toDate().getTime() : Date.parse(String(product.flashUntil));
-        return Number.isFinite(t) && t > 0 ? t : 0;
+    function showRole(role, btn) {
+        document.querySelectorAll('.role-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('role-buyer').style.display = role === 'buyer' ? '' : 'none';
+        document.getElementById('role-seller').style.display = role === 'seller' ? '' : 'none';
     }
-    function flashDetailText() {
-        const end = flashDetailEnds();
-        if (!end) return '';
-        const diff = end - Date.now();
-        if (diff <= 0) return '⚡ Flash sale ended';
-        const h = Math.floor(diff / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        return h > 0 ? `⚡ FLASH SALE · Ends in ${h}h ${m}m` : `⚡ FLASH SALE · Ends in ${Math.max(1, Math.ceil(diff / 60000))}m`;
-    }
-    setInterval(function () {
-        document.querySelectorAll('[data-flash-until]').forEach(el => {
-            el.textContent = flashDetailText();
-        });
-    }, 30000);
-    let qty = 1;
-
-    async function loadProduct() {
-        const id = new URLSearchParams(location.search).get('id');
-        if (!id) { document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>No product selected.</p><a class="btn btn-primary" href="index.html">Go shopping</a></div>`; return; }
-
-        try {
-            const snap = await db.collection('mall-products').doc(id).get();
-            if (!snap.exists) {
-                document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>This product is no longer available.</p><a class="btn btn-primary" href="index.html">Go shopping</a></div>`;
-                return;
-            }
-            const d = snap.data();
-            product = { id, ...d };
-            currentStock = Number(d.stock) || 0;
-
-            setTimeout(() => {
-                if (typeof currentUser !== 'undefined' && currentUser && currentUser.uid === d.ownerId) return;
-                db.collection('mall-products').doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(e => console.warn('View count error:', e));
-            }, 800);
-
-            let seller = { storeName: 'Store', city: '', bio: '' };
-            if (d.ownerId) {
-                try {
-                    const s = await db.collection('mall-sellers').doc(d.ownerId).get();
-                    if (s.exists) seller = s.data();
-                } catch (e) { console.warn(e); }
-            }
-
-            document.title = product.title + ' — Volant Mall';
-            renderDetail(seller);
-            startRealtime();
-            updateProductMeta();
-            loadRelated();
-
-            if (new URLSearchParams(location.search).get('buy') === '1') {
-                if (typeof currentUser !== 'undefined' && currentUser) {
-                    setTimeout(() => { window.location.href = 'index.html?buy=1'; }, 600);
-                } else {
-                    requireAuth(currentPageForRedirect());
-                }
-            }
-        } catch (err) {
-            console.error(err);
-            document.getElementById('detailWrap').innerHTML = `<div class="empty-state"><p>Error loading product.</p></div>`;
-        }
-    }
-
-    function catLabel(key) {
-        const c = MALL_CATEGORIES.find(x => x.key === key);
-        return c ? c.label : 'Other';
-    }
-
-    function updateProductMeta() {
-        const setMeta = (prop, content) => {
-            const el = document.querySelector('meta[property="' + prop + '"]');
-            if (el && content) el.setAttribute('content', content);
-        };
-        setMeta('og:title', product.title + ' — Volant Mall');
-        setMeta('og:url', 'https://volantmall.vercel.app/details.html?id=' + encodeURIComponent(product.id));
-        setMeta('og:description', String(product.description || '').slice(0, 300) || 'Buy this on Volant Mall.');
-        if (product.images && product.images[0]) setMeta('og:image', product.images[0]);
-    }
-
-    function renderDetail(seller) {
-        const imgs = (product.images && product.images.length) ? product.images : [null];
-        const out = product.status === 'stockout' || currentStock <= 0;
-        const deliveryEligible = !!product.delivery;
-        const pickupEligible = !!product.pickup;
-        const wished = isWished(product.id);
-        const onSale = (Number(product.salePrice) || 0) > 0 && Number(product.salePrice) < Number(product.price);
-        const pct = onSale ? Math.round(((product.price - product.salePrice) / product.price) * 100) : 0;
-        const waBtn = sellerWhatsapp(seller);
-
-        document.getElementById('detailWrap').innerHTML = `
-            <div class="detail-wrap">
-                <div class="gallery">
-                    <div class="main-img ${imgs[0] ? 'zoomable' : ''}" onclick="zoomImage(event)">
-                        ${imgs[0] ? `<img id="mainImg" src="${escapeHtml(imgs[0])}" alt="${escapeHtml(product.title)}">` : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
-                        ${imgs[0] ? `<span class="zoom-hint"><i class="fas fa-search-plus"></i> Click to zoom</span>` : ''}
-                    </div>
-                    ${imgs.length > 1 ? `<div class="thumbs">${imgs.slice(0, 4).map((u, i) => `
-                        <div class="t ${i === 0 ? 'active' : ''}" onclick="setMain(${i}, '${escapeHtml(u || '')}')">
-                            ${u ? `<img src="${escapeHtml(u)}" alt="">` : `<i class="fas fa-image ph"></i>`}
-                        </div>`).join('')}</div>` : ''}
-                </div>
-
-                <div class="info-box">
-                    <div class="p-cats">
-                        ${(product.categories && product.categories.length ? product.categories : [product.category || 'other']).map(c => `<span class="cat-badge">${escapeHtml(catLabel(c))}</span>`).join('')}
-                        ${product.customCategory ? `<span class="cat-badge">${escapeHtml(product.customCategory)}</span>` : ''}
-                        ${onSale ? `<span class="cat-badge sale-badge"><i class="fas fa-bolt"></i> ${pct}% OFF</span>` : ''}
-                    </div>
-                    <h1>${escapeHtml(product.title)}</h1>
-                    ${(product.tags && product.tags.length) ? `<div class="p-tags">${product.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
-                    <p class="d-seller">Sold by <a href="store.html?store=${encodeURIComponent(product.ownerId)}"><i class="fas fa-store"></i> ${escapeHtml(seller.storeName || 'Store')}</a>${seller.verified ? ' <span class="verified-seller" title="Identity verified by Volant Mall"><i class="fas fa-check-circle"></i> Verified</span>' : ''}${seller.city ? ' · ' + escapeHtml(seller.city) : ''}</p>
-                    <div class="seller-socials">${renderSellerSocials(seller)}</div>
-                    <div class="d-price">
-                        ${onSale
-                            ? `${formatGHS(product.salePrice)} <span class="price-strike d-price-strike">${formatGHS(product.price)}</span> <span class="save-chip">Save ${formatGHS((product.price - product.salePrice) * Math.max(qty,1))}</span>`
-                            : formatGHS(product.price)}
-                    </div>
-                    ${flashDetailText() ? `<div class="flash-count" data-flash-until="${flashDetailEnds()}">${flashDetailText()}</div>` : ''}
-                    <div class="d-rating" id="dRating"></div>
-                    ${(product.saleCount || 0) > 0 ? `<div class="trust-row d-trust"><span class="trust-badge"><i class="fas fa-fire"></i> ${product.saleCount} sold</span>${deliveryEligible ? '<span class="trust-badge trust-delivery"><i class="fas fa-truck-fast"></i> Fast delivery</span>' : ''}</div>` : (deliveryEligible ? `<div class="trust-row d-trust"><span class="trust-badge trust-delivery"><i class="fas fa-truck-fast"></i> Fast delivery</span></div>` : '')}
-                    ${product.description ? `<p class="d-desc">${escapeHtml(product.description)}</p>` : ''}
-                    <p style="font-size:0.86rem;color:var(--ink-soft);margin-bottom:1.2rem;">
-                        <i class="fas fa-boxes"></i> ${out ? '<span style="color:var(--danger);font-weight:600;">Out of stock</span>' : (currentStock < 10 ? 'Only <b>' + currentStock + '</b> left' : 'In stock')}
-                        ${product.stock > 0 ? '' : ''}
-                    </p>
-
-                    <div class="delivery-box">
-                        <h3><i class="fas fa-truck"></i> How will you receive it?</h3>
-
-                        ${pickupEligible ? `
-                        <label class="delivery-option ${pickupEligible ? 'selected' : ''}" style="display:flex;">
-                            <input type="radio" name="ful" value="pickup" ${pickupEligible ? 'checked' : ''} onchange="selectFulfillment('pickup')">
-                            <div>
-                                <div class="d-title">Pick up in person</div>
-                                <div class="d-sub"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(product.pickupLocation || 'At the seller')}</div>
-                            </div>
-                        </label>` : ''}
-
-                        ${deliveryEligible ? `
-                        <label class="delivery-option ${!pickupEligible ? 'selected' : ''}" style="display:flex;">
-                            <input type="radio" name="ful" value="delivery" ${!pickupEligible ? 'checked' : ''} onchange="selectFulfillment('delivery')">
-                            <div>
-                                <div class="d-title">Delivered to you ${formatGHS(product.deliveryFee ? product.deliveryFee : 0)}</div>
-                                <div class="d-sub"><i class="fas fa-truck"></i> ${(product.deliveryRegions && product.deliveryRegions.length) ? escapeHtml(product.deliveryRegions.slice(0, 4).join(', ')) + (product.deliveryRegions.length > 4 ? '…' : '') : 'Ghana'}</div>
-                            </div>
-                        </label>` : ''}
-
-                        ${!pickupEligible && !deliveryEligible ? `<p class="d-sub">Contact the seller to arrange delivery.</p>` : ''}
-                        <input type="hidden" id="fulfillment" value="${pickupEligible ? 'pickup' : 'delivery'}">
-                    </div>
-
-                    <div class="quantity-row">
-                        <span style="font-weight:600;font-size:0.9rem;">Quantity</span>
-                        <button class="qty-btn" onclick="changeQty(-1)"><i class="fas fa-minus"></i></button>
-                        <span class="qty" id="qtyVal">1</span>
-                        <button class="qty-btn" onclick="changeQty(1)"><i class="fas fa-plus"></i></button>
-                    </div>
-
-                    <div class="buy-row btn-stack-sm">
-                        <button class="btn btn-outline" onclick="addOne('cart')" ${out ? 'disabled' : ''}><i class="fas fa-cart-plus"></i> Add to Cart</button>
-                        <button class="btn btn-primary" onclick="addOne('buy')" ${out ? 'disabled' : ''}><i class="fas fa-bolt"></i> Buy Now</button>
-                    </div>
-                    <button class="btn btn-ghost btn-sm details-wish ${wished ? 'on' : ''}" onclick="toggleDetailsWish();return false;" id="detailsWishBtn" style="margin-top:0.6rem;width:100%;justify-content:center;">
-                        <i class="fas fa-heart"></i> <span>${wished ? 'Saved to wishlist' : 'Save to wishlist'}</span>
-                    </button>
-                    <div class="detail-actions">
-                        <button class="btn btn-outline btn-sm" onclick="shareProductDetails(event)"><i class="fas fa-share-alt"></i> Share</button>
-                        ${waBtn ? `<a class="btn btn-outline btn-sm" href="${waBtn}?text=${encodeURIComponent('Hi! I have a question about "' + product.title + '" on Volant Mall.')}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Message seller</a>` : ''}
-                    </div>
-                </div>
-            </div>
-
-            <div id="reviewsSection"></div>
-            <div id="relatedSection"></div>`;
-    }
-
-    function selectFulfillment(f) {
-        document.getElementById('fulfillment').value = f;
-        document.querySelectorAll('.delivery-option').forEach(el => el.classList.remove('selected'));
-        const input = document.querySelector('input[name="ful"][value="' + f + '"]');
-        if (input) input.closest('.delivery-option').classList.add('selected');
-    }
-
-    function changeQty(delta) {
-        qty = Math.max(1, Math.min(qty + delta, Math.max(currentStock, 1)));
-        document.getElementById('qtyVal').textContent = qty;
-    }
-
-    function currentFulfillment() {
-        const el = document.getElementById('fulfillment');
-        return el ? el.value : 'delivery';
-    }
-
-    function addOne(mode) {
-        if (!product) return;
-        const f = currentFulfillment();
-        addToCart(product, qty, f);
-        if (mode === 'buy') {
-            if (typeof currentUser !== 'undefined' && currentUser) {
-                window.location.href = 'index.html?buy=1';
-            } else {
-                requireAuth('details.html?id=' + encodeURIComponent(product.id) + '&buy=1');
-            }
-        } else {
-            showToast('Added to cart ✓', 'success');
-        }
-    }
-
-    function goCart() {
-        window.location.href = 'index.html?buy=1';
-    }
-
-    function toggleDetailsWish() {
-        if (!product) return;
-        const on = toggleWish(product.id);
-        const btn = document.getElementById('detailsWishBtn');
-        if (btn) {
-            btn.classList.toggle('on', on);
-            btn.querySelector('span').textContent = on ? 'Saved to wishlist' : 'Save to wishlist';
-        }
-        showToast(on ? 'Saved to wishlist ❤️' : 'Removed from wishlist', on ? 'success' : 'info');
-        return false;
-    }
-
-    // ===== REVIEWS =====
-    let reviews = [];
-    let myRating = 0;
-    let canLeaveReview = false;
-    let buyerVerified = false;
-
-    function onAppAuthChange(user) {
-        if (product && user) checkCanReview();
-        if (product) renderReviews();
-    }
-
-    function starsHTML(rating, size) {
-        const full = Math.round(rating) || 0;
-        let s = '';
-        for (let i = 1; i <= 5; i++) s += `<span class="${i <= full ? '' : 'off'}">★</span>`;
-        return `<span class="stars" style="font-size:${size || '0.9rem'};">${s}</span>`;
-    }
-
-    async function loadReviews() {
-        try {
-            const snap = await db.collection('mall-reviews')
-                .where('productId', '==', product.id)
-                .get();
-            reviews = [];
-            snap.forEach(doc => { const d = doc.data(); reviews.push({ id: doc.id, ...d }); });
-            reviews.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
-            renderReviews();
-            if (currentUser) checkCanReview();
-        } catch (err) {
-            console.warn('Load reviews error:', err);
-        }
-    }
-
-    function ts(t) {
-        return t ? (t.toMillis ? t.toMillis() : (t.seconds ? t.seconds * 1000 : 0)) : 0;
-    }
-
-    function renderReviews() {
-        const ratingEl = document.getElementById('dRating');
-        if (ratingEl) {
-            if (reviews.length) {
-                const avg = reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length;
-                ratingEl.innerHTML = `${starsHTML(avg)} <span>${avg.toFixed(1)} · ${reviews.length} review${reviews.length === 1 ? '' : 's'}</span>`;
-            } else {
-                ratingEl.innerHTML = `<span class="stars off">★★★★★</span> <span>No reviews yet</span>`;
-            }
-        }
-
-        const sec = document.getElementById('reviewsSection');
-        if (!sec) return;
-        sec.innerHTML = `
-            <div class="section-head"><h2>Reviews</h2></div>
-            ${canLeaveReview ? `
-            <div class="review-form">
-                <h3>Rate this product</h3>
-                <div class="rating-input" id="ratingInput">
-                    ${[1,2,3,4,5].map(n => `<button type="button" class="star-btn ${n <= myRating ? 'on' : ''}" onclick="setReviewRating(${n})">★</button>`).join('')}
-                </div>
-                <textarea id="reviewText" rows="2" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--line);border-radius:12px;resize:vertical;" placeholder="Share your experience..."></textarea>
-                <button class="btn btn-primary btn-sm" style="margin-top:0.7rem;" onclick="submitReview()"><i class="fas fa-paper-plane"></i> Submit Review</button>
-            </div>` : (currentUser ? '' : '<p style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:1rem;">Bought this? <a href="#" onclick="requireAuth(\'details.html?id=' + encodeURIComponent(product.id) + '\');return false;">Sign in</a> to review.</p>')}
-
-            ${reviews.length ? reviews.map(r => {
-                const liked = currentUser && Array.isArray(r.likes) && r.likes.includes(currentUser.uid);
-                const likeCount = (Array.isArray(r.likes) ? r.likes.length : 0);
-                return `
-                <div class="review-card">
-                    <div class="rc-head">
-                        <div class="rc-name">${escapeHtml(r.userName || r.userEmail || 'Buyer')}${r.verified ? ` <span class="verified-badge" title="Verified buyer — completed a delivered order"><i class="fas fa-check-circle"></i> Verified buyer</span>` : ''}</div>
-                        <div class="rc-date">${new Date(ts(r.createdAt)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                    </div>
-                    ${starsHTML(r.rating)}
-                    ${r.comment ? `<div class="rc-comment" style="margin-top:0.4rem;">${escapeHtml(r.comment)}</div>` : ''}
-                    <div class="rc-actions">
-                        <button class="review-like-btn ${liked ? 'liked' : ''}" onclick="toggleReviewLike('${r.id}')"><i class="fas fa-thumbs-up"></i> ${likeCount > 0 ? likeCount : ''}</button>
-                    </div>
-                    ${r.reply ? `<div class="seller-reply"><div class="sr-name"><i class="fas fa-store"></i> ${escapeHtml((r.replyAuthor || 'Seller'))}</div>${escapeHtml(r.reply)}</div>` : ''}
-                </div>`;
-            }).join('') : `<div class="empty-state" style="padding:2rem;"><i class="fas fa-comment-dots"></i><p>No reviews yet. Be the first to review after buying.</p></div>`}
-        `;
-    }
-
-    async function checkCanReview() {
-        canLeaveReview = false;
-        buyerVerified = false;
-        try {
-            const snap = await db.collection('mall-orders').where('userId', '==', currentUser.uid).get();
-            snap.forEach(doc => {
-                const d = doc.data();
-                if (d.orderStatus === 'cancelled') return;
-                if (Array.isArray(d.items) && d.items.some(it => it.productId === product.id) && d.orderStatus === 'completed') {
-                    buyerVerified = true;
-                }
-            });
-        } catch (err) {
-            console.warn('Buyer-verification check error:', err);
-        }
-        const already = reviews.some(r => r.userId === currentUser.uid);
-        canLeaveReview = !already;
-        renderReviews();
-    }
-
-    function setReviewRating(n) {
-        myRating = n;
-        document.querySelectorAll('#ratingInput .star-btn').forEach((b, i) => b.classList.toggle('on', i < n));
-    }
-
-    async function submitReview() {
-        if (!currentUser) { requireAuth('details.html?id=' + encodeURIComponent(product.id)); return; }
-        if (!myRating) { showToast('Choose a star rating.', 'error'); return; }
-        const comment = (document.getElementById('reviewText') || {}).value || '';
-        try {
-            await db.collection('mall-reviews').add({
-                productId: product.id,
-                sellerId: product.ownerId || '',
-                userId: currentUser.uid,
-                userEmail: currentUser.email || '',
-                userName: userData && (userData.displayName || userData.name) || (currentUser.displayName || ''),
-                rating: myRating,
-                comment: comment.trim(),
-                likes: [],
-                likeCount: 0,
-                verified: buyerVerified,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            await db.collection('mall-products').doc(product.id).update({
-                ratingSum: firebase.firestore.FieldValue.increment(myRating),
-                ratingCount: firebase.firestore.FieldValue.increment(1)
-            }).catch(e => console.warn('Could not update product rating:', e));
-            db.collection('notifications').add({
-                userId: product.ownerId || '_',
-                platform: 'mall',
-                type: 'review',
-                title: 'New rating ⭐',
-                body: (userData && (userData.displayName || userData.name)) || (currentUser.displayName || 'A buyer') + ' rated "' + (product.title || '').slice(0, 40) + '" ' + myRating + (myRating > 1 ? ' stars' : ' star') + (comment.trim() ? ' with a comment.' : '.'),
-                ref: product.id,
-                read: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).catch(e => console.warn('Seller rating notification failed:', e));
-            product.ratingSum = (product.ratingSum || 0) + myRating;
-            product.ratingCount = (product.ratingCount || 0) + 1;
-            showToast('Review published!', 'success');
-            myRating = 0;
-            loadReviews();
-        } catch (err) {
-            console.error('Review submit error:', err);
-            showToast('Could not submit review.', 'error');
-        }
-    }
-
-    async function toggleReviewLike(reviewId) {
-        if (!currentUser) { requireAuth('details.html?id=' + encodeURIComponent(product.id)); return; }
-        const r = reviews.find(x => x.id === reviewId);
-        if (!r) return;
-        const likes = Array.isArray(r.likes) ? r.likes.slice() : [];
-        const idx = likes.indexOf(currentUser.uid);
-        try {
-            if (idx >= 0) {
-                likes.splice(idx, 1);
-            } else {
-                likes.push(currentUser.uid);
-            }
-            await db.collection('mall-reviews').doc(reviewId).update({ likes: likes, likeCount: likes.length });
-            r.likes = likes;
-            r.likeCount = likes.length;
-            renderReviews();
-        } catch (e) {
-            console.error('Like error:', e);
-        }
-    }
-
-    let _productSub = null;
-    let _reviewsSub = null;
-
-    function startRealtime() {
-        if (!product || !product.id) return;
-        if (_productSub) _productSub();
-        if (_reviewsSub) _reviewsSub();
-        _productSub = db.collection('mall-products').doc(product.id).onSnapshot(doc => {
-            if (!doc.exists) return;
-            const d = doc.data();
-            Object.assign(product, d);
-            currentStock = Number(d.stock) || 0;
-            updateProductMeta();
-        });
-        _reviewsSub = db.collection('mall-reviews').where('productId', '==', product.id).onSnapshot(snap => {
-            reviews = [];
-            snap.forEach(doc => { const d = doc.data(); reviews.push({ id: doc.id, ...d }); });
-            reviews.sort((a, b) => ts(b.createdAt) - ts(a.createdAt));
-            renderReviews();
-            if (currentUser) checkCanReview();
-        });
-    }
-
-    function setMain(i, url) {
-        const img = document.getElementById('mainImg') || document.querySelector('.main-img');
-        if (url) img.src = url;
-        document.querySelectorAll('.thumbs .t').forEach((t, j) => t.classList.toggle('active', j === i));
-    }
-
-    function zoomImage(event) {
-        const img = document.getElementById('mainImg');
-        if (!img || !img.src) return;
-        let overlay = document.getElementById('zoomOverlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'zoomOverlay';
-            overlay.className = 'zoom-overlay';
-            overlay.onclick = () => { overlay.classList.remove('active'); document.body.style.overflow = ''; };
-            document.body.appendChild(overlay);
-        }
-        const view = document.createElement('div');
-        view.className = 'zoom-view';
-        view.innerHTML = `<img src="${escapeHtml(img.src)}" alt="Zoom"><button class="zoom-close" onclick="closeZoom(event)"><i class="fas fa-times"></i></button>`;
-        overlay.innerHTML = '';
-        overlay.appendChild(view);
-        overlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeZoom(event) {
-        if (event) event.stopPropagation();
-        const overlay = document.getElementById('zoomOverlay');
-        if (overlay) { overlay.classList.remove('active'); document.body.style.overflow = ''; }
-    }
-
-    function shareProductDetails(event) {
-        if (event) event.preventDefault();
-        const url = 'https://volantmall.vercel.app/details.html?id=' + encodeURIComponent(product.id);
-        const text = 'Check out "' + product.title + '" on Volant Mall!';
-        try {
-            if (navigator.share) { navigator.share({ title: text, url: url }).catch(() => {}); return; }
-        } catch (e) { /* unshareable */ }
-        if (navigator.clipboard) { navigator.clipboard.writeText(text + ' ' + url).catch(() => {}); }
-        showToast('Link copied to clipboard 📋', 'success');
-    }
-
-    function sellerWhatsapp(s) {
-        if (!s) return '';
-        const wa = (s.socials && s.socials.whatsapp) || s.phone || '';
-        const num = String(wa).replace(/[^0-9]/g, '');
-        return num ? 'https://wa.me/' + num : '';
-    }
-
-    // ===== RECENTLY VIEWED + RELATED =====
-    function noteViewed(id) {
-        try {
-            let list = JSON.parse(localStorage.getItem('vm_recent') || '[]');
-            list = list.filter(x => x !== id);
-            list.unshift(id);
-            localStorage.setItem('vm_recent', JSON.stringify(list.slice(0, 10)));
-        } catch (e) { /* ignore */ }
-    }
-
-    async function loadRelated() {
-        noteViewed(product.id);
-        const sec = document.getElementById('relatedSection');
-        if (!sec) return;
-        sec.innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
-
-        const mainCats = (product.categories && product.categories.length) ? product.categories : [product.category || 'other'];
-        const related = [];
-        let recent = [];
-        try { recent = JSON.parse(localStorage.getItem('vm_recent') || '[]').filter(x => x !== product.id); } catch (e) { recent = []; }
-
-        try {
-            const snap = await db.collection('mall-products').where('status', 'in', ['active', 'stockout']).limit(60).get();
-            const pool = [];
-            snap.forEach(d => { pool.push({ id: d.id, ...d.data() }); });
-            // Related: same category first, then same store, then everything
-            const scored = pool
-                .filter(p => p.id !== product.id)
-                .map(p => {
-                    const pCats = (p.categories && p.categories.length) ? p.categories : [p.category || 'other'];
-                    let score = 0;
-                    if (pCats.some(c => mainCats.includes(c))) score += 3;
-                    if (p.customCategory && product.customCategory && p.customCategory === product.customCategory) score += 2;
-                    if (p.ownerId === product.ownerId) score += 2;
-                    if ((p.tags || []).some(t => (product.tags || []).includes(t))) score += 1;
-                    score += ((p.saleCount || 0) / 10);
-                    return { p, score };
-                })
-                .sort((a, b) => b.score - a.score);
-            scored.slice(0, 8).forEach(s => related.push(s.p));
-            // recently viewed from pool
-            recent.forEach(rid => { const f = pool.find(p => p.id === rid); if (f && !related.some(r => r.id === rid) && related.length < 12) related.push(f); });
-        } catch (err) {
-            console.warn('Related load error:', err);
-        }
-
-        if (!related.length) { sec.innerHTML = ''; return; }
-        sec.innerHTML = `
-            <div class="section-head"><h2>You might also like</h2></div>
-            <div class="grid related-grid">${related.map(p => {
-                const out = p.status === 'stockout' || Number(p.stock) <= 0;
-                const onSale = (Number(p.salePrice) || 0) > 0 && Number(p.salePrice) < Number(p.price);
-                const pct = onSale ? Math.round(((p.price - p.salePrice) / p.price) * 100) : 0;
-                const rating = Number(p.ratingCount) > 0 ? (Number(p.ratingSum) / Number(p.ratingCount)) : 0;
-                return `
-                <div class="pcard">
-                    <a class="thumb" href="details.html?id=${encodeURIComponent(p.id)}">
-                        ${p.images && p.images[0] ? `<img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.title)}" loading="lazy">` : `<div class="ph"><i class="fas fa-box-open"></i></div>`}
-                        ${onSale ? `<span class="sale-tag">-${pct}%</span>` : ''}
-                    </a>
-                    <div class="body">
-                        <a class="ptitle" href="details.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a>
-                        <div class="seller">by <a href="store.html?store=${encodeURIComponent(p.ownerId)}">${escapeHtml(p.storeName || 'Store')}</a></div>
-                        ${rating > 0 ? `<div class="p-rating"><span class="stars">${'★'.repeat(Math.round(rating))}<span class="off">${'★'.repeat(5 - Math.round(rating))}</span></span> <span class="r-num">${rating.toFixed(1)}</span></div>` : ''}
-                        <div class="price-row">
-                            <span class="price">${onSale ? `${formatGHS(p.salePrice)} <span class="price-strike">${formatGHS(p.price)}</span>` : formatGHS(p.price)}</span>
-                            <span class="stock-tag ${out ? 'out' : ''}">${out ? 'Out of stock' : 'In stock'}</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('')}</div>`;
-    }
-
-    loadProduct();
+    document.querySelectorAll('.faq-q').forEach(q => {
+        q.addEventListener('click', () => q.parentElement.classList.toggle('open'));
+    });
     </script>
 </body>
 </html>

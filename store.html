@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Store — Volant Mall</title>
-    <meta name="description" content="Browse products from a verified seller on Volant Mall. Shop with Mobile Money or card.">
+    <title>Store — Volant Plaza</title>
+    <meta name="description" content="Browse products from a verified seller on Volant Plaza. Shop with Mobile Money or card.">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Volant Mall">
-    <meta property="og:title" content="Store — Volant Mall">
-    <meta property="og:description" content="Browse products from a verified seller on Volant Mall.">
-    <meta property="og:url" content="https://volantmall.vercel.app/store.html">
+    <meta property="og:site_name" content="Volant Plaza">
+    <meta property="og:title" content="Store — Volant Plaza">
+    <meta property="og:description" content="Browse products from a verified seller on Volant Plaza.">
+    <meta property="og:url" content="https://volantplaza.vercel.app/store.html">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="https://volantmall.vercel.app/store.html">
+    <link rel="canonical" href="https://volantplaza.vercel.app/store.html">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="images/mall-favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,8 +28,8 @@
     <header class="topbar">
         <div class="topbar-inner">
             <a class="logo" href="index.html">
-                <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall Logo">
-                <span class="logo-text"><span class="logo-highlight">Volant</span> Mall</span>
+                <img src="images/volant-plaza-logo.png" alt="Volant Plaza Logo" style="height:40px;width:auto">
+                <span class="logo-text"><span class="logo-highlight">Volant</span> Plaza</span>
             </a>
             <div class="topbar-right">
                 <a class="btn btn-ghost btn-sm" id="sellNavBtn" href="submit.html" onclick="return goSell(event)"><i class="fas fa-store"></i> Sell</a>
@@ -45,11 +45,12 @@
                 </button>
                 <button class="menu-toggle" id="menuToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
                 <nav class="nav-links" id="navLinks">
-                    <a href="index.html"><i class="fas fa-store"></i> Shop Mall</a>
+                    <a href="index.html"><i class="fas fa-store"></i> Shop Plaza</a>
                     <a href="orders.html"><i class="fas fa-receipt"></i> My Orders</a>
                     <a href="submit.html" onclick="return goSell(event)" class="nav-selllink"><i class="fas fa-tag"></i> Sell / Become a Seller</a>
                     <a href="store.html" class="nav-mystore"><i class="fas fa-chart-line"></i> View my store</a>
-                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
+                    <a href="faq.html"><i class="fas fa-question-circle"></i> How it Works</a>
+                    <a href="login.html?platform=mall&redirect=index.html" class="nav-signout" id="mobileSignInBtn" style="display:none;"><i class="fas fa-sign-in-alt"></i> Sign in</a>
                     <a href="#" class="nav-signout" id="mobileSignOutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Sign out</a>
                 </nav>
             </div>
@@ -89,13 +90,13 @@
         <div class="foot-inner">
             <div class="foot-col foot-brand">
                 <div class="fb-logo">
-                    <img src="https://volantpoetry.vercel.app/images/logokk.png" alt="Volant Mall">
-                    <span><span class="logo-highlight">Volant</span> Mall</span>
+                    <img src="images/volant-plaza-logo.png" alt="Volant Plaza" style="height:40px;width:auto">
+                    <span><span class="logo-highlight">Volant</span> Plaza</span>
                 </div>
                 <p>Ghana's marketplace. Shop from creators and independent sellers, or open your own store and get paid securely.</p>
             </div>
             <div class="foot-col">
-                <h4>Volant Mall</h4>
+                <h4>Volant Plaza</h4>
                 <a href="index.html">Shop</a>
                 <a href="submit.html" id="footSellLink" onclick="return goSell(event)">Become a Seller</a>
                 <a href="orders.html">My Orders</a>
@@ -117,7 +118,7 @@
                 <a href="https://volantcodes.vercel.app/">Volant Codes</a>
             </div>
         </div>
-        <div class="foot-copy">© 2026 Volant Foundry · Made for Ghana 🇬🇭</div>
+        <div class="foot-copy">© 2026 Volant Apex Digital · Made for Ghana 🇬🇭</div>
     </footer>
 
     <div id="toast"></div>
@@ -213,7 +214,7 @@
     }
     function tierBadgeHTML(sold) {
         const t = sellerTier(sold);
-        return t ? `<span class="tier-badge ${t.cls}" title="Sells ${sold}+ on Volant Mall"><i class="fas fa-medal"></i> ${t.label}</span>` : '';
+        return t ? `<span class="tier-badge ${t.cls}" title="Sells ${sold}+ on Volant Plaza"><i class="fas fa-medal"></i> ${t.label}</span>` : '';
     }
     function proBadgeHTML(s) {
         if (!s || s.proStore !== true) return '';
@@ -231,7 +232,7 @@
             if (!sellerSnap.exists) { showError('This store does not exist.'); return; }
             const s = sellerSnap.data();
 
-            document.title = (s.storeName || 'Store') + ' — Volant Mall';
+            document.title = (s.storeName || 'Store') + ' — Volant Plaza';
             storeData = s;
 
             db.collection('mall-sellers').doc(storeId).onSnapshot(doc => {
@@ -251,7 +252,7 @@
                         <div class="store-banner-inner">
                             <div class="s-avatar">${s2.logoUrl ? `<img src="${escapeHtml(s2.logoUrl)}" alt="">` : escapeHtml((s2.storeName || 'S').charAt(0).toUpperCase())}</div>
                             <div>
-                                <h1 style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">${escapeHtml(s2.storeName || 'Store')} ${s2.verified ? `<span class="verified-seller" title="Identity verified by Volant Mall"><i class="fas fa-check-circle"></i> Verified</span>` : ''} ${proBadgeHTML(s2)} ${tierBadgeHTML(soldForTier)}</h1>
+                                <h1 style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">${escapeHtml(s2.storeName || 'Store')} ${s2.verified ? `<span class="verified-seller" title="Identity verified by Volant Plaza"><i class="fas fa-check-circle"></i> Verified</span>` : ''} ${proBadgeHTML(s2)} ${tierBadgeHTML(soldForTier)}</h1>
                                 ${s2.bio ? `<div class="s-bio">${escapeHtml(s2.bio)}</div>` : ''}
                                 <div class="s-meta">
                                     ${rc ? `<span class="stars">${starsHTML(ra)} <b>${ra.toFixed(1)}</b> (${rc})</span>` : `<span class="stars off">★★★★★ <span style="color:#e8dfff;">No reviews yet</span></span>`}
@@ -274,6 +275,7 @@
                     products = [];
                     snap.forEach(doc => {
                         const d = doc.data();
+                        if (d.hidden === true) return;
                         products.push({
                             id: doc.id,
                             title: d.title,
@@ -424,14 +426,14 @@
     function msgSellerBtn(s) {
         const wa = sellerWhatsapp(s);
         if (!wa || wa === 'https://wa.me/') return '';
-        const msg = encodeURIComponent('Hi ' + (s.storeName || 'there') + '! I have a question about something in your store on Volant Mall.');
+        const msg = encodeURIComponent('Hi ' + (s.storeName || 'there') + '! I have a question about something in your store on Volant Plaza.');
         return `<a class="btn btn-primary btn-sm" href="${wa}?text=${msg}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Message seller</a>`;
     }
 
     async function shareStore(event) {
         if (event) event.preventDefault();
         const url = location.href;
-        const text = 'Check out ' + ((storeData && storeData.storeName) || 'this store') + ' on Volant Mall!';
+        const text = 'Check out ' + ((storeData && storeData.storeName) || 'this store') + ' on Volant Plaza!';
         try {
             if (navigator.share) { await navigator.share({ title: text, url: url }); return; }
         } catch (e) { /* user cancelled */ }

@@ -2,9 +2,9 @@
 // FILE: api/mall-create-subaccount.js
 // ============================================================
 // Vercel Serverless Function - Create Paystack subaccount for a
-// Volant Mall seller.
-// Uses the Volant Mall Paystack business secret key ONLY, so
-// seller payouts settle under the Volant Mall business.
+// Volant Plaza seller.
+// Uses the Volant Plaza Paystack business secret key ONLY, so
+// seller payouts settle under the Volant Plaza business.
 // (Volant Reads uses api/create-subaccount.js, Volant Lyrics uses
 // lyrics/api/lyrics-create-subaccount.js - each platform keeps its own.)
 // ============================================================
@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
         if (!MALL_PAYSTACK_SECRET_KEY) {
             return res.status(500).json({
                 success: false,
-                message: 'Paystack secret key not configured for Volant Mall'
+                message: 'Paystack secret key not configured for Volant Plaza'
             });
         }
 
@@ -163,11 +163,11 @@ module.exports = async (req, res) => {
             success: true,
             subaccountCode: data.data.subaccount_code,
             subaccountId: data.data.id,
-            message: 'Mall subaccount created successfully'
+            message: 'Plaza subaccount created successfully'
         });
 
     } catch (error) {
-        console.error('Mall subaccount server error:', error);
+        console.error('Plaza subaccount server error:', error);
         return res.status(500).json({
             success: false,
             message: error.message || 'Internal server error'

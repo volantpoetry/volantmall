@@ -1,7 +1,7 @@
 {
-    "name": "Volant Mall — Ghana's marketplace",
-    "short_name": "Volant Mall",
-    "description": "Shop products from Ghanaian creators and independent sellers, or open your own store on Volant Mall.",
+    "name": "Volant Plaza — Ghana's marketplace",
+    "short_name": "Volant Plaza",
+    "description": "Shop products from Ghanaian creators and independent sellers, or open your own store on Volant Plaza.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",

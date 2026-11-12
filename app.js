@@ -1,5 +1,5 @@
 // ============================================================
-// VOLANT MALL — shared runtime (Firebase init, auth, cart, toasts,
+// VOLANT PLAZA — shared runtime (Firebase init, auth, cart, toasts,
 // Paystack config + currency helpers used by every mall page)
 // ============================================================
 
@@ -18,7 +18,7 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 
 // ===== CLOUDINARY (uploads — same CDN as the rest of the platform) =====
-// Mall store logo/banner + product photos use the 'volant_mall' unsigned
+// Plaza store logo/banner + product photos use the 'volant_mall' unsigned
 // preset. 'profile_pics' is used ONLY by user profile/avatar uploads.
 const CLOUDINARY_CONFIG = {
     cloudName: 'dzoq4pgjn',
@@ -46,7 +46,7 @@ async function uploadToCloudinary(file) {
 }
 
 // ===== PAYSTACK =====
-const PAYSTACK_API_BASE = 'https://volantmall.vercel.app/api';
+const PAYSTACK_API_BASE = 'https://volantplaza.vercel.app/api';
 const PAYSTACK_PUBLIC_KEY_FALLBACK = 'pk_test_bba6e3bfb9fefff1b6c49aceb34344c8f92b9499';
 let PAYSTACK_PUBLIC_KEY = '';
 
@@ -145,22 +145,50 @@ function updateNavSellLinks() {
     const links = document.querySelectorAll('.nav-selllink');
     links.forEach(a => {
         if (_isSeller) {
-            a.innerHTML = '<i class="fas fa-chart-line"></i> My Store';
+            a.innerHTML = '<i class="fas fa-store"></i> My Store';
+        a.href = 'store.html?store=' + encodeURIComponent(uid);
+        a.onclick = null;
+            a.href = 'store.html?store=' + encodeURIComponent(currentUser ? currentUser.uid : '');
+            a.onclick = null;
+        } else {
+            a.innerHTML = '<i class="fas fa-tag"></i> Sell / Become a Seller';
+            a.href = 'submit.html';
+            a.onclick = function(e){ return goSell(e); };
         }
     });
-    const heroBtn = document.querySelector('.hero-cta .btn-accent');
+    const heroBtn = document.querySelector('#heroSellBtn') || document.querySelector('.hero-cta .btn-accent');
     if (heroBtn && _isSeller) {
-        heroBtn.innerHTML = '<i class="fas fa-chart-line"></i> Go to My Store';
+        heroBtn.innerHTML = '<i class="fas fa-store"></i> My Store';
+        heroBtn.href = 'store.html?store=' + encodeURIComponent(uid);
+        heroBtn.onclick = null;
+        heroBtn.href = 'store.html?store=' + encodeURIComponent(currentUser ? currentUser.uid : '');
+        heroBtn.onclick = null;
+    } else if (heroBtn && !_isSeller) {
+        heroBtn.innerHTML = '<i class="fas fa-store"></i> Become a Seller';
+        heroBtn.href = 'submit.html';
+        heroBtn.onclick = function(e){ return goSell(e); };
     }
     const footSell = document.getElementById('footSellLink');
     if (footSell && _isSeller) {
         footSell.textContent = 'My Store';
+        footSell.href = 'store.html?store=' + encodeURIComponent(currentUser ? currentUser.uid : '');
+        footSell.onclick = null;
+    } else if (footSell && !_isSeller) {
+        footSell.textContent = 'Sell';
+        footSell.href = 'submit.html';
+        footSell.onclick = function(e){ return goSell(e); };
     }
-    const topSellBtn = document.querySelector('.topbar-right .btn-ghost[href="submit.html"]');
+    const topSellBtn = document.querySelector('#topSellBtn') || document.querySelector('.topbar-right .btn-ghost[href="submit.html"]');
     if (topSellBtn && _isSeller) {
-        topSellBtn.innerHTML = '<i class="fas fa-chart-line"></i> My Store';
-        topSellBtn.href = 'manage.html';
+        topSellBtn.innerHTML = '<i class="fas fa-store"></i> My Store';
+        topSellBtn.href = 'store.html?store=' + encodeURIComponent(uid);
         topSellBtn.onclick = null;
+        topSellBtn.href = 'store.html?store=' + encodeURIComponent(currentUser ? currentUser.uid : '');
+        topSellBtn.onclick = null;
+    } else if (topSellBtn && !_isSeller) {
+        topSellBtn.innerHTML = '<i class="fas fa-store"></i> Sell';
+        topSellBtn.href = 'submit.html';
+        topSellBtn.onclick = function(e){ return goSell(e); };
     }
     const heroStoresEmpty = document.querySelector('.empty-state a[href="submit.html"]');
     if (heroStoresEmpty && _isSeller) {
@@ -249,20 +277,10 @@ function renderAvatar() {
         <hr>
         <button class="acct-item" onclick="shareReferral();"><i class="fas fa-gift"></i> Share & earn</button>
         <button class="acct-item" onclick="toggleAccountMenu(); signOutUser();"><i class="fas fa-sign-out-alt"></i> Sign out</button>
-        <small class="acct-foot">Signed in on Volant Mall</small>`;
+        <small class="acct-foot">Signed in on Volant Plaza</small>`;
 }
 
-function shareReferral() {
-    const base = location.origin || 'https://volantmall.vercel.app';
-    const url = base + '/index.html' + (currentUser ? '?ref=' + encodeURIComponent(currentUser.uid) : '');
-    const text = 'Shop Volant Mall — discover local sellers, fresh products & trusted stores. ' + url;
-    try {
-        if (navigator.share) { navigator.share({ title: 'Volant Mall', text: text, url: url }).catch(() => {}); toggleAccountMenu(); return; }
-    } catch (e) { /* fall through */ }
-    if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(() => {}); }
-    showToast('Referral link copied — earn when friends order 🎁', 'success');
-    toggleAccountMenu();
-}
+
 
 function renderNotifBadge() {
     const bell = document.querySelector('.btn-notif');
@@ -364,9 +382,15 @@ function updateMobileNavAuth() {
     const myStoreLink = document.querySelector('.nav-mystore');
     if (sellLink && myStoreLink) {
         if (currentUser) {
-            sellLink.style.display = 'none';
-            myStoreLink.style.display = '';
-            myStoreLink.href = 'store.html?store=' + encodeURIComponent(currentUser.uid);
+            if (_isSeller) {
+                sellLink.style.display = 'none';
+                myStoreLink.style.display = '';
+                myStoreLink.innerHTML = '<i class="fas fa-store"></i> My Store';
+                myStoreLink.href = 'store.html?store=' + encodeURIComponent(currentUser.uid);
+            } else {
+                sellLink.style.display = '';
+                myStoreLink.style.display = 'none';
+            }
         } else {
             sellLink.style.display = '';
             myStoreLink.style.display = 'none';
@@ -667,7 +691,7 @@ function checkAbandonedCart() {
                 platform: 'mall',
                 type: 'cart_reminder',
                 title: 'Your cart is waiting 🛍️',
-                body: qty + ' item' + (qty === 1 ? '' : 's') + ' (' + titles + (items.length > 2 ? '…' : '') + ') are still in your bag on Volant Mall.',
+                body: qty + ' item' + (qty === 1 ? '' : 's') + ' (' + titles + (items.length > 2 ? '…' : '') + ') are still in your bag on Volant Plaza.',
                 read: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             }).catch(e => console.warn('Cart reminder notif failed:', e))
@@ -685,6 +709,47 @@ function checkAbandonedCart() {
         console.warn('Abandoned cart check error:', e);
     }
 }
+
+// ===== LINK PREFETCH (faster page-to-page navigation) =====
+(function () {
+    if (typeof window === 'undefined' || !('HTMLElement' in window)) return;
+    const seen = new Set();
+    const PREFETCHABLE = /^(index|details|store|orders|notifications|manage|submit|faq|refund|approvals|login|signup)\.html/i;
+    function prefetchLink(a) {
+        try {
+            const href = a.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+            if (!PREFETCHABLE.test(href)) return;
+            if (seen.has(href)) return;
+            seen.add(href);
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = href;
+            link.as = 'document';
+            document.head.appendChild(link);
+        } catch (e) {}
+    }
+    function onInteract(e) {
+        const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+        if (a) prefetchLink(a);
+    }
+    document.addEventListener('pointerover', onInteract, { passive: true });
+    document.addEventListener('touchstart', onInteract, { passive: true });
+    document.addEventListener('focusin', onInteract);
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            ['index.html', 'orders.html', 'notifications.html'].forEach(href => {
+                if (seen.has(href)) return;
+                seen.add(href);
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.href = href;
+                link.as = 'document';
+                document.head.appendChild(link);
+            });
+        }, 1200);
+    });
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCartBadge();
